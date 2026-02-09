@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'Turnero Pro',
     short_name: 'Turnero',
     description: 'Gestión de turnos inteligente para profesionales',
-    start_url: '/t/demo/dashboard', // Point to dashboard for PWA users
+    start_url: '/', // Start at root to avoid 404 if slug is missing or auth is needed
     display: 'standalone',
     background_color: '#ffffff',
     theme_color: '#4f46e5', // indigo-600

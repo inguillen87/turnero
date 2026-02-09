@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { ModeToggle } from '@/components/mode-toggle';
+
+export const dynamic = 'force-static';
 import { Logo } from '@/components/Logo';
 import { ArrowRight, Calendar, Users, BarChart3, Clock, CheckCircle2, Star } from 'lucide-react';
 
