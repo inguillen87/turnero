@@ -11,7 +11,7 @@ export default function TenantLayoutClient({
   slug,
 }: {
   children: React.ReactNode;
-  tenant: { name: string; };
+  tenant: any; // Relaxed type to allow mocks and excess properties
   slug: string;
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -25,9 +25,9 @@ export default function TenantLayoutClient({
       <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 z-20">
          <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-sm">
-               {tenant.name.charAt(0)}
+               {tenant?.name?.charAt(0) || 'T'}
             </div>
-            <span className="font-bold text-slate-800 dark:text-white truncate max-w-[140px]">{tenant.name}</span>
+            <span className="font-bold text-slate-800 dark:text-white truncate max-w-[140px]">{tenant?.name || 'Tenant'}</span>
          </div>
          <button onClick={toggleMenu} className="p-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
             {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -41,10 +41,10 @@ export default function TenantLayoutClient({
       `}>
         <div className="p-6 border-b border-slate-100 dark:border-slate-800 hidden md:flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-lg">
-             {tenant.name.charAt(0)}
+             {tenant?.name?.charAt(0) || 'T'}
           </div>
           <div>
-             <h1 className="font-bold text-slate-800 dark:text-white truncate max-w-[140px]">{tenant.name}</h1>
+             <h1 className="font-bold text-slate-800 dark:text-white truncate max-w-[140px]">{tenant?.name || 'Tenant'}</h1>
              <p className="text-xs text-green-600 flex items-center gap-1 font-medium"><CheckCircle2 className="w-3 h-3" /> Online</p>
           </div>
         </div>
