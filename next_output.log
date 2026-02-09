@@ -10,3 +10,9 @@
 ✓ Starting...
 ✓ Ready in 1731ms
  GET /t/demo/dashboard 200 in 2.4s (compile: 1974ms, render: 471ms)
+ HEAD / 200 in 2.1s (compile: 1095ms, render: 1017ms)
+⚠ Found a change in next.config.mjs. Restarting the server to apply the changes...
+⨯ Failed to load next.config.mjs, see more info here https://nextjs.org/docs/messages/next-config-error
+SyntaxError: Unexpected token '{'
+    at ignore-listed frames
+[?25h
