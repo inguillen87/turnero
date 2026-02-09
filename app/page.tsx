@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import { ModeToggle } from '@/components/mode-toggle';
+import { WhatsAppDemo } from '@/components/WhatsAppDemo';
 
 export const dynamic = 'force-static';
 import { Logo } from '@/components/Logo';
-import { ArrowRight, Calendar, Users, BarChart3, Clock, CheckCircle2, Star } from 'lucide-react';
+import { ArrowRight, Calendar, Users, BarChart3, Clock, CheckCircle2, Star, MessageSquare, Briefcase, Zap } from 'lucide-react';
 
 export default function LandingPage() {
   return (
@@ -23,133 +24,151 @@ export default function LandingPage() {
             </Link>
             <Link
               href="/t/demo/dashboard"
-              className="text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-full transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40"
+              className="text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-full transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40"
             >
-              Demo Gratis
+              Demo en Vivo
             </Link>
           </div>
         </div>
       </header>
 
-      <main className="flex-1">
+      <main className="flex-1 relative">
+        <WhatsAppDemo />
         {/* Hero Section */}
         <section className="relative py-20 lg:py-32 overflow-hidden">
           <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-200/40 via-slate-50 to-slate-50 dark:from-indigo-900/20 dark:via-slate-950 dark:to-slate-950 blur-3xl opacity-50"></div>
 
           <div className="container mx-auto px-4 text-center">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 text-xs font-bold uppercase tracking-wider mb-6 border border-indigo-100 dark:border-indigo-800 animate-fade-in">
-              <Star className="w-3 h-3 fill-current" /> Nuevo Sistema 2.0
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 text-xs font-bold uppercase tracking-wider mb-8 border border-indigo-100 dark:border-indigo-800 animate-fade-in shadow-sm">
+              <Star className="w-3 h-3 fill-current" /> La Solución Definitiva B2B
             </div>
 
-            <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-b from-slate-800 to-slate-600 dark:from-white dark:to-slate-400 drop-shadow-sm animate-fade-in">
-              Gestiona tu negocio,<br className="hidden md:block"/> <span className="text-indigo-600 dark:text-indigo-500">no tu agenda.</span>
+            <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-8 bg-clip-text text-transparent bg-gradient-to-b from-slate-900 via-slate-700 to-slate-500 dark:from-white dark:via-slate-200 dark:to-slate-400 drop-shadow-sm animate-fade-in leading-tight">
+              Escala tu negocio con<br className="hidden md:block"/> <span className="text-indigo-600 dark:text-indigo-500">tecnología de clase mundial.</span>
             </h1>
 
-            <p className="text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed animate-fade-in delay-100">
-              La plataforma todo-en-uno para profesionales independientes y clínicas.
-              Turnos, recordatorios por WhatsApp y reportes financieros en un solo lugar.
+            <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto mb-12 leading-relaxed animate-fade-in delay-100 font-medium">
+              Olvida las limitaciones. Obtén un CRM completo, agenda inteligente y automatización por WhatsApp en una sola plataforma robusta.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in delay-200">
               <Link
                 href="/t/demo/dashboard"
-                className="w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-xl shadow-indigo-600/20 hover:shadow-indigo-600/40 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-lg rounded-2xl shadow-xl shadow-indigo-600/30 hover:shadow-indigo-600/50 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-3"
               >
-                Empezar Ahora <ArrowRight className="w-5 h-5" />
+                Solicitar Acceso <ArrowRight className="w-6 h-6" />
               </Link>
               <Link
                 href="#features"
-                className="w-full sm:w-auto px-8 py-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-white font-semibold rounded-xl transition-all"
+                className="w-full sm:w-auto px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-lg rounded-2xl transition-all shadow-sm hover:shadow-md"
               >
-                Ver Funcionalidades
+                Explorar Features
               </Link>
-            </div>
-
-            {/* Social Proof / Trust */}
-            <div className="mt-12 flex flex-col items-center gap-2 text-sm text-slate-500 animate-fade-in delay-300">
-              <div className="flex -space-x-2">
-                 {[1,2,3,4].map(i => (
-                    <div key={i} className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white dark:border-slate-900 overflow-hidden">
-                       <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i}`} alt="User" />
-                    </div>
-                 ))}
-              </div>
-              <p>Más de <span className="font-bold text-slate-800 dark:text-white">500+ profesionales</span> confían en nosotros.</p>
             </div>
           </div>
         </section>
 
-        {/* Features Section */}
-        <section id="features" className="py-24 bg-slate-50 dark:bg-slate-900 relative">
+        {/* Features Grid */}
+        <section id="features" className="py-24 bg-white dark:bg-slate-900/50 relative border-y border-slate-100 dark:border-slate-800">
           <div className="container mx-auto px-4">
-             <div className="text-center max-w-3xl mx-auto mb-16">
-               <h2 className="text-3xl md:text-4xl font-bold mb-4">Todo lo que necesitas para crecer</h2>
-               <p className="text-slate-600 dark:text-slate-400 text-lg">Deja de perder tiempo en WhatsApp coordinando horarios. Automatiza tu flujo de trabajo.</p>
+             <div className="text-center max-w-3xl mx-auto mb-20">
+               <h2 className="text-3xl md:text-5xl font-bold mb-6 tracking-tight text-slate-900 dark:text-white">Potencia sin límites</h2>
+               <p className="text-slate-600 dark:text-slate-400 text-lg md:text-xl">Diseñado para clínicas, centros de estética y profesionales que no se conforman con herramientas básicas.</p>
              </div>
 
              <div className="grid md:grid-cols-3 gap-8">
                 <FeatureCard
                   icon={<Calendar className="w-8 h-8 text-indigo-500" />}
-                  title="Agenda Inteligente"
-                  description="Visualiza tu semana de un vistazo. Arrastra y suelta turnos, bloquea horarios y evita superposiciones."
+                  title="Agenda Avanzada"
+                  description="Gestión multi-profesional, bloqueo de horarios, reglas de disponibilidad complejas y vista semanal/mensual fluida."
                 />
                 <FeatureCard
-                  icon={<Users className="w-8 h-8 text-pink-500" />}
-                  title="Gestión de Pacientes"
-                  description="Historial completo de visitas, notas privadas y datos de contacto. Conoce a tus clientes como nunca antes."
+                  icon={<MessageSquare className="w-8 h-8 text-green-500" />}
+                  title="WhatsApp Automation"
+                  description="Confirmaciones, recordatorios y seguimientos automáticos. Reduce el ausentismo a cero sin mover un dedo."
                 />
                 <FeatureCard
-                  icon={<Clock className="w-8 h-8 text-emerald-500" />}
-                  title="Recordatorios Auto"
-                  description="Reduce el ausentismo hasta un 80% con recordatorios automáticos por WhatsApp y Email."
+                  icon={<Briefcase className="w-8 h-8 text-blue-500" />}
+                  title="CRM Profesional"
+                  description="Perfil 360° de cada paciente. Historial clínico, preferencias, notas privadas y ciclo de vida del cliente."
                 />
                 <FeatureCard
                   icon={<BarChart3 className="w-8 h-8 text-orange-500" />}
-                  title="Reportes Financieros"
-                  description="Entiende tus ingresos diarios, semanales y mensuales. Toma decisiones basadas en datos reales."
+                  title="Analytics & ROI"
+                  description="Reportes financieros detallados. Conoce tu facturación, tasa de ocupación y rendimiento por profesional."
+                />
+                 <FeatureCard
+                  icon={<Zap className="w-8 h-8 text-yellow-500" />}
+                  title="Velocidad Rayo"
+                  description="Infraestructura Serverless de última generación. Carga instantánea, sin esperas, 99.9% uptime garantizado."
+                />
+                 <FeatureCard
+                  icon={<Users className="w-8 h-8 text-pink-500" />}
+                  title="Multi-Tenant Real"
+                  description="Gestiona múltiples sucursales o franquicias desde un solo panel maestro. Escalabilidad infinita."
                 />
              </div>
           </div>
         </section>
 
-        {/* Pricing Preview */}
-        <section className="py-24">
+        {/* Pricing Section (Single Premium Plan) */}
+        <section className="py-32 relative overflow-hidden">
+           <div className="absolute inset-0 -z-10 bg-slate-50 dark:bg-slate-950"></div>
            <div className="container mx-auto px-4">
              <div className="text-center mb-16">
-               <h2 className="text-3xl font-bold mb-4">Planes Simples</h2>
-               <p className="text-slate-600 dark:text-slate-400">Sin comisiones por turno. Solo una suscripción mensual fija.</p>
+               <h2 className="text-3xl md:text-5xl font-bold mb-6 text-slate-900 dark:text-white tracking-tight">Un Plan. Todo Incluido.</h2>
+               <p className="text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">Sin letras chicas. Sin límites artificiales. Accede a la plataforma completa.</p>
              </div>
 
-             <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-8">
-                <div className="p-8 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col">
-                   <h3 className="text-xl font-bold text-slate-500">Starter</h3>
-                   <div className="text-4xl font-extrabold my-4">$0 <span className="text-base font-medium text-slate-400">/mes</span></div>
-                   <p className="text-slate-600 dark:text-slate-400 mb-6">Ideal para empezar a organizar tu consultorio.</p>
-                   <ul className="space-y-3 mb-8 flex-1">
-                      <li className="flex items-center gap-2"><CheckCircle2 className="w-5 h-5 text-green-500"/> 1 Profesional</li>
-                      <li className="flex items-center gap-2"><CheckCircle2 className="w-5 h-5 text-green-500"/> 100 Turnos/mes</li>
-                      <li className="flex items-center gap-2"><CheckCircle2 className="w-5 h-5 text-green-500"/> Agenda Básica</li>
-                   </ul>
-                   <button className="w-full py-3 rounded-xl border border-slate-200 dark:border-slate-700 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Comenzar Gratis</button>
-                </div>
+             <div className="max-w-lg mx-auto">
+                <div className="relative p-10 rounded-[2.5rem] border-2 border-indigo-500 bg-slate-900 text-white flex flex-col shadow-2xl shadow-indigo-500/20 transform hover:scale-[1.02] transition-transform duration-300">
+                   {/* Badge */}
+                   <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-bold px-6 py-2 rounded-full shadow-lg uppercase tracking-wider">
+                     Edición Enterprise
+                   </div>
 
-                <div className="p-8 rounded-3xl border-2 border-indigo-500 bg-slate-900 text-white relative flex flex-col shadow-2xl shadow-indigo-500/20">
-                   <div className="absolute top-0 right-0 bg-indigo-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl rounded-tr-xl">POPULAR</div>
-                   <h3 className="text-xl font-bold text-indigo-300">Pro</h3>
-                   <div className="text-4xl font-extrabold my-4">$29 <span className="text-base font-medium text-indigo-200">/mes</span></div>
-                   <p className="text-indigo-100 mb-6">Para clínicas y profesionales con alto volumen.</p>
-                   <ul className="space-y-3 mb-8 flex-1 text-slate-300">
-                      <li className="flex items-center gap-2"><CheckCircle2 className="w-5 h-5 text-indigo-400"/> Profesionales Ilimitados</li>
-                      <li className="flex items-center gap-2"><CheckCircle2 className="w-5 h-5 text-indigo-400"/> Turnos Ilimitados</li>
-                      <li className="flex items-center gap-2"><CheckCircle2 className="w-5 h-5 text-indigo-400"/> Recordatorios WhatsApp</li>
-                      <li className="flex items-center gap-2"><CheckCircle2 className="w-5 h-5 text-indigo-400"/> Soporte Prioritario</li>
+                   <div className="text-center mb-10 mt-4">
+                       <h3 className="text-2xl font-bold text-indigo-300 mb-2">Full Pro Access</h3>
+                       <div className="flex items-baseline justify-center gap-1">
+                          <span className="text-6xl font-black tracking-tighter">$300</span>
+                          <span className="text-lg text-indigo-200 font-medium">/mes</span>
+                       </div>
+                       <p className="text-indigo-100/80 mt-4">Facturación anual disponible</p>
+                   </div>
+
+                   <ul className="space-y-5 mb-10 flex-1">
+                      <PricingItem text="Usuarios Profesionales Ilimitados" />
+                      <PricingItem text="Turnos & Pacientes Ilimitados" />
+                      <PricingItem text="WhatsApp Bot & Recordatorios" />
+                      <PricingItem text="CRM & Historial Clínico Completo" />
+                      <PricingItem text="Reportes Financieros Exportables" />
+                      <PricingItem text="Soporte Prioritario 24/7" />
+                      <PricingItem text="Onboarding Personalizado" />
                    </ul>
-                   <button className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold transition-colors shadow-lg shadow-indigo-600/40">Obtener Pro</button>
+
+                   <button className="w-full py-4 rounded-xl bg-white text-indigo-900 font-black text-lg hover:bg-indigo-50 transition-colors shadow-lg hover:shadow-xl flex items-center justify-center gap-2">
+                      Contratar Ahora <ArrowRight className="w-5 h-5" />
+                   </button>
+
+                   <p className="text-center text-xs text-indigo-300/50 mt-6">Garantía de satisfacción de 30 días.</p>
                 </div>
              </div>
            </div>
         </section>
-      </main>
+
+         {/* Social Proof Footer */}
+        <section className="py-20 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+            <div className="container mx-auto px-4 text-center">
+                 <p className="text-slate-500 font-semibold uppercase tracking-widest mb-8 text-sm">Empresas líderes que confían en Turnero Pro</p>
+                 <div className="flex flex-wrap justify-center gap-8 md:gap-16 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
+                     {/* Fake Logos for Demo */}
+                     <div className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-2"><Zap className="fill-current"/> DENTAL<span className="text-indigo-500">CORP</span></div>
+                     <div className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-2"><Star className="fill-current"/> MEDI<span className="text-indigo-500">PLUS</span></div>
+                     <div className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-2"><Briefcase className="fill-current"/> CLINIC<span className="text-indigo-500">OS</span></div>
+                     <div className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-2"><Users className="fill-current"/> ESTETICA<span className="text-indigo-500">PRO</span></div>
+                 </div>
+            </div>
+        </section>
 
       <footer className="bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 py-12">
         <div className="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-6">
@@ -158,9 +177,9 @@ export default function LandingPage() {
             © {new Date().getFullYear()} Turnero Pro. Todos los derechos reservados.
           </div>
           <div className="flex gap-6">
-            <a href="#" className="text-slate-500 hover:text-indigo-600">Términos</a>
-            <a href="#" className="text-slate-500 hover:text-indigo-600">Privacidad</a>
-            <a href="#" className="text-slate-500 hover:text-indigo-600">Contacto</a>
+            <a href="#" className="text-slate-500 hover:text-indigo-600 transition-colors">Términos</a>
+            <a href="#" className="text-slate-500 hover:text-indigo-600 transition-colors">Privacidad</a>
+            <a href="#" className="text-slate-500 hover:text-indigo-600 transition-colors">Contacto</a>
           </div>
         </div>
       </footer>
@@ -170,10 +189,21 @@ export default function LandingPage() {
 
 function FeatureCard({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) {
   return (
-    <div className="p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 hover:shadow-xl hover:shadow-slate-200/50 dark:hover:shadow-slate-900/50 transition-all group">
-      <div className="mb-4 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 w-fit group-hover:scale-110 transition-transform">{icon}</div>
-      <h3 className="text-xl font-bold mb-2">{title}</h3>
-      <p className="text-slate-600 dark:text-slate-400 leading-relaxed">{description}</p>
+    <div className="p-8 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 hover:bg-white dark:hover:bg-slate-800 hover:shadow-2xl hover:shadow-slate-200/50 dark:hover:shadow-slate-900/50 hover:-translate-y-1 transition-all duration-300 group">
+      <div className="mb-6 p-4 rounded-2xl bg-white dark:bg-slate-900 w-fit shadow-sm group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 border border-slate-100 dark:border-slate-700">{icon}</div>
+      <h3 className="text-2xl font-bold mb-3 text-slate-900 dark:text-white">{title}</h3>
+      <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-base">{description}</p>
     </div>
   )
+}
+
+function PricingItem({ text }: { text: string }) {
+    return (
+        <li className="flex items-center gap-3 text-indigo-100">
+            <div className="p-1 rounded-full bg-indigo-500/20 text-indigo-400">
+                <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <span className="font-medium">{text}</span>
+        </li>
+    )
 }

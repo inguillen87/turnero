@@ -1,0 +1,150 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum GlobalRole {
+  SUPER_ADMIN
+  USER
+}
+
+enum TenantRole {
+  OWNER
+  ADMIN
+  STAFF
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  DONE
+  NO_SHOW
+}
+
+model User {
+  id          String     @id @default(cuid())
+  email       String     @unique
+  name        String?
+  passwordHash String
+  globalRole  GlobalRole @default(USER)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  tenantLinks TenantUser[]
+}
+
+model Tenant {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  status    String   @default("active")
+  plan      String   @default("demo")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users         TenantUser[]
+  customers     Customer[]
+  professionals Professional[]
+  services      Service[]
+  appointments  Appointment[]
+  messages      Message[]
+}
+
+model TenantUser {
+  id        String     @id @default(cuid())
+  tenantId  String
+  userId    String
+  role      TenantRole @default(STAFF)
+  createdAt DateTime   @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@index([tenantId])
+  @@index([userId])
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  phone     String?
+  email     String?
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@index([tenantId])
+}
+
+model Professional {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  specialty String?
+  active    Boolean  @default(true)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@index([tenantId])
+}
+
+model Service {
+  id          String  @id @default(cuid())
+  tenantId    String
+  name        String
+  durationMin Int
+  priceCents  Int
+  active      Boolean @default(true)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@index([tenantId])
+}
+
+model Appointment {
+  id             String            @id @default(cuid())
+  tenantId       String
+  customerId     String
+  professionalId String
+  serviceId      String
+  startAt        DateTime
+  endAt          DateTime
+  status         AppointmentStatus @default(PENDING)
+  notes          String?
+
+  createdAt DateTime @default(now())
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer     Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  professional Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  service      Service      @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, startAt])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  tenantId  String
+  channel   String   // "whatsapp_demo" | "web_demo"
+  from      String   // "user" | "bot"
+  body      String
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
+}
