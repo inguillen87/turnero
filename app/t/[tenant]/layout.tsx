@@ -10,7 +10,8 @@ export default async function TenantLayout({
 }) {
   const { tenant: slug } = await params;
 
-  let tenant;
+  // Explicitly type tenant as any or a loose shape to allow the mock fallback
+  let tenant: any;
   try {
      tenant = await prisma.tenant.findUnique({
        where: { slug },
