@@ -1,51 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
-import { getTenant } from "@/lib/tenant";
-import { z } from "zod";
 
-const serviceSchema = z.object({
-  name: z.string().min(1),
-  durationMin: z.number().int().positive(),
-  price: z.number().min(0),
-  active: z.boolean().optional(),
-});
+const MOCK_SERVICES = [
+    { id: "1", name: "Consulta", durationMin: 30, price: 15000, active: true },
+    { id: "2", name: "Limpieza", durationMin: 45, price: 25000, active: true },
+    { id: "3", name: "Blanqueamiento", durationMin: 60, price: 50000, active: true },
+];
 
 export async function GET(req: NextRequest) {
-  const tenant = await getTenant();
-  if (!tenant) {
-    return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
-  }
-
-  const services = await prisma.service.findMany({
-    where: { tenantId: tenant.id },
-  });
-
-  return NextResponse.json(services);
+  return NextResponse.json(MOCK_SERVICES);
 }
 
 export async function POST(req: NextRequest) {
-  const tenant = await getTenant();
-  if (!tenant) {
-    return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
-  }
-
-  try {
-    const body = await req.json();
-    const data = serviceSchema.parse(body);
-
-    const service = await prisma.service.create({
-      data: {
-        name: data.name,
-        durationMin: data.durationMin,
-        price: data.price,
-        active: data.active ?? true,
-        tenantId: tenant.id,
-      },
-    });
-
-    return NextResponse.json(service, { status: 201 });
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: "Invalid data" }, { status: 400 });
-  }
+  return NextResponse.json({ message: "Mock create service" }, { status: 201 });
 }

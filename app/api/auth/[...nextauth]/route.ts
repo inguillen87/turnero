@@ -1,7 +1,16 @@
 import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
-import prisma from "@/lib/prisma";
+
+// Mock User
+const MOCK_USER = {
+  id: "mock-user-id",
+  email: "admin@turnero.com",
+  passwordHash: "$2b$10$GoeC/sBkiQoNFVu2s22NkO02mf2r8e.z7gMXbwK7o6IUgRhx4U0Ba", // "password"
+  name: "Admin User",
+  role: "admin",
+  tenantId: "demo-tenant-id"
+};
 
 const authOptions: NextAuthOptions = {
   providers: [
@@ -16,28 +25,22 @@ const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email,
-          },
-        });
-
-        if (!user || !user.passwordHash) {
-          return null;
+        if (credentials.email !== MOCK_USER.email) {
+            return null;
         }
 
-        const isValid = await compare(credentials.password, user.passwordHash);
+        const isValid = await compare(credentials.password, MOCK_USER.passwordHash);
 
         if (!isValid) {
           return null;
         }
 
         return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          tenantId: user.tenantId,
+          id: MOCK_USER.id,
+          name: MOCK_USER.name,
+          email: MOCK_USER.email,
+          role: MOCK_USER.role,
+          tenantId: MOCK_USER.tenantId,
         };
       }
     })
