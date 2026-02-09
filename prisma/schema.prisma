@@ -44,6 +44,7 @@ model Tenant {
   availabilityRules AvailabilityRule[]
   usage         TenantUsage[]
   auditLogs     AuditLog[]
+  integrations  Integration[]
 }
 
 // Billing / Features
@@ -113,6 +114,8 @@ model Customer {
 
   tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   appointments Appointment[]
+  messages     Message[]
+  metadata     String?       // JSON: { "state": "SELECT_SERVICE", "temp_data": {...} }
 
   @@index([tenantId])
 }
@@ -199,10 +202,26 @@ model Message {
   status        String   // "sent", "delivered", "read", "failed"
   createdAt     DateTime @default(now())
 
+  customerId    String?
   tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   appointment Appointment? @relation(fields: [appointmentId], references: [id])
+  customer    Customer?    @relation(fields: [customerId], references: [id])
 
   @@index([tenantId, createdAt])
+}
+
+model Integration {
+  id        String   @id @default(cuid())
+  tenantId  String
+  type      String   // "google_calendar", "whatsapp"
+  status    String   // "active", "disconnected"
+  config    String?  // JSON: { accessToken, refreshToken, calendarId }
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
 }
 
 model AuditLog {
