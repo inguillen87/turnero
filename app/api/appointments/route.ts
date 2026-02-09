@@ -1,28 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAppointments, createAppointment } from "@/lib/db";
+import { z } from "zod";
+import { parseISO } from "date-fns";
 
-const MOCK_APPOINTMENTS = [
-    {
-        id: "1",
-        startAt: new Date().toISOString(),
-        clientName: "Juan Perez",
-        status: "confirmed",
-        service: { name: "Consulta", price: 15000 },
-        staff: { name: "Dr. Roberto" }
-    },
-    {
-        id: "2",
-        startAt: new Date(Date.now() + 3600000).toISOString(),
-        clientName: "Maria Garcia",
-        status: "pending",
-        service: { name: "Limpieza", price: 25000 },
-        staff: { name: "Dra. Ana" }
-    }
-];
+export const runtime = "nodejs";
+
+const appointmentSchema = z.object({
+  staffId: z.string().min(1),
+  serviceId: z.string().min(1),
+  clientId: z.string().optional(),
+  clientName: z.string().optional(),
+  clientPhone: z.string().optional(),
+  startAt: z.string().datetime(), // ISO string
+  notes: z.string().optional(),
+});
 
 export async function GET(req: NextRequest) {
-  return NextResponse.json(MOCK_APPOINTMENTS);
+  const slug = req.headers.get("x-tenant-slug") || "demo";
+  const { searchParams } = new URL(req.url);
+  const from = searchParams.get("from");
+  const to = searchParams.get("to");
+
+  const appointments = await getAppointments(slug, { from, to });
+  return NextResponse.json(appointments);
 }
 
 export async function POST(req: NextRequest) {
-  return NextResponse.json({ message: "Mock create appointment" }, { status: 201 });
+  const slug = req.headers.get("x-tenant-slug") || "demo";
+  try {
+    const body = await req.json();
+    const data = appointmentSchema.parse(body);
+    const appointment = await createAppointment(slug, data);
+    return NextResponse.json(appointment, { status: 201 });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Invalid data" }, { status: 400 });
+  }
 }
