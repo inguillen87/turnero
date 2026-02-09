@@ -1,6 +1,7 @@
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import type { Metadata, Viewport } from "next";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -8,10 +9,28 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta-sans",
 });
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Turnero Pro - Gestiona tu negocio, no tu agenda",
   description: "El sistema de gestión de turnos definitivo para profesionales.",
+  applicationName: "Turnero Pro",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Turnero Pro",
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
+
+export const viewport: Viewport = {
+  themeColor: "#4f46e5",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false, // For app-like feel
+  viewportFit: "cover",
+}
 
 export default function RootLayout({
   children,
