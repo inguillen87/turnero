@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getTenantBySlug } from '@/lib/tenant';
 
+export const runtime = "nodejs";
+
 // This is the "Brain" of the Demo Chat
 export async function POST(req: Request) {
   try {
