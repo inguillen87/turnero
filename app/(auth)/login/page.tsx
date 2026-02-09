@@ -23,7 +23,7 @@ export default function LoginPage() {
     if (res?.error) {
       setError("Credenciales inválidas");
     } else {
-      router.push("/dashboard");
+      router.push("/t/demo/dashboard");
       router.refresh();
     }
   };
