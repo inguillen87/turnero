@@ -2,11 +2,20 @@ import Link from 'next/link';
 import { prisma } from '@/lib/db';
 import { Users, Building, CreditCard, Activity, ArrowRight } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default async function SuperAdminDashboard() {
-  const tenants = await prisma.tenant.findMany({
-    include: { plan: true, _count: { select: { users: true, appointments: true } } },
-    orderBy: { createdAt: 'desc' },
-  });
+  let tenants: any[] = [];
+  try {
+     tenants = await prisma.tenant.findMany({
+       include: { plan: true, _count: { select: { users: true, appointments: true } } },
+       orderBy: { createdAt: 'desc' },
+     });
+  } catch (e) {
+      console.warn("DB connection failed in /sa/page, likely build time or no DB configured.", e);
+      // Return empty or mock for build
+      tenants = [];
+  }
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900 font-sans">
@@ -45,9 +54,9 @@ export default async function SuperAdminDashboard() {
         {/* KPIs */}
         <div className="grid grid-cols-4 gap-6 mb-8">
            <KpiCard title="Total Tenants" value={tenants.length} change="+2 this week" />
-           <KpiCard title="Total Users" value={tenants.reduce((acc, t) => acc + t._count.users, 0)} change="+15 this week" />
-           <KpiCard title="Active Appointments" value={tenants.reduce((acc, t) => acc + t._count.appointments, 0)} change="+120 today" />
-           <KpiCard title="MRR (Est)" value={`$${tenants.reduce((acc, t) => acc + (t.plan?.priceCents || 0), 0) / 100}`} change="+5% vs last month" />
+           <KpiCard title="Total Users" value={tenants.reduce((acc: any, t: any) => acc + t._count.users, 0)} change="+15 this week" />
+           <KpiCard title="Active Appointments" value={tenants.reduce((acc: any, t: any) => acc + t._count.appointments, 0)} change="+120 today" />
+           <KpiCard title="MRR (Est)" value={`$${tenants.reduce((acc: any, t: any) => acc + (t.plan?.priceCents || 0), 0) / 100}`} change="+5% vs last month" />
         </div>
 
         {/* Recent Tenants Table */}
@@ -68,7 +77,7 @@ export default async function SuperAdminDashboard() {
                </tr>
              </thead>
              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-               {tenants.map((t) => (
+               {tenants.map((t: any) => (
                  <tr key={t.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                    <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">
                       <div>{t.name}</div>
@@ -89,6 +98,11 @@ export default async function SuperAdminDashboard() {
                    </td>
                  </tr>
                ))}
+               {tenants.length === 0 && (
+                   <tr>
+                       <td colSpan={6} className="text-center py-8 text-slate-500">No tenants found (or DB not connected)</td>
+                   </tr>
+               )}
              </tbody>
            </table>
         </div>
