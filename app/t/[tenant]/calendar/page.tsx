@@ -1,6 +1,8 @@
 import { Calendar, Plus } from 'lucide-react';
 
-export default function CalendarPage({ params }: { params: { tenant: string } }) {
+export default async function CalendarPage({ params }: { params: Promise<{ tenant: string }> }) {
+  const { tenant } = await params;
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -13,7 +15,7 @@ export default function CalendarPage({ params }: { params: { tenant: string } })
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 h-[600px] flex items-center justify-center text-slate-400 flex-col gap-4">
          <Calendar className="w-16 h-16 text-indigo-100 dark:text-slate-800" />
          <p>Vista de Calendario (Próximamente)</p>
-         <p className="text-xs">Aquí se mostrarán los turnos de {params.tenant}</p>
+         <p className="text-xs">Aquí se mostrarán los turnos de {tenant}</p>
       </div>
     </div>
   )
