@@ -23,10 +23,10 @@ export default function LandingPage() {
               Iniciar Sesión
             </Link>
             <Link
-              href="/t/demo/dashboard"
-              className="text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-full transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40"
+              href="/demo/clinica"
+              className="text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-full transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 animate-pulse"
             >
-              Demo en Vivo
+              Probar Demo
             </Link>
           </div>
         </div>
@@ -53,10 +53,10 @@ export default function LandingPage() {
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in delay-200">
               <Link
-                href="/t/demo/dashboard"
+                href="/demo/clinica"
                 className="w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-lg rounded-2xl shadow-xl shadow-indigo-600/30 hover:shadow-indigo-600/50 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-3"
               >
-                Solicitar Acceso <ArrowRight className="w-6 h-6" />
+                Probar Demo Interactiva <MessageSquare className="w-6 h-6" />
               </Link>
               <Link
                 href="#features"
@@ -169,6 +169,7 @@ export default function LandingPage() {
                  </div>
             </div>
         </section>
+      </main>
 
       <footer className="bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 py-12">
         <div className="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-6">

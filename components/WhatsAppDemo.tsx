@@ -54,7 +54,7 @@ export function WhatsAppDemo({ onBooking }: { onBooking?: (data: any) => void })
     setInput("");
 
     // Simulate Bot Response
-    setTimeout(() => {
+    setTimeout(async () => {
       let botMsg: Message = {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
