@@ -16,3 +16,4 @@ DB Connection failed, using mock tenant for layout
 DB Connection failed, using mock tenant for layout
 DB Connection failed in ClientsPage, using mock data
  GET /t/demo-tenant/clients 200 in 8.7s (compile: 8.0s, proxy.ts: 7ms, render: 700ms)
+  Reload env: .env
