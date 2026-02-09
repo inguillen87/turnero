@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { format } from "date-fns";
 import { Calendar, Users, BarChart3, CheckCircle2 } from "lucide-react";
 import { WhatsAppSimulator } from "@/components/demo/WhatsAppSimulator";
 import { DemoAgenda } from "@/components/demo/DemoAgenda";
+import { ClientDate } from "@/components/ui/ClientDate";
 
 export default function DemoPage() {
   const [appointments, setAppointments] = useState<any[]>([]);
@@ -58,7 +58,7 @@ export default function DemoPage() {
                <span className="font-bold text-slate-700">Turnero Pro <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded ml-2">DEMO LIVE</span></span>
             </div>
             <div className="flex items-center gap-4 text-sm text-slate-500">
-               <span>{format(new Date(), 'EEEE, d MMMM')}</span>
+               <ClientDate />
                <div className="w-8 h-8 rounded-full bg-slate-200 border border-slate-300"></div>
             </div>
          </div>
