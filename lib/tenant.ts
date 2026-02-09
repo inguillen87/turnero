@@ -1,7 +1,7 @@
-export async function getTenantSlug() {
-  return "demo";
-}
+import { prisma } from "@/lib/db";
 
-export async function getTenant() {
-  return { id: "demo-tenant-id", slug: "demo", name: "Demo Clinic" };
+export async function getTenantBySlug(slug: string) {
+  return await prisma.tenant.findUnique({
+    where: { slug },
+  });
 }
