@@ -1,10 +1,44 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #f8fafc;
-  --foreground: #1e293b;
-  --primary: #2563eb;
-  --primary-dark: #1e40af;
+  --background: #f8fafc; /* Slate-50 */
+  --foreground: #0f172a; /* Slate-900 */
+
+  --primary: #4f46e5; /* Indigo-600 */
+  --primary-dark: #4338ca; /* Indigo-700 */
+
+  --secondary: #64748b; /* Slate-500 */
+  --muted: #f1f5f9; /* Slate-100 */
+
+  --border: #e2e8f0; /* Slate-200 */
+}
+
+/* Support for dark mode via class (next-themes) OR media query */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #020617;
+    --foreground: #f8fafc;
+    --primary: #6366f1;
+    --primary-dark: #818cf8;
+    --secondary: #94a3b8;
+    --muted: #1e293b;
+    --border: #1e293b;
+  }
+}
+
+.dark {
+  --background: #020617; /* Slate-950 */
+  --foreground: #f8fafc; /* Slate-50 */
+
+  --primary: #6366f1; /* Indigo-500 */
+  --primary-dark: #818cf8; /* Indigo-400 */
+
+  --secondary: #94a3b8; /* Slate-400 */
+  --muted: #1e293b; /* Slate-800 */
+
+  --border: #1e293b; /* Slate-800 */
 }
 
 @theme inline {
@@ -17,13 +51,6 @@
   --color-primary-dark: var(--primary-dark);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f172a;
-    --foreground: #f1f5f9;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
@@ -33,31 +60,42 @@ body {
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-.dark ::-webkit-scrollbar-thumb { background: #475569; }
+.dark ::-webkit-scrollbar-thumb { background: #334155; }
 
 .glass-card {
-    background: white;
-    border: 1px solid #e2e8f0;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
     box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
-    border-radius: 20px;
-    transition: background-color 0.3s, border-color 0.3s;
+    border-radius: 16px;
+    transition: all 0.3s ease-in-out;
 }
 .dark .glass-card {
-    background: #1e293b;
-    border-color: #334155;
+    background: rgba(15, 23, 42, 0.6);
+    border-color: var(--border);
     box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.3);
 }
 
 .btn-primary {
     background-color: var(--primary);
     color: white;
-    padding: 0.5rem 1rem;
+    padding: 0.75rem 1.5rem;
     border-radius: 0.75rem;
     font-weight: 600;
     transition: all 0.2s;
-    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+    box-shadow: 0 4px 10px -2px rgba(79, 70, 229, 0.3);
 }
 .btn-primary:hover {
     background-color: var(--primary-dark);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px -3px rgba(79, 70, 229, 0.4);
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
