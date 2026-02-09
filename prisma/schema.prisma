@@ -1,0 +1,152 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------------
+// Core Models (Tenant, User, Plan)
+// -----------------------------------------------------------------------------
+
+model Tenant {
+  id          String   @id @default(cuid())
+  slug        String   @unique // e.g., "demo-clinica"
+  name        String
+  status      String   @default("active") // active, suspended
+  planId      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users             User[]
+  services          Service[]
+  professionals     Professional[]
+  appointments      Appointment[]
+  clients           Client[]
+  locations         Location[]
+  availabilityRules AvailabilityRule[]
+  messages          Message[]
+
+  @@index([slug])
+}
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  name           String?
+  hashedPassword String
+  role           String   @default("STAFF") // OWNER, ADMIN, STAFF, PROFESSIONAL
+  tenantId       String?
+  tenant         Tenant?  @relation(fields: [tenantId], references: [id])
+  createdAt      DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+// -----------------------------------------------------------------------------
+// Business Logic (Services, Pros, Locations)
+// -----------------------------------------------------------------------------
+
+model Location {
+  id        String   @id @default(cuid())
+  name      String
+  address   String?
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  name        String
+  durationMin Int
+  price       Decimal
+  active      Boolean  @default(true)
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  appointments Appointment[]
+}
+
+model Professional {
+  id        String   @id @default(cuid())
+  name      String
+  specialty String?
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  availabilityRules AvailabilityRule[]
+  appointments      Appointment[]
+}
+
+model AvailabilityRule {
+  id             String       @id @default(cuid())
+  dayOfWeek      Int          // 0=Sunday, 1=Monday...
+  startTime      String       // "09:00"
+  endTime        String       // "17:00"
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id])
+  tenantId       String
+  tenant         Tenant       @relation(fields: [tenantId], references: [id])
+}
+
+// -----------------------------------------------------------------------------
+// Operations (Appointments, Clients, Messaging)
+// -----------------------------------------------------------------------------
+
+model Client {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String
+  email     String?
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  appointments Appointment[]
+}
+
+model Appointment {
+  id             String       @id @default(cuid())
+  startAt        DateTime
+  endAt          DateTime
+  status         String       // pending, confirmed, cancelled, done, no_show
+  notes          String?
+
+  serviceId      String
+  service        Service      @relation(fields: [serviceId], references: [id])
+
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id])
+
+  clientId       String?
+  client         Client?      @relation(fields: [clientId], references: [id])
+
+  // Denormalized for speed/demo without full Client creation
+  clientName     String?
+  clientPhone    String?
+
+  tenantId       String
+  tenant         Tenant       @relation(fields: [tenantId], references: [id])
+
+  messages       Message[]
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([tenantId, startAt])
+}
+
+model Message {
+  id            String      @id @default(cuid())
+  channel       String      // whatsapp, sms, email
+  direction     String      // inbound, outbound
+  body          String
+  status        String      // sent, delivered, read, failed
+  appointmentId String?
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+  tenantId      String
+  tenant        Tenant      @relation(fields: [tenantId], references: [id])
+  createdAt     DateTime    @default(now())
+}
