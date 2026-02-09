@@ -1,166 +1,200 @@
-import { PrismaClient, GlobalRole, TenantRole, AppointmentStatus } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Seeding database with Jules Schema...');
+  console.log('🌱 Seeding database...');
 
-  const slug = 'demo-clinica';
+  // Clean up existing data
+  await prisma.auditLog.deleteMany();
+  await prisma.message.deleteMany();
+  await prisma.appointment.deleteMany();
+  await prisma.availabilityRule.deleteMany();
+  await prisma.service.deleteMany();
+  await prisma.professional.deleteMany();
+  await prisma.customer.deleteMany();
+  await prisma.location.deleteMany();
+  await prisma.tenantUser.deleteMany();
+  await prisma.tenant.deleteMany();
+  await prisma.user.deleteMany();
+  await prisma.plan.deleteMany();
 
-  // 1. Create Tenant (or upsert)
-  const tenant = await prisma.tenant.upsert({
-    where: { slug },
-    update: {},
-    create: {
-      slug,
-      name: 'Clínica Demo Central',
-      plan: 'pro-demo',
-      status: 'active',
+  // 1. Create Plans
+  const demoPlan = await prisma.plan.create({
+    data: {
+      name: 'Demo Plan',
+      limits: JSON.stringify({ max_users: 10, max_appointments: 100 }),
+      features: JSON.stringify(['whatsapp_demo', 'calendar']),
+      priceCents: 0,
     },
   });
 
-  console.log(`✅ Tenant: ${tenant.name} (${tenant.id})`);
-
-  // 2. Create Users (Super Admin + Tenant Users)
-  const superAdmin = await prisma.user.upsert({
-    where: { email: 'super@turnero.com' },
-    update: {},
-    create: {
-      email: 'super@turnero.com',
-      name: 'Super Admin',
-      passwordHash: '$2a$12$R9h/cIPz0gi.URNNXRfuowZn8...hash...', // Mock hash
-      globalRole: GlobalRole.SUPER_ADMIN,
+  const proPlan = await prisma.plan.create({
+    data: {
+      name: 'Pro Plan',
+      limits: JSON.stringify({ max_users: 999, max_appointments: 9999 }),
+      features: JSON.stringify(['whatsapp_api', 'calendar', 'reports', 'multi_location']),
+      priceCents: 30000, // $300.00
     },
   });
 
-  const owner = await prisma.user.upsert({
-    where: { email: 'admin@demo.com' },
-    update: {},
-    create: {
+  // 2. Create Users
+  const passwordHash = "hashed_secret"; // In real app, use bcrypt
+
+  const adminUser = await prisma.user.create({
+    data: {
       email: 'admin@demo.com',
       name: 'Admin Demo',
-      passwordHash: '$2a$12$R9h/cIPz0gi.URNNXRfuowZn8...hash...',
-      globalRole: GlobalRole.USER,
+      passwordHash,
+      globalRole: 'USER',
     },
   });
 
-  // Link Owner to Tenant
-  await prisma.tenantUser.upsert({
-    where: {
-      tenantId_userId: { tenantId: tenant.id, userId: owner.id },
-    },
-    update: {},
-    create: {
-      tenantId: tenant.id,
-      userId: owner.id,
-      role: TenantRole.OWNER,
+  const staffUser = await prisma.user.create({
+    data: {
+      email: 'recepcion@demo.com',
+      name: 'Recepción Demo',
+      passwordHash,
+      globalRole: 'USER',
     },
   });
 
-  // 3. Create Services (8)
-  const serviceNames = [
-    { name: 'Consulta General', min: 30, price: 5000 },
-    { name: 'Limpieza Facial', min: 60, price: 12000 },
-    { name: 'Masaje Descontracturante', min: 45, price: 8000 },
-    { name: 'Blanqueamiento Dental', min: 60, price: 25000 },
-    { name: 'Extracción Simple', min: 45, price: 15000 },
-    { name: 'Consulta Nutrición', min: 30, price: 6000 },
-    { name: 'Depilación Láser (Zona Chica)', min: 15, price: 4000 },
-    { name: 'Depilación Láser (Cuerpo Completo)', min: 90, price: 30000 },
+  const proUser = await prisma.user.create({
+    data: {
+      email: 'dr@demo.com',
+      name: 'Dr. Demo',
+      passwordHash,
+      globalRole: 'USER',
+    },
+  });
+
+  // 3. Create Tenant
+  const tenant = await prisma.tenant.create({
+    data: {
+      slug: 'demo-clinica',
+      name: 'Clínica Demo',
+      status: 'active',
+      planId: demoPlan.id,
+      users: {
+        create: [
+          { userId: adminUser.id, role: 'OWNER' },
+          { userId: staffUser.id, role: 'STAFF' },
+          { userId: proUser.id, role: 'PROFESSIONAL' },
+        ],
+      },
+    },
+  });
+
+  // 4. Create Locations
+  const locCentral = await prisma.location.create({
+    data: { tenantId: tenant.id, name: 'Sede Central', address: 'Av. Libertador 1234' },
+  });
+
+  const locNorte = await prisma.location.create({
+    data: { tenantId: tenant.id, name: 'Sede Norte', address: 'Calle 45 Nro 800' },
+  });
+
+  // 5. Create Services
+  const servicesData = [
+    { name: 'Consulta General', durationMin: 30, priceCents: 5000 },
+    { name: 'Limpieza Dental', durationMin: 45, priceCents: 8000 },
+    { name: 'Blanqueamiento', durationMin: 60, priceCents: 15000 },
+    { name: 'Ortodoncia (Control)', durationMin: 20, priceCents: 4000 },
+    { name: 'Implante (Eval)', durationMin: 40, priceCents: 6000 },
+    { name: 'Urgencia', durationMin: 30, priceCents: 10000 },
+    { name: 'Radiografía', durationMin: 15, priceCents: 3000 },
+    { name: 'Consulta Estética', durationMin: 45, priceCents: 7500 },
   ];
 
   const services = [];
-  for (const s of serviceNames) {
-    const serv = await prisma.service.create({
-      data: {
-        tenantId: tenant.id,
-        name: s.name,
-        durationMin: s.min,
-        priceCents: s.price * 100, // Stored in cents
-      },
-    });
-    services.push(serv);
+  for (const s of servicesData) {
+    services.push(await prisma.service.create({
+      data: { ...s, tenantId: tenant.id },
+    }));
   }
 
-  // 4. Create Professionals (3)
-  const proNames = [
-    { name: 'Dr. Juan Pérez', spec: 'General' },
-    { name: 'Dra. Ana Gómez', spec: 'Estética' },
-    { name: 'Lic. Pedro López', spec: 'Kinesiología' },
+  // 6. Create Professionals
+  const prosData = [
+    { name: 'Dr. Juan Pérez', specialty: 'Odontología General' },
+    { name: 'Dra. María González', specialty: 'Ortodoncia' },
+    { name: 'Dr. Carlos Ruiz', specialty: 'Cirugía' },
   ];
 
-  const pros = [];
-  for (const p of proNames) {
+  const professionals = [];
+  for (const p of prosData) {
     const pro = await prisma.professional.create({
-      data: {
-        tenantId: tenant.id,
-        name: p.name,
-        specialty: p.spec,
-      },
+      data: { ...p, tenantId: tenant.id },
     });
-    pros.push(pro);
+    professionals.push(pro);
+
+    // Add Availability Rules (Mon-Fri 9-17)
+    for (let day = 1; day <= 5; day++) {
+      await prisma.availabilityRule.create({
+        data: {
+          tenantId: tenant.id,
+          professionalId: pro.id,
+          locationId: day % 2 === 0 ? locNorte.id : locCentral.id, // Alternate locations
+          dayOfWeek: day,
+          startTime: '09:00',
+          endTime: '17:00',
+          breakStart: '13:00',
+          breakEnd: '14:00',
+        },
+      });
+    }
   }
 
-  // 5. Create Customers (20)
-  const customerNames = [
-    'Lionel Messi', 'Roberto Carlos', 'María Becerra', 'Duki', 'Tini Stoessel',
-    'Charly García', 'Fito Páez', 'Gustavo Cerati', 'Luis Spinetta', 'Mercedes Sosa',
-    'Jorge Luis Borges', 'Julio Cortázar', 'Ernesto Sabato', 'Alfonsina Storni', 'Victoria Ocampo',
-    'René Favaloro', 'Bernardo Houssay', 'Luis Leloir', 'César Milstein', 'Adolfo Pérez Esquivel'
+  // 7. Create Customers
+  const customersData = [
+    { name: 'Ana Garcia', phone: '555-0101', email: 'ana@example.com' },
+    { name: 'Luis Rodriguez', phone: '555-0102', email: 'luis@example.com' },
+    { name: 'Sofia Martinez', phone: '555-0103', email: 'sofia@example.com' },
+    { name: 'Miguel Lopez', phone: '555-0104', email: 'miguel@example.com' },
+    { name: 'Lucia Diaz', phone: '555-0105', email: 'lucia@example.com' },
   ];
 
   const customers = [];
-  for (const name of customerNames) {
-    const c = await prisma.customer.create({
-      data: {
-        tenantId: tenant.id,
-        name,
-        email: `${name.toLowerCase().replace(/ /g, '.')}@gmail.com`,
-        phone: '+54911' + Math.floor(Math.random() * 90000000 + 10000000),
-      },
-    });
-    customers.push(c);
+  for (const c of customersData) {
+    customers.push(await prisma.customer.create({
+      data: { ...c, tenantId: tenant.id },
+    }));
   }
 
-  // 6. Create Appointments (30)
+  // 8. Create Appointments (Past & Future)
   const now = new Date();
+  const statuses = ['PENDING', 'CONFIRMED', 'DONE', 'CANCELLED', 'NO_SHOW'];
 
   for (let i = 0; i < 30; i++) {
-    const randomPro = pros[Math.floor(Math.random() * pros.length)];
-    const randomService = services[Math.floor(Math.random() * services.length)];
-    const randomCustomer = customers[Math.floor(Math.random() * customers.length)];
+    const randomDayOffset = Math.floor(Math.random() * 14) - 7; // +/- 7 days
+    const apptDate = new Date(now);
+    apptDate.setDate(now.getDate() + randomDayOffset);
+    apptDate.setHours(9 + Math.floor(Math.random() * 8), 0, 0, 0);
 
-    // Spread over -5 to +10 days
-    const dayOffset = Math.floor(Math.random() * 15) - 5;
-    const hour = 9 + Math.floor(Math.random() * 9); // 9 to 18
+    const service = services[Math.floor(Math.random() * services.length)];
+    const pro = professionals[Math.floor(Math.random() * professionals.length)];
+    const customer = customers[Math.floor(Math.random() * customers.length)];
+    const status = statuses[Math.floor(Math.random() * statuses.length)];
 
-    const startAt = new Date(now);
-    startAt.setDate(startAt.getDate() + dayOffset);
-    startAt.setHours(hour, 0, 0, 0);
-
-    const endAt = new Date(startAt);
-    endAt.setMinutes(endAt.getMinutes() + randomService.durationMin);
-
-    let status = AppointmentStatus.CONFIRMED;
-    if (dayOffset < 0) status = AppointmentStatus.DONE;
-    if (dayOffset > 5) status = AppointmentStatus.PENDING;
-    if (Math.random() > 0.9) status = AppointmentStatus.CANCELLED;
+    const endDate = new Date(apptDate);
+    endDate.setMinutes(endDate.getMinutes() + service.durationMin);
 
     await prisma.appointment.create({
       data: {
         tenantId: tenant.id,
-        customerId: randomCustomer.id,
-        professionalId: randomPro.id,
-        serviceId: randomService.id,
-        startAt,
-        endAt,
-        status,
-        notes: Math.random() > 0.7 ? 'Nota clínica de prueba.' : null,
+        customerId: customer.id,
+        professionalId: pro.id,
+        serviceId: service.id,
+        locationId: locCentral.id, // Simplification
+        startAt: apptDate,
+        endAt: endDate,
+        status: status,
+        source: Math.random() > 0.5 ? 'WEB' : 'WHATSAPP',
+        notes: Math.random() > 0.7 ? 'Paciente requiere factura A' : null,
       },
     });
   }
 
-  console.log('🎉 Seeding complete. 30 appointments created.');
+  console.log('✅ Seeding completed.');
 }
 
 main()

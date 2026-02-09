@@ -3,9 +3,9 @@ import { prisma } from '@/lib/db';
 
 export async function GET(
   req: Request,
-  { params }: { params: { tenant: string } }
+  { params }: { params: Promise<{ tenant: string }> }
 ) {
-  const { tenant } = params;
+  const { tenant } = await params;
 
   // 1. Find Tenant
   const t = await prisma.tenant.findUnique({
