@@ -1,19 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useParams } from "next/navigation";
 import { FaInbox, FaCalendar, FaUserGroup, FaChartPie, FaGear } from "react-icons/fa6";
 import { clsx } from "clsx";
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const params = useParams();
+  const slug = params.slug as string || "demo";
 
   const links = [
-    { name: "Recepción", href: "/dashboard", icon: FaInbox },
-    { name: "Agenda", href: "/calendar", icon: FaCalendar },
-    { name: "Pacientes", href: "/clients", icon: FaUserGroup },
-    { name: "Reportes", href: "/reports", icon: FaChartPie },
-    { name: "Configuración", href: "/settings", icon: FaGear },
+    { name: "Recepción", href: `/t/${slug}/dashboard`, icon: FaInbox },
+    { name: "Agenda", href: `/t/${slug}/calendar`, icon: FaCalendar },
+    { name: "Pacientes", href: `/t/${slug}/clients`, icon: FaUserGroup },
+    { name: "Reportes", href: `/t/${slug}/reports`, icon: FaChartPie },
+    { name: "Configuración", href: `/t/${slug}/settings`, icon: FaGear },
   ];
 
   return (
@@ -49,6 +51,7 @@ export default function Sidebar() {
       <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800 hidden lg:block">
           <div className="text-xs text-slate-400">
               <p>v1.0.0 SaaS</p>
+              <p className="text-[10px] mt-1 opacity-70">Tenant: {slug}</p>
           </div>
       </div>
     </div>
