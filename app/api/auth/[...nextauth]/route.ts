@@ -33,16 +33,19 @@ const authOptions: NextAuthOptions = {
         if (!user) return null;
 
         // In a real app, use bcrypt.compare(credentials.password, user.passwordHash)
-        // For demo, we assume seed passwords work or fallback to a simple check
+        // For demo, we handle seed passwords differently from real hashed passwords
         let isValid = false;
 
         // Mock hash check for seed data 'hashed_secret' -> 'Demo123!'
-        if (user.passwordHash === 'hashed_secret' && credentials.password === 'Demo123!') {
-             isValid = true;
+        if (user.passwordHash === 'hashed_secret') {
+             isValid = credentials.password === 'Demo123!';
         } else {
-             // Real check if we had real hashes
-             // isValid = await bcrypt.compare(credentials.password, user.passwordHash);
-             isValid = false;
+             // Real check for properly hashed passwords (for new users)
+             try {
+                isValid = await bcrypt.compare(credentials.password, user.passwordHash);
+             } catch {
+                isValid = false;
+             }
         }
 
         if (!isValid) return null;
