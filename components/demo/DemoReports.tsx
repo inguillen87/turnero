@@ -1,7 +1,7 @@
 "use client";
 
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid } from 'recharts';
-import { Download } from 'lucide-react';
+import { Download, FileSpreadsheet } from 'lucide-react';
 
 const data = [
   { name: 'Lun', turnos: 40 },
@@ -23,6 +23,10 @@ const pieData = [
 const COLORS = ['#6366f1', '#10b981', '#3b82f6', '#f59e0b'];
 
 export function DemoReports() {
+  const handleDownload = (format: 'pdf' | 'csv') => {
+      alert(`Simulación: Descargando reporte en formato ${format.toUpperCase()}...`);
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="flex justify-between items-center">
@@ -30,9 +34,20 @@ export function DemoReports() {
                 <h2 className="text-2xl font-bold text-slate-800">Reportes y Estadísticas</h2>
                 <p className="text-slate-500">Analiza el rendimiento de tu clínica</p>
             </div>
-            <button className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">
-                <Download className="w-4 h-4" /> Exportar PDF
-            </button>
+            <div className="flex gap-2">
+                <button
+                    onClick={() => handleDownload('csv')}
+                    className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-lg text-sm font-bold text-green-700 hover:bg-green-50 hover:border-green-200 transition-colors shadow-sm"
+                >
+                    <FileSpreadsheet className="w-4 h-4" /> Exportar Excel
+                </button>
+                <button
+                    onClick={() => handleDownload('pdf')}
+                    className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
+                >
+                    <Download className="w-4 h-4" /> Exportar PDF
+                </button>
+            </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

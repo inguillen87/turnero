@@ -16,7 +16,7 @@ export type Session = {
 };
 
 // DEMO DATA (This could come from DB in future)
-export const SERVICES = [
+export const DEFAULT_SERVICES = [
   { id: "consulta", name: "Consulta General", price: 50000, durationMin: 30 },
   { id: "limpieza", name: "Limpieza Dental", price: 35000, durationMin: 30 },
   { id: "ortodoncia", name: "Ortodoncia", price: 80000, durationMin: 45 },
@@ -49,14 +49,14 @@ export function helpLine() {
   return `Tip: "9" menú, "0" volver.`;
 }
 
-function formatServices() {
-  return SERVICES.map((s, i) => `${i + 1}) ${s.name} ($${s.price.toLocaleString("es-AR")})`).join("\n");
+function formatServices(services: any[]) {
+  return services.map((s, i) => `${i + 1}) ${s.name} ($${s.price.toLocaleString("es-AR")})`).join("\n");
 }
 
-function findServiceByChoice(choice: string) {
+function findServiceByChoice(choice: string, services: any[]) {
   const n = Number(choice);
-  if (!Number.isNaN(n) && n >= 1 && n <= SERVICES.length) return SERVICES[n - 1];
-  const byName = SERVICES.find((s) => s.name.toLowerCase().includes(choice));
+  if (!Number.isNaN(n) && n >= 1 && n <= services.length) return services[n - 1];
+  const byName = services.find((s) => s.name.toLowerCase().includes(choice));
   return byName || null;
 }
 
@@ -67,7 +67,9 @@ function bodyRawMask(v: string) {
 }
 
 // Core Logic: Accepts input body and current session, returns reply and next session state
-export async function handleMessage(body: string, session: Session) {
+export async function handleMessage(body: string, session: Session, customServices?: any[]) {
+  const services = customServices || DEFAULT_SERVICES;
+
   // Global Navigation
   if (body === "" || body === "hola" || body === "buenas" || body === "menu" || body === "menú" || body === "9") {
     session.state = "HOME";
@@ -87,13 +89,13 @@ export async function handleMessage(body: string, session: Session) {
     if (body === "1") {
       session.state = "CHOOSE_SERVICE";
       return {
-        reply: `📅 *Reservar turno*\n¿Qué servicio buscás?\n${formatServices()}\n\nRespondé con el número.\n${helpLine()}`,
+        reply: `📅 *Reservar turno*\n¿Qué servicio buscás?\n${formatServices(services)}\n\nRespondé con el número.\n${helpLine()}`,
         session,
       };
     }
     if (body === "2") {
       return {
-        reply: `💰 *Precios*\n${formatServices()}\n\n${helpLine()}`,
+        reply: `💰 *Precios*\n${formatServices(services)}\n\n${helpLine()}`,
         session,
       };
     }
@@ -114,9 +116,9 @@ export async function handleMessage(body: string, session: Session) {
 
   // CHOOSE_SERVICE
   if (session.state === "CHOOSE_SERVICE") {
-    const service = findServiceByChoice(body);
+    const service = findServiceByChoice(body, services);
     if (!service) {
-      return { reply: `Servicio inválido.\n${formatServices()}\n${helpLine()}`, session };
+      return { reply: `Servicio inválido.\n${formatServices(services)}\n${helpLine()}`, session };
     }
     session.serviceId = service.id;
     session.state = "CHOOSE_SLOT";
@@ -142,7 +144,7 @@ ${helpLine()}`,
     }
     session.slotId = SLOTS[idx].id;
     session.state = "CONFIRM";
-    const service = SERVICES.find((s) => s.id === session.serviceId);
+    const service = services.find((s) => s.id === session.serviceId);
     return {
       reply:
 `Vas a reservar:
@@ -160,7 +162,7 @@ ${helpLine()}`,
   // CONFIRM
   if (session.state === "CONFIRM") {
     if (body === "1" || body === "si" || body === "sí" || body === "confirmar") {
-      const service = SERVICES.find((s) => s.id === session.serviceId);
+      const service = services.find((s) => s.id === session.serviceId);
       const slot = SLOTS.find((s) => s.id === session.slotId);
       session.state = "HOME";
 

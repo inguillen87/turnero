@@ -10,13 +10,14 @@ import { handleMessage, Session } from "@/lib/bot/stateMachine";
 
 export async function POST(req: Request) {
   try {
-    const { text, metadata } = await req.json();
+    const { text, metadata, customServices } = await req.json();
 
     // Recover session from metadata or create fresh
     let session: Session = metadata?.session || { state: "HOME", updatedAt: Date.now() };
 
     // Process Message
-    const { reply, session: nextSession, action } = await handleMessage(text.toLowerCase(), session);
+    // Now passing customServices to handleMessage
+    const { reply, session: nextSession, action } = await handleMessage(text.toLowerCase(), session, customServices);
 
     // Format for WhatsAppSimulator
     // The simulator expects `messages: [{ body: string, options?: [] }]`
@@ -34,9 +35,27 @@ export async function POST(req: Request) {
             const match = line.match(/^(\d+)\)\s+(.*)$/);
             if (match) {
                 // e.g. "1) 📅 Reservar turno" -> label="📅 Reservar turno", value="1"
-                options.push({ label: match[2].trim(), value: match[1] });
+                // Clean price if present " ($50.000)"
+                let label = match[2].trim();
+                const priceMatch = label.match(/(.*)\s\(\$.*\)/);
+                if (priceMatch) {
+                    label = priceMatch[1];
+                }
+                options.push({ label: label, value: match[1] });
             }
         });
+    }
+
+    // Default chips for main menu if we are in HOME (heuristic)
+    if (nextSession.state === 'HOME' && options.length === 0 && reply.includes("1) 📅 Reservar")) {
+         // This block handles the case where regex above might fail or we want explicit buttons for main menu
+         // But the regex above should catch "1) 📅 Reservar turno"
+    }
+
+    // Confirmation chips
+    if (reply.includes("Confirmá:")) {
+        options.push({ label: "✅ Confirmar", value: "1" });
+        options.push({ label: "❌ Cancelar", value: "2" });
     }
 
     return NextResponse.json({

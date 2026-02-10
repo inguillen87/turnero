@@ -2,43 +2,46 @@ import { useState, useRef, useEffect } from "react";
 import { MessageCircle, Send, Check, MoreVertical, Phone, Video, Settings2 } from "lucide-react";
 import Link from "next/link";
 
+// We remove hardcoded INDUSTRIES here if we want to rely on the parent's services,
+// OR we can merge them. For the specific request "agregar nuevos servicios",
+// we should prioritize the `services` prop passed from DemoPage.
+
 const INDUSTRIES = {
     clinica: {
         name: "Clínica Dental",
-        services: [
-            { id: '1', name: 'Consulta General', price: '$50', duration: '30 min' },
-            { id: '2', name: 'Limpieza Dental', price: '$35', duration: '45 min' },
-            { id: '3', name: 'Ortodoncia', price: '$80', duration: '20 min' },
-        ],
+        // We will override this with props
         welcome: "¡Hola! 👋 Soy el asistente virtual de la Clínica. ¿En qué puedo ayudarte?",
         color: '#075e54'
     },
     barberia: {
         name: "Barbería Style",
-        services: [
-            { id: '1', name: 'Corte Fade', price: '$15', duration: '45 min' },
-            { id: '2', name: 'Barba y Toalla', price: '$10', duration: '30 min' },
-            { id: '3', name: 'Corte + Barba', price: '$22', duration: '60 min' },
-        ],
         welcome: "¡Qué onda! 💈 Bienvenido a Barbería Style. ¿Te agendo un turno?",
         color: '#1a1a1a'
     },
     padel: {
         name: "Padel Center",
-        services: [
-            { id: '1', name: 'Cancha 1 (Cristal)', price: '$40', duration: '90 min' },
-            { id: '2', name: 'Cancha 2 (Cemento)', price: '$30', duration: '90 min' },
-            { id: '3', name: 'Clase Particular', price: '$25', duration: '60 min' },
-        ],
         welcome: "¡Hola! 🎾 ¿Listo para jugar? Reservá tu cancha acá.",
         color: '#2563eb'
     }
 };
 
-export function WhatsAppSimulator({ onAction }: { onAction: (action: any) => void }) {
+export function WhatsAppSimulator({ onAction, services }: { onAction: (action: any) => void, services?: any[] }) {
   const [industry, setIndustry] = useState<'clinica' | 'barberia' | 'padel'>('clinica');
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<any[]>([
+    {
+      id: 1,
+      sender: 'bot',
+      text: INDUSTRIES.clinica.welcome,
+      time: '10:00',
+      options: [
+        { label: '📅 Reservar', value: '1' }, // Use numeric values to match stateMachine logic
+        { label: '💰 Precios', value: '2' },
+        { label: 'ℹ️ Info', value: 'Info' },
+      ]
+    }
+  ]);
   const [input, setInput] = useState("");
+  const [metadata, setMetadata] = useState<any>({}); // Session State
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const currentConfig = INDUSTRIES[industry];
 
@@ -50,17 +53,18 @@ export function WhatsAppSimulator({ onAction }: { onAction: (action: any) => voi
     // Reset chat when industry changes
     setMessages([
         {
-          id: 1,
+          id: Date.now(),
           sender: 'bot',
           text: INDUSTRIES[industry].welcome,
-          time: '10:00',
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           options: [
-            { label: '📅 Reservar', value: 'Reservar' },
-            { label: '💰 Precios', value: 'Precios' },
-            { label: 'ℹ️ Info', value: 'Info' },
+            { label: '📅 Reservar', value: '1' },
+            { label: '💰 Precios', value: '2' },
+            { label: 'ℹ️ Info', value: '9' },
           ]
         }
     ]);
+    setMetadata({}); // Reset session
   }, [industry]);
 
   useEffect(() => {
@@ -68,73 +72,61 @@ export function WhatsAppSimulator({ onAction }: { onAction: (action: any) => voi
   }, [messages]);
 
   const handleSend = async (text: string, value?: string) => {
-    if (!text && !value) return;
+    if (!text.trim() && !value) return;
 
-    // 1. User Message
+    // 1. Add User Message
     const userMsg = {
         id: Date.now(),
         sender: 'user',
-        text: text || value,
+        text: text || value, // Use value if provided (e.g. chip click)
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
     setMessages(prev => [...prev, userMsg]);
     setInput("");
 
-    // 2. Simulate Bot Typing
-    setTimeout(() => {
-        let botResponse = {
-            id: Date.now() + 1,
+    // 2. Call Demo API
+    try {
+      // If we are in 'clinica' mode, send the dynamic services
+      // For other industries, we could have hardcoded ones or manage them similarly
+      let customServices = undefined;
+      if (industry === 'clinica' && services) {
+          customServices = services;
+      }
+
+      const res = await fetch('/api/demo/whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: value || text,
+          metadata: metadata, // Send current state
+          customServices: customServices
+        }),
+      });
+      const data = await res.json();
+
+      if (data.metadata) {
+        setMetadata(data.metadata); // Update session state
+      }
+
+      if (data.messages) {
+        setTimeout(() => {
+          const botMsgs = data.messages.map((m: any, i: number) => ({
+            id: Date.now() + i,
             sender: 'bot',
-            text: 'Entendido, dame un momento...',
+            text: m.body,
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            options: [] as any[]
-        };
+            options: m.options
+          }));
+          setMessages(prev => [...prev, ...botMsgs]);
 
-        const lowerText = (value || text).toLowerCase();
-
-        if (lowerText.includes('precio') || lowerText.includes('valor')) {
-            const prices = currentConfig.services.map(s => `• ${s.name}: ${s.price}`).join('\n');
-            botResponse.text = `Aquí tienes nuestra lista de precios:\n\n${prices}`;
-        } else if (lowerText.includes('reservar') || lowerText.includes('turno')) {
-            botResponse.text = '¡Perfecto! ¿Qué servicio estás buscando?';
-            botResponse.options = currentConfig.services.map(s => ({
-                label: s.name,
-                value: s.name
-            }));
-        } else if (currentConfig.services.some(s => lowerText.includes(s.name.toLowerCase()))) {
-             const service = currentConfig.services.find(s => lowerText.includes(s.name.toLowerCase()));
-             botResponse.text = `Tengo estos horarios disponibles para ${service?.name}:\n\n• 10:00\n• 14:30\n• 16:00`;
-             botResponse.options = [
-                { label: '10:00', value: '10:00' },
-                { label: '14:30', value: '14:30' },
-                { label: '16:00', value: '16:00' }
-             ];
-        } else if (lowerText.match(/\d{2}:\d{2}/)) {
-             botResponse.text = `¡Casi listo! Solo falta confirmar. Vas a reservar para mañana a las ${lowerText}.`;
-             botResponse.options = [
-                 { label: '✅ Confirmar', value: 'Confirmar' },
-                 { label: '❌ Cancelar', value: 'Cancelar' }
-             ];
-        } else if (lowerText.includes('confirmar')) {
-             botResponse.text = '¡Turno Agendado! 🎉\n\nPara asegurarlo, por favor realiza el pago de la seña ($1000) aquí:\n\n👉 [PAGAR SEÑA CON MERCADOPAGO](/demo/checkout)\n\n(Click en el link para probar la integración)';
-             onAction({ type: 'APPOINTMENT_CREATED', payload: {
-                 id: Date.now(),
-                 startAt: new Date().toISOString(),
-                 clientName: 'Usuario Demo',
-                 status: 'confirmed',
-                 serviceName: 'Servicio Demo'
-             }});
-        } else {
-             botResponse.text = 'Disculpa, no entendí. ¿Podrías elegir una de estas opciones?';
-             botResponse.options = [
-                { label: '📅 Reservar', value: 'Reservar' },
-                { label: '💰 Precios', value: 'Precios' },
-                { label: 'ℹ️ Info', value: 'Info' },
-            ];
-        }
-
-        setMessages(prev => [...prev, botResponse]);
-    }, 1000);
+          if (data.action) {
+            onAction(data.action);
+          }
+        }, 500); // Small delay for realism
+      }
+    } catch (e) {
+      console.error("Demo API Error", e);
+    }
   };
 
   return (
@@ -190,6 +182,7 @@ export function WhatsAppSimulator({ onAction }: { onAction: (action: any) => voi
                         : 'bg-white text-slate-900 rounded-tl-none'
                     }`}
                   >
+                      {/* Check if text contains the checkout link to render it as a button/link */}
                       {msg.text.includes('/demo/checkout') ? (
                           <div className="whitespace-pre-line leading-relaxed">
                               {msg.text.split('/demo/checkout')[0]}
@@ -200,7 +193,7 @@ export function WhatsAppSimulator({ onAction }: { onAction: (action: any) => voi
                               >
                                   PAGAR SEÑA $1.000
                               </Link>
-                              {msg.text.split('integration)')[1]}
+                              {msg.text.split('integration)')[1] || ''}
                           </div>
                       ) : (
                         <p className="whitespace-pre-line leading-relaxed">{msg.text}</p>
@@ -218,7 +211,7 @@ export function WhatsAppSimulator({ onAction }: { onAction: (action: any) => voi
                   {messages[messages.length - 1].options.map((opt: any) => (
                       <button
                         key={opt.value}
-                        onClick={() => handleSend('', opt.value)}
+                        onClick={() => handleSend(opt.label, opt.value)} // Send label as text, value as data
                         className="bg-white text-slate-700 text-xs font-bold px-4 py-2 rounded-full shadow-sm border border-slate-200 hover:bg-slate-50 transition-colors"
                       >
                           {opt.label}
