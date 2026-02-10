@@ -1,10 +1,20 @@
 import OpenAI from 'openai';
 
+// Lazy init or dummy to prevent crash on import if env missing
+const apiKey = process.env.OPENAI_API_KEY || 'dummy-key';
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: apiKey,
 });
 
-export type AIIntent = 'booking' | 'query_prices' | 'query_owner' | 'other' | 'confirmation' | 'cancellation';
+export type AIIntent =
+  | 'booking'
+  | 'query_prices'
+  | 'query_owner'
+  | 'cancellation'
+  | 'confirmation'
+  | 'handoff'
+  | 'faq'
+  | 'other';
 
 export interface AIResponse {
   intent: AIIntent;
@@ -14,6 +24,7 @@ export interface AIResponse {
     date?: string; // YYYY-MM-DD
     time?: string; // HH:mm
     slotIndex?: number;
+    personName?: string;
   };
 }
 
@@ -23,73 +34,58 @@ export async function analyzeMessage(
     services: { id: string; name: string; priceCents: number }[];
     conversationHistory: { role: 'user' | 'assistant'; content: string }[];
     now: Date;
+    tenantName: string;
   }
 ): Promise<AIResponse> {
   const serviceList = context.services.map(s => `- ${s.name} ($${s.priceCents/100})`).join('\n');
 
   const systemPrompt = `
-    You are a helpful and intelligent virtual assistant for a business.
+    You are the smart receptionist for "${context.tenantName}".
     Current Date: ${context.now.toLocaleString()}
 
-    Services available:
+    Services:
     ${serviceList}
 
-    Your goal:
-    1. Answer questions about services and prices.
-    2. Help the user book an appointment.
-    3. Provide owner contact info if asked ("Mi Dueño").
+    Intents:
+    - booking: User wants to schedule an appointment. Extract service, date, time.
+    - query_prices: User asks for prices. List them.
+    - query_owner: User asks for the owner/manager.
+    - cancellation: User wants to cancel or reschedule.
+    - confirmation: User says "yes", "confirm", "ok" to a proposed slot.
+    - handoff: User explicitly asks for a human, support, or is frustrated.
+    - faq: User asks about location, hours, parking, policies (if not booking specific).
+    - other: Greeting or unclear.
 
-    Output JSON strictly following this schema:
+    Output JSON:
     {
-      "intent": "booking" | "query_prices" | "query_owner" | "other" | "confirmation" | "cancellation",
-      "message": "The response text to show to the user (in Spanish, friendly but professional). keep it under 160 chars if possible.",
+      "intent": "...",
+      "message": "Response in Spanish. Be concise (WhatsApp style).",
       "entities": {
-        "serviceName": "extracted service name if any",
-        "date": "extracted date in YYYY-MM-DD if mentioned",
-        "time": "extracted time in HH:mm if mentioned",
-        "slotIndex": "integer 1-3 if user selects a numbered option presented previously"
+        "serviceName": "...",
+        "date": "YYYY-MM-DD",
+        "time": "HH:mm",
+        "personName": "User's name if introduced"
       }
     }
-
-    Rules:
-    - If user asks for prices, list them.
-    - If user wants to book, ask which service.
-    - If user chooses a service, ask for a date/time.
-    - If user confirms a proposed slot (e.g., "si", "ok"), intent is "confirmation".
-    - If user cancels, intent is "cancellation".
-    - If user asks for owner info ("dueño"), provide generic info or say "Contacta a soporte@turnero.com".
   `;
 
   try {
-    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-      { role: "system", content: systemPrompt },
-      ...context.conversationHistory.map(h => ({ role: h.role, content: h.content } as OpenAI.Chat.ChatCompletionMessageParam)),
-      { role: "user", content: message }
-    ];
-
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      messages: messages,
+      messages: [
+        { role: "system", content: systemPrompt },
+        ...context.conversationHistory.map(h => ({ role: h.role, content: h.content } as OpenAI.Chat.ChatCompletionMessageParam)),
+        { role: "user", content: message }
+      ],
       response_format: { type: "json_object" },
-      temperature: 0.7,
+      temperature: 0.5,
     });
 
     const content = completion.choices[0].message.content;
-    if (!content) throw new Error("No content from OpenAI");
-
-    const parsed = JSON.parse(content) as AIResponse;
-
-    // Safety check on intent
-    if (!['booking', 'query_prices', 'query_owner', 'other', 'confirmation', 'cancellation'].includes(parsed.intent)) {
-      parsed.intent = 'other';
-    }
-
-    return parsed;
+    if (!content) throw new Error("No content");
+    return JSON.parse(content) as AIResponse;
   } catch (error) {
     console.error("OpenAI Error:", error);
-    return {
-      intent: "other",
-      message: "Lo siento, tuve un problema técnico. ¿Podrías intentar de nuevo?",
-    };
+    return { intent: "other", message: "Lo siento, no te entendí bien." };
   }
 }

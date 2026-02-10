@@ -20,13 +20,17 @@ export function WhatsAppSimulator({ onAction }: { onAction: (action: any) => voi
       text: '¡Hola! 👋 Soy el asistente virtual de Turnero Pro. ¿En qué puedo ayudarte hoy?',
       timestamp: new Date(),
       options: [
-        { label: '📅 Reservar Turno', value: 'book' },
-        { label: '❓ Consultar Precios', value: 'prices' },
-        { label: '👤 Mi Dueño', value: 'owner' }
+        { label: '📅 Reservar', value: '1' },
+        { label: '💰 Precios', value: '2' },
+        { label: '🔁 Cancelar', value: '3' },
+        { label: '👤 Mis Turnos', value: '4' },
+        { label: '🧑‍💼 Humano', value: '5' },
+        { label: 'ℹ️ Info', value: '6' }
       ]
     }
   ]);
   const [input, setInput] = useState("");
+  const [metadata, setMetadata] = useState<any>({}); // Session State
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -55,9 +59,17 @@ export function WhatsAppSimulator({ onAction }: { onAction: (action: any) => voi
       const res = await fetch('/api/demo/whatsapp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tenantSlug: 'demo-clinica', text: value || text }),
+        body: JSON.stringify({
+          tenantSlug: 'demo-clinica',
+          text: value || text,
+          metadata: metadata // Send current state
+        }),
       });
       const data = await res.json();
+
+      if (data.metadata) {
+        setMetadata(data.metadata); // Update state
+      }
 
       if (data.messages) {
         setTimeout(() => {
