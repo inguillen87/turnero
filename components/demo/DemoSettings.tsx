@@ -14,10 +14,17 @@ import {
   MessageCircle,
   Calendar,
   Check,
-  RefreshCw
+  RefreshCw,
+  X,
+  FileSpreadsheet
 } from "lucide-react";
 
-export function DemoSettings() {
+interface DemoSettingsProps {
+    services?: any[];
+    setServices?: (services: any[]) => void;
+}
+
+export function DemoSettings({ services, setServices }: DemoSettingsProps) {
   const [activeTab, setActiveTab] = useState('general');
 
   const tabs = [
@@ -65,7 +72,7 @@ export function DemoSettings() {
                 {activeTab === 'general' && <SettingsGeneral />}
                 {activeTab === 'schedule' && <SettingsSchedule />}
                 {activeTab === 'staff' && <SettingsStaff />}
-                {activeTab === 'services' && <SettingsServices />}
+                {activeTab === 'services' && <SettingsServices services={services} setServices={setServices} />}
                 {activeTab === 'billing' && <SettingsBilling />}
                 {activeTab === 'integrations' && <SettingsIntegrations />}
             </div>
@@ -175,23 +182,103 @@ function SettingsStaff() {
     )
 }
 
-function SettingsServices() {
+function SettingsServices({ services, setServices }: { services?: any[], setServices?: (s: any[]) => void }) {
+    const [isAdding, setIsAdding] = useState(false);
+    const [newService, setNewService] = useState({ name: '', duration: '30 min', price: 0, color: 'gray' });
+
+    const handleAdd = () => {
+        if (!setServices || !services) return;
+        if (!newService.name) return;
+
+        const serviceToAdd = {
+            id: Date.now().toString(),
+            name: newService.name,
+            duration: newService.duration,
+            price: Number(newService.price),
+            color: newService.color
+        };
+
+        setServices([...services, serviceToAdd]);
+        setIsAdding(false);
+        setNewService({ name: '', duration: '30 min', price: 0, color: 'gray' });
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center border-b border-slate-100 pb-4">
                 <h3 className="font-bold text-slate-800 text-lg">Servicios Ofrecidos</h3>
-                <button className="text-indigo-600 text-sm font-bold hover:bg-indigo-50 px-3 py-1 rounded-lg transition-colors flex items-center gap-1">
+                <button
+                    onClick={() => setIsAdding(true)}
+                    className="text-indigo-600 text-sm font-bold hover:bg-indigo-50 px-3 py-1 rounded-lg transition-colors flex items-center gap-1"
+                >
                     <Plus className="w-4 h-4" /> Agregar
                 </button>
             </div>
+
+            {isAdding && (
+                <div className="p-4 border border-indigo-200 bg-indigo-50 rounded-xl mb-4 animate-in fade-in slide-in-from-top-2">
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label className="text-xs font-bold text-slate-500 uppercase">Nombre</label>
+                            <input
+                                type="text"
+                                className="w-full p-2 rounded-lg border border-slate-200 text-sm"
+                                placeholder="Ej: Implante"
+                                value={newService.name}
+                                onChange={(e) => setNewService({...newService, name: e.target.value})}
+                            />
+                        </div>
+                        <div>
+                            <label className="text-xs font-bold text-slate-500 uppercase">Precio</label>
+                            <input
+                                type="number"
+                                className="w-full p-2 rounded-lg border border-slate-200 text-sm"
+                                placeholder="5000"
+                                value={newService.price || ''}
+                                onChange={(e) => setNewService({...newService, price: Number(e.target.value)})}
+                            />
+                        </div>
+                        <div>
+                            <label className="text-xs font-bold text-slate-500 uppercase">Duración</label>
+                            <select
+                                className="w-full p-2 rounded-lg border border-slate-200 text-sm"
+                                value={newService.duration}
+                                onChange={(e) => setNewService({...newService, duration: e.target.value})}
+                            >
+                                <option>15 min</option>
+                                <option>30 min</option>
+                                <option>45 min</option>
+                                <option>60 min</option>
+                                <option>90 min</option>
+                                <option>120 min</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-xs font-bold text-slate-500 uppercase">Color</label>
+                            <select
+                                className="w-full p-2 rounded-lg border border-slate-200 text-sm"
+                                value={newService.color}
+                                onChange={(e) => setNewService({...newService, color: e.target.value})}
+                            >
+                                <option value="indigo">Indigo</option>
+                                <option value="green">Verde</option>
+                                <option value="blue">Azul</option>
+                                <option value="orange">Naranja</option>
+                                <option value="red">Rojo</option>
+                                <option value="purple">Violeta</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                        <button onClick={() => setIsAdding(false)} className="text-xs font-bold text-slate-500 px-3 py-2">Cancelar</button>
+                        <button onClick={handleAdd} className="text-xs font-bold bg-indigo-600 text-white px-3 py-2 rounded-lg hover:bg-indigo-700">Guardar</button>
+                    </div>
+                </div>
+            )}
+
             <div className="space-y-3">
-                {[
-                    { name: 'Consulta General', duration: '30 min', price: '$5.000', color: 'indigo' },
-                    { name: 'Limpieza Dental', duration: '45 min', price: '$3.500', color: 'green' },
-                    { name: 'Ortodoncia (Control)', duration: '20 min', price: '$4.000', color: 'blue' },
-                    { name: 'Implante', duration: '60 min', price: '$45.000', color: 'orange' },
-                ].map((s, i) => (
-                    <div key={i} className="flex items-center justify-between p-4 border border-slate-100 rounded-xl hover:bg-slate-50 transition-colors">
+                {services?.map((s, i) => (
+                    <div key={s.id || i} className="flex items-center justify-between p-4 border border-slate-100 rounded-xl hover:bg-slate-50 transition-colors group">
                         <div className="flex items-center gap-4">
                              <div className={`w-4 h-4 rounded-full bg-${s.color}-500 border border-slate-200`}></div>
                              <div>
@@ -200,11 +287,19 @@ function SettingsServices() {
                                     <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded font-medium flex items-center gap-1">
                                         <Clock className="w-3 h-3" /> {s.duration}
                                     </span>
-                                    <span className="text-xs font-bold text-slate-500">{s.price}</span>
+                                    <span className="text-xs font-bold text-slate-500">${s.price}</span>
                                 </div>
                              </div>
                         </div>
-                        <button className="text-slate-300 hover:text-indigo-600">Edit</button>
+                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button className="text-slate-300 hover:text-indigo-600 p-1"><Wrench className="w-4 h-4" /></button>
+                            <button
+                                onClick={() => setServices && setServices(services.filter(srv => srv.id !== s.id))}
+                                className="text-slate-300 hover:text-red-600 p-1"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        </div>
                     </div>
                 ))}
             </div>
@@ -217,7 +312,8 @@ function SettingsBilling() {
 }
 
 function SettingsIntegrations() {
-    const [connected, setConnected] = useState(false);
+    const [connectedCalendar, setConnectedCalendar] = useState(false);
+    const [connectedSheets, setConnectedSheets] = useState(false);
 
     return (
         <div className="space-y-6">
@@ -237,23 +333,23 @@ function SettingsIntegrations() {
                      <button className="text-xs font-bold bg-white text-slate-600 px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">Configurar</button>
                  </div>
 
-                 <div className={`flex items-center justify-between p-6 border rounded-2xl transition-all ${connected ? 'border-blue-200 bg-blue-50/50' : 'border-slate-200 opacity-75'}`}>
+                 <div className={`flex items-center justify-between p-6 border rounded-2xl transition-all ${connectedCalendar ? 'border-blue-200 bg-blue-50/50' : 'border-slate-200 opacity-75'}`}>
                      <div className="flex items-center gap-4">
-                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${connected ? 'bg-blue-100' : 'bg-slate-50'}`}>
-                             <Calendar className={`w-6 h-6 ${connected ? 'text-blue-600' : 'text-slate-400'}`} />
+                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${connectedCalendar ? 'bg-blue-100' : 'bg-slate-50'}`}>
+                             <Calendar className={`w-6 h-6 ${connectedCalendar ? 'text-blue-600' : 'text-slate-400'}`} />
                          </div>
                          <div>
                              <h4 className="font-bold text-slate-800">Google Calendar</h4>
-                             <p className="text-xs text-slate-500">{connected ? 'Sincronizando bidireccionalmente' : 'Sincronización bidireccional'}</p>
+                             <p className="text-xs text-slate-500">{connectedCalendar ? 'Sincronizando bidireccionalmente' : 'Sincronización bidireccional'}</p>
                          </div>
                      </div>
                      <button
-                        onClick={() => setConnected(!connected)}
+                        onClick={() => setConnectedCalendar(!connectedCalendar)}
                         className={`text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm transition-colors flex items-center gap-1 ${
-                            connected ? 'bg-white text-blue-600 border border-blue-200' : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                            connectedCalendar ? 'bg-white text-blue-600 border border-blue-200' : 'bg-indigo-600 text-white hover:bg-indigo-700'
                         }`}
                      >
-                         {connected ? (
+                         {connectedCalendar ? (
                              <><Check className="w-3 h-3" /> Conectado</>
                          ) : (
                              'Conectar'
@@ -261,17 +357,28 @@ function SettingsIntegrations() {
                      </button>
                  </div>
 
-                  <div className="flex items-center justify-between p-6 border border-slate-200 rounded-2xl opacity-75 grayscale hover:grayscale-0 transition-all">
+                  <div className={`flex items-center justify-between p-6 border rounded-2xl transition-all ${connectedSheets ? 'border-green-200 bg-green-50/50' : 'border-slate-200 opacity-75 grayscale hover:grayscale-0'}`}>
                      <div className="flex items-center gap-4">
-                         <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                             <CreditCard className="w-6 h-6 text-green-600" />
+                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${connectedSheets ? 'bg-green-100' : 'bg-slate-50'}`}>
+                             <FileSpreadsheet className={`w-6 h-6 ${connectedSheets ? 'text-green-600' : 'text-slate-400'}`} />
                          </div>
                          <div>
                              <h4 className="font-bold text-slate-800">Google Sheets</h4>
-                             <p className="text-xs text-slate-500">Exportar turnos automáticamente</p>
+                             <p className="text-xs text-slate-500">{connectedSheets ? 'Exportando datos en tiempo real' : 'Exportar turnos automáticamente'}</p>
                          </div>
                      </div>
-                     <button className="text-xs font-bold bg-indigo-600 text-white px-3 py-1.5 rounded-lg shadow-sm hover:bg-indigo-700 transition-colors">Conectar</button>
+                     <button
+                        onClick={() => setConnectedSheets(!connectedSheets)}
+                        className={`text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm transition-colors flex items-center gap-1 ${
+                            connectedSheets ? 'bg-white text-green-600 border border-green-200' : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                        }`}
+                     >
+                         {connectedSheets ? (
+                             <><Check className="w-3 h-3" /> Conectado</>
+                         ) : (
+                             'Conectar'
+                         )}
+                     </button>
                  </div>
              </div>
         </div>

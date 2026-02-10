@@ -13,10 +13,18 @@ import { DemoFinance } from "@/components/demo/DemoFinance";
 import { DemoSettings } from "@/components/demo/DemoSettings";
 import { MessageSquare } from "lucide-react";
 
+const INITIAL_SERVICES = [
+    { id: "consulta", name: "Consulta General", duration: '30 min', price: 50000, color: 'indigo' },
+    { id: "limpieza", name: "Limpieza Dental", duration: '45 min', price: 35000, color: 'green' },
+    { id: "ortodoncia", name: "Ortodoncia", duration: '20 min', price: 80000, color: 'blue' },
+    { id: "blanqueamiento", name: "Blanqueamiento", duration: '60 min', price: 120000, color: 'orange' },
+];
+
 export default function DemoPage() {
   const [appointments, setAppointments] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showSimulator, setShowSimulator] = useState(true);
+  const [services, setServices] = useState(INITIAL_SERVICES);
 
   // Initial Load
   useEffect(() => {
@@ -55,7 +63,7 @@ export default function DemoPage() {
             {activeTab === 'marketing' && <DemoMarketing />}
             {activeTab === 'reports' && <DemoReports />}
             {activeTab === 'finance' && <DemoFinance />}
-            {activeTab === 'settings' && <DemoSettings />}
+            {activeTab === 'settings' && <DemoSettings services={services} setServices={setServices} />}
          </div>
 
          {/* Floating Simulator Toggle */}
@@ -92,7 +100,7 @@ export default function DemoPage() {
              <div className="w-full max-w-[340px] h-[680px] bg-black rounded-[3rem] border-8 border-slate-900 shadow-2xl overflow-hidden transform scale-95 relative">
                 {/* Notch */}
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-slate-900 rounded-b-2xl z-20"></div>
-                <WhatsAppSimulator onAction={handleAction} />
+                <WhatsAppSimulator onAction={handleAction} services={services} />
              </div>
              <p className="text-xs text-slate-400 mt-6 text-center max-w-xs">
                 Interactúa con el bot como si fueras un paciente. Los cambios se reflejarán en el Dashboard en tiempo real.
