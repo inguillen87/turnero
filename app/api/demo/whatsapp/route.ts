@@ -38,9 +38,18 @@ export async function POST(req: Request) {
         body: '¡Hola! 👋 Soy el asistente virtual de Turnero Pro. ¿En qué puedo ayudarte hoy?',
         options: [
           { label: '📅 Reservar Turno', value: 'book' },
-          { label: '❓ Consultar Precios', value: 'prices' }
+          { label: '❓ Consultar Precios', value: 'prices' },
+          { label: '👤 Mi Dueño', value: 'owner' }
         ]
       });
+    }
+    // "owner"
+    else if (normalizedText === 'owner' || normalizedText.includes('dueño')) {
+        response.messages.push({
+            from: 'bot',
+            body: 'El dueño de la clínica es el Dr. Juan Pérez.\nPuedes contactarlo en owner@clinica.com o al +54 9 11 1234 5678.',
+            options: [{ label: '🏠 Menú Principal', value: 'hola' }]
+        });
     }
     // "prices" -> list services
     else if (normalizedText === 'prices' || normalizedText.includes('precio')) {
@@ -164,7 +173,7 @@ export async function POST(req: Request) {
 
       response.messages.push({
         from: 'bot',
-        body: '¡Listo! Tu turno ha sido confirmado. Te enviamos un recordatorio por WhatsApp un día antes. Gracias por elegirnos.',
+        body: '¡Listo! Tu turno ha sido confirmado. 🗓️\n\n💳 Para finalizar, por favor abona la seña en este link: https://mpago.la/demo-payment-link\n\nTe enviamos un recordatorio por WhatsApp un día antes.',
          options: [
             { label: '🏠 Menú Principal', value: 'hola' }
           ]
