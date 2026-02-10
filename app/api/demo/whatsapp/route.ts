@@ -1,107 +1,57 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
-import { BotEngine } from '@/lib/bot/engine';
+// app/api/demo/whatsapp/route.ts
+import { NextResponse } from "next/server";
+import { handleMessage, Session } from "@/lib/bot/stateMachine";
 
-export const runtime = "nodejs";
+// Mock Session Store for Demo (In-Memory)
+// In a real app, this would use Redis or DB, but for the demo we can just keep it simple
+// or simulate persistence by passing the session back and forth (client-side state).
+// However, the `WhatsAppSimulator` expects to send metadata and get metadata back.
+// We can use the `metadata` field to store the Session object.
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { tenantSlug, text } = body;
+    const { text, metadata } = await req.json();
 
-    // 1. Mock Tenant & Customer
-    // Auto-detect locale from slug for demo purposes
-    let locale = 'es';
-    if (tenantSlug.endsWith('-en')) locale = 'en';
-    if (tenantSlug.endsWith('-pt')) locale = 'pt';
-
-    let tenant = {
-        id: 'mock-tenant-id',
-        slug: tenantSlug,
-        name: 'Clínica Demo',
-        locale: locale,
-        metadata: JSON.stringify({
-            // Example of Custom JSON Menu (only for ES demo to show off)
-            bot_strings: locale === 'es' ? {
-                menu: { booking: "📅 Nuevo Turno (Custom)" }
-            } : {}
-        }),
-        services: [
-            { id: 's1', name: 'Consulta General', priceCents: 5000, active: true, durationMin: 30 },
-            { id: 's2', name: 'Limpieza Dental', priceCents: 3500, active: true, durationMin: 45 },
-            { id: 's3', name: 'Ortodoncia', priceCents: 8000, active: true, durationMin: 60 },
-            { id: 's4', name: 'Blanqueamiento', priceCents: 12000, active: true, durationMin: 60 }
-        ]
-    };
-
-    // Try to fetch real if possible
-    try {
-        const realTenant = await prisma.tenant.findUnique({
-            where: { slug: tenantSlug },
-            include: { services: true }
-        });
-        if (realTenant) tenant = realTenant as any;
-    } catch (e) { /* ignore */ }
-
-    // Mock Customer
-    let mockMetadata = { state: "IDLE" };
-    if (body.metadata) mockMetadata = body.metadata;
-
-    let customer = {
-        id: 'mock-customer-id',
-        name: 'Paciente Demo',
-        metadata: JSON.stringify(mockMetadata),
-        email: 'demo@paciente.com'
-    };
-
-    // 2. Instantiate Engine in DEMO MODE
-    const engine = new BotEngine(tenant, customer, true);
+    // Recover session from metadata or create fresh
+    let session: Session = metadata?.session || { state: "HOME", updatedAt: Date.now() };
 
     // Process Message
-    const responseText = await engine.processMessage(text);
+    const { reply, session: nextSession, action } = await handleMessage(text.toLowerCase(), session);
 
-    // Get updated metadata from customer object (modified by engine reference)
-    const nextMetadata = JSON.parse(customer.metadata);
+    // Format for WhatsAppSimulator
+    // The simulator expects `messages: [{ body: string, options?: [] }]`
+    // Our `reply` string might contain newlines. We can split them or send as one block.
+    // We also need to extract options if possible.
+    // The `stateMachine` returns a single string with options embedded in text (e.g. "1) ...").
+    // To make it look nice in the UI with buttons, we can parse the reply or update `stateMachine` to return structured options.
+    // For now, let's just send the text and maybe parse simple options if we want chips.
 
-    // Extract options from text to make UI nicer
-    let options: any[] = [];
-    if (responseText.includes("1.") && responseText.includes("2.")) {
-        // Simple extraction of numbered lists
-        const lines = responseText.split('\n');
+    // Quick heuristic to extract options for UI chips
+    const options: { label: string, value: string }[] = [];
+    if (reply.includes("1)")) {
+        const lines = reply.split("\n");
         lines.forEach(line => {
-            const match = line.match(/^(\d+)\.\s+(.*)/);
+            const match = line.match(/^(\d+)\)\s+(.*)$/);
             if (match) {
-                options.push({ label: match[0].substring(0, 15) + "...", value: match[1] });
+                // e.g. "1) 📅 Reservar turno" -> label="📅 Reservar turno", value="1"
+                options.push({ label: match[2].trim(), value: match[1] });
             }
         });
-    } else if (responseText.includes("SI") || responseText.includes("confirmar")) {
-        options = [
-            { label: "✅ Confirmar", value: "si" },
-            { label: "❌ Cancelar", value: "no" }
-        ];
-    } else if (responseText.includes("menu")) {
-        options = [{ label: "🏠 Menú", value: "menu" }];
     }
 
     return NextResponse.json({
-      messages: [{ body: responseText, options }],
-      metadata: nextMetadata, // Return state to client
-      action: responseText.includes("Confirmado") ? {
-          type: 'APPOINTMENT_CREATED',
-          payload: {
-              id: 'demo-'+Date.now(),
-              startAt: nextMetadata.temp?.slot || new Date().toISOString(),
-              clientName: 'Paciente Demo',
-              serviceName: nextMetadata.temp?.serviceName || 'Servicio Demo',
-              status: 'confirmed'
-          }
-      } : null
+      messages: [
+        {
+          body: reply,
+          options: options
+        }
+      ],
+      metadata: { session: nextSession },
+      action: action
     });
 
   } catch (error) {
-    console.error('Demo API Error:', error);
-    return NextResponse.json({
-        messages: [{ from: 'bot', body: 'Error en el sistema demo. Intenta "menu".' }]
-    });
+    console.error("Demo API Error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

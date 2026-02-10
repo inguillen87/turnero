@@ -1,8 +1,10 @@
+// components/demo/DemoPatients.tsx
 "use client";
 
 import { User, Phone, Calendar, MoreHorizontal, Search, Filter, X, FileText, Activity, CreditCard, Clock, CheckCircle } from "lucide-react";
 import { useState } from "react";
-import * as Dialog from '@radix-ui/react-dialog';
+// Remove @radix-ui/react-dialog since we use a custom modal
+// import * as Dialog from '@radix-ui/react-dialog';
 
 export function DemoPatients() {
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
