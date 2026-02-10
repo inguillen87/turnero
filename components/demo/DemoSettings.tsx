@@ -12,7 +12,9 @@ import {
   Plus,
   Trash2,
   MessageCircle,
-  Calendar
+  Calendar,
+  Check,
+  RefreshCw
 } from "lucide-react";
 
 export function DemoSettings() {
@@ -184,18 +186,23 @@ function SettingsServices() {
             </div>
             <div className="space-y-3">
                 {[
-                    { name: 'Consulta General', duration: '30 min', price: '$5.000' },
-                    { name: 'Limpieza Dental', duration: '45 min', price: '$3.500' },
-                    { name: 'Ortodoncia (Control)', duration: '20 min', price: '$4.000' },
-                    { name: 'Implante', duration: '60 min', price: '$45.000' },
+                    { name: 'Consulta General', duration: '30 min', price: '$5.000', color: 'indigo' },
+                    { name: 'Limpieza Dental', duration: '45 min', price: '$3.500', color: 'green' },
+                    { name: 'Ortodoncia (Control)', duration: '20 min', price: '$4.000', color: 'blue' },
+                    { name: 'Implante', duration: '60 min', price: '$45.000', color: 'orange' },
                 ].map((s, i) => (
                     <div key={i} className="flex items-center justify-between p-4 border border-slate-100 rounded-xl hover:bg-slate-50 transition-colors">
-                        <div>
-                            <h4 className="font-bold text-slate-800">{s.name}</h4>
-                            <div className="flex items-center gap-3 mt-1">
-                                <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded font-medium">{s.duration}</span>
-                                <span className="text-xs font-bold text-slate-500">{s.price}</span>
-                            </div>
+                        <div className="flex items-center gap-4">
+                             <div className={`w-4 h-4 rounded-full bg-${s.color}-500 border border-slate-200`}></div>
+                             <div>
+                                <h4 className="font-bold text-slate-800">{s.name}</h4>
+                                <div className="flex items-center gap-3 mt-1">
+                                    <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded font-medium flex items-center gap-1">
+                                        <Clock className="w-3 h-3" /> {s.duration}
+                                    </span>
+                                    <span className="text-xs font-bold text-slate-500">{s.price}</span>
+                                </div>
+                             </div>
                         </div>
                         <button className="text-slate-300 hover:text-indigo-600">Edit</button>
                     </div>
@@ -210,6 +217,8 @@ function SettingsBilling() {
 }
 
 function SettingsIntegrations() {
+    const [connected, setConnected] = useState(false);
+
     return (
         <div className="space-y-6">
              <h3 className="font-bold text-slate-800 text-lg border-b border-slate-100 pb-4">Integraciones Activas</h3>
@@ -228,14 +237,38 @@ function SettingsIntegrations() {
                      <button className="text-xs font-bold bg-white text-slate-600 px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">Configurar</button>
                  </div>
 
-                 <div className="flex items-center justify-between p-6 border border-slate-200 rounded-2xl opacity-75">
+                 <div className={`flex items-center justify-between p-6 border rounded-2xl transition-all ${connected ? 'border-blue-200 bg-blue-50/50' : 'border-slate-200 opacity-75'}`}>
                      <div className="flex items-center gap-4">
-                         <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
-                             <Calendar className="w-6 h-6 text-blue-600" />
+                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${connected ? 'bg-blue-100' : 'bg-slate-50'}`}>
+                             <Calendar className={`w-6 h-6 ${connected ? 'text-blue-600' : 'text-slate-400'}`} />
                          </div>
                          <div>
                              <h4 className="font-bold text-slate-800">Google Calendar</h4>
-                             <p className="text-xs text-slate-500">Sincronización bidireccional</p>
+                             <p className="text-xs text-slate-500">{connected ? 'Sincronizando bidireccionalmente' : 'Sincronización bidireccional'}</p>
+                         </div>
+                     </div>
+                     <button
+                        onClick={() => setConnected(!connected)}
+                        className={`text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm transition-colors flex items-center gap-1 ${
+                            connected ? 'bg-white text-blue-600 border border-blue-200' : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                        }`}
+                     >
+                         {connected ? (
+                             <><Check className="w-3 h-3" /> Conectado</>
+                         ) : (
+                             'Conectar'
+                         )}
+                     </button>
+                 </div>
+
+                  <div className="flex items-center justify-between p-6 border border-slate-200 rounded-2xl opacity-75 grayscale hover:grayscale-0 transition-all">
+                     <div className="flex items-center gap-4">
+                         <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                             <CreditCard className="w-6 h-6 text-green-600" />
+                         </div>
+                         <div>
+                             <h4 className="font-bold text-slate-800">Google Sheets</h4>
+                             <p className="text-xs text-slate-500">Exportar turnos automáticamente</p>
                          </div>
                      </div>
                      <button className="text-xs font-bold bg-indigo-600 text-white px-3 py-1.5 rounded-lg shadow-sm hover:bg-indigo-700 transition-colors">Conectar</button>

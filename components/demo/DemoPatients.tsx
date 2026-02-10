@@ -1,7 +1,8 @@
 "use client";
 
-import { User, Phone, Calendar, MoreHorizontal, Search, Filter, X, FileText, Activity } from "lucide-react";
+import { User, Phone, Calendar, MoreHorizontal, Search, Filter, X, FileText, Activity, CreditCard, Clock, CheckCircle } from "lucide-react";
 import { useState } from "react";
+import * as Dialog from '@radix-ui/react-dialog';
 
 export function DemoPatients() {
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
@@ -20,9 +21,9 @@ export function DemoPatients() {
   );
 
   return (
-    <div className="flex h-full gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="flex h-full gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
       {/* Patient List */}
-      <div className={`flex-1 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden transition-all duration-300 ${selectedPatient ? 'w-2/3' : 'w-full'}`}>
+      <div className="flex-1 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden transition-all duration-300 w-full">
         {/* Header */}
         <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
            <div>
@@ -68,17 +69,15 @@ export function DemoPatients() {
                       <tr
                         key={p.id}
                         onClick={() => setSelectedPatient(p)}
-                        className={`hover:bg-indigo-50/50 transition-colors cursor-pointer group ${selectedPatient?.id === p.id ? 'bg-indigo-50 border-l-4 border-indigo-500 pl-5' : 'pl-6'}`}
+                        className="hover:bg-indigo-50/50 transition-colors cursor-pointer group pl-6"
                       >
                           <td className="py-4 pl-6">
                               <div className="flex items-center gap-3">
-                                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-transform group-hover:scale-110 ${
-                                      selectedPatient?.id === p.id ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-300' : 'bg-slate-100 text-slate-500'
-                                  }`}>
+                                  <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm bg-indigo-100 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                                       {p.name.charAt(0)}
                                   </div>
                                   <div>
-                                      <p className={`font-bold transition-colors ${selectedPatient?.id === p.id ? 'text-indigo-700' : 'text-slate-700'}`}>{p.name}</p>
+                                      <p className="font-bold text-slate-700 group-hover:text-indigo-700 transition-colors">{p.name}</p>
                                       <p className="text-xs text-slate-400 font-mono">ID: #{p.id}</p>
                                   </div>
                               </div>
@@ -110,92 +109,110 @@ export function DemoPatients() {
         </div>
       </div>
 
-      {/* Patient Details Panel (Right Sidebar) */}
+      {/* Full Screen Modal for Patient History */}
       {selectedPatient && (
-          <div className="w-[360px] bg-white rounded-2xl border border-slate-200 shadow-xl flex flex-col animate-in slide-in-from-right-10 duration-300 z-20">
-              <div className="p-6 border-b border-slate-100 flex justify-between items-start bg-slate-50/50 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-100 rounded-bl-full opacity-50 -mr-10 -mt-10"></div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white w-full max-w-4xl h-[80vh] rounded-3xl shadow-2xl flex overflow-hidden animate-in zoom-in-95 duration-300 relative">
 
-                  <div className="relative z-10">
-                    <div className="w-16 h-16 rounded-full bg-indigo-600 text-white flex items-center justify-center text-2xl font-bold shadow-lg mb-4">
-                        {selectedPatient.name.charAt(0)}
-                    </div>
-                    <h3 className="font-bold text-slate-800 text-xl leading-tight">{selectedPatient.name}</h3>
-                    <p className="text-indigo-600 text-sm font-medium">{selectedPatient.email}</p>
-                  </div>
-
-                  <button
+                {/* Close Button */}
+                <button
                     onClick={() => setSelectedPatient(null)}
-                    className="text-slate-400 hover:text-slate-600 p-1 bg-white rounded-full shadow-sm hover:shadow relative z-20"
-                  >
-                      <X className="w-5 h-5" />
-                  </button>
-              </div>
+                    className="absolute top-4 right-4 z-10 p-2 bg-white/50 hover:bg-slate-100 rounded-full transition-colors"
+                >
+                    <X className="w-6 h-6 text-slate-500" />
+                </button>
 
-              <div className="p-6 flex-1 overflow-y-auto custom-scroll space-y-6">
-                  {/* Stats */}
-                  <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
-                          <p className="text-xs text-slate-500 uppercase font-bold">Visitas</p>
-                          <p className="text-xl font-black text-slate-700">{selectedPatient.totalVisits}</p>
-                      </div>
-                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
-                          <p className="text-xs text-slate-500 uppercase font-bold">Canceladas</p>
-                          <p className="text-xl font-black text-slate-700">0</p>
-                      </div>
-                  </div>
+                {/* Left Panel: Profile */}
+                <div className="w-1/3 bg-slate-50 border-r border-slate-200 p-8 flex flex-col gap-6">
+                    <div className="text-center">
+                        <div className="w-24 h-24 bg-indigo-600 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl font-bold text-white shadow-xl shadow-indigo-200">
+                            {selectedPatient.name.charAt(0)}
+                        </div>
+                        <h2 className="text-xl font-bold text-slate-800">{selectedPatient.name}</h2>
+                        <p className="text-indigo-600 font-medium text-sm">{selectedPatient.email}</p>
+                        <div className="mt-4 flex justify-center gap-2">
+                            <button className="p-2 bg-white border border-slate-200 rounded-lg hover:text-indigo-600 hover:border-indigo-200 transition-colors"><Phone className="w-4 h-4" /></button>
+                            <button className="p-2 bg-white border border-slate-200 rounded-lg hover:text-indigo-600 hover:border-indigo-200 transition-colors"><FileText className="w-4 h-4" /></button>
+                        </div>
+                    </div>
 
-                  {/* Contact Info */}
-                  <div>
-                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                          <User className="w-3 h-3" /> Datos de Contacto
-                      </h4>
-                      <div className="space-y-3">
-                          <div className="flex items-center gap-3 text-sm text-slate-600 bg-white p-3 border border-slate-100 rounded-lg">
-                              <Phone className="w-4 h-4 text-indigo-500" />
-                              {selectedPatient.phone}
-                          </div>
-                          <div className="flex items-center gap-3 text-sm text-slate-600 bg-white p-3 border border-slate-100 rounded-lg">
-                              <Calendar className="w-4 h-4 text-indigo-500" />
-                              Última visita: {selectedPatient.lastVisit}
-                          </div>
-                      </div>
-                  </div>
+                    <div className="space-y-4">
+                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Estadísticas</h4>
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm text-slate-600">Turnos Totales</span>
+                                <span className="font-bold text-slate-800">{selectedPatient.totalVisits}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm text-slate-600">Asistencia</span>
+                                <span className="font-bold text-green-600">100%</span>
+                            </div>
+                        </div>
 
-                  {/* Notes */}
-                  <div>
-                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                          <FileText className="w-3 h-3" /> Notas Clínicas
-                      </h4>
-                      <div className="bg-yellow-50 border border-yellow-100 p-4 rounded-xl text-sm text-yellow-800 italic relative">
-                          <div className="absolute top-0 right-0 w-4 h-4 bg-yellow-100 rounded-bl-lg"></div>
-                          "{selectedPatient.notes}"
-                      </div>
-                  </div>
+                        <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-100 text-yellow-800 text-sm italic relative">
+                            <div className="absolute top-0 right-0 w-4 h-4 bg-yellow-100 rounded-bl-lg"></div>
+                            "{selectedPatient.notes}"
+                        </div>
+                    </div>
+                </div>
 
-                  {/* History Timeline */}
-                  <div>
-                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                          <Activity className="w-3 h-3" /> Historial Reciente
-                      </h4>
-                      <div className="space-y-4 border-l-2 border-slate-100 pl-4 ml-1">
-                          {[1,2].map((_, i) => (
-                              <div key={i} className="relative">
-                                  <div className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-slate-300 border-2 border-white"></div>
-                                  <p className="text-sm font-bold text-slate-700">Consulta General</p>
-                                  <p className="text-xs text-slate-400">Hace {i+1} meses • Dr. Admin</p>
-                              </div>
-                          ))}
-                      </div>
-                  </div>
-              </div>
+                {/* Right Panel: History Timeline */}
+                <div className="flex-1 bg-white p-8 overflow-y-auto custom-scroll">
+                    <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                        <Activity className="w-5 h-5 text-indigo-600" />
+                        Historial Clínico
+                    </h3>
 
-              <div className="p-4 border-t border-slate-100 bg-slate-50">
-                  <button className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200">
-                      Agendar Nuevo Turno
-                  </button>
-              </div>
-          </div>
+                    <div className="space-y-8 relative before:absolute before:left-2 before:top-2 before:bottom-0 before:w-0.5 before:bg-slate-100">
+                        {/* Timeline Items (Mock) */}
+                        {[
+                            { date: "Hoy, 10:00", type: "Consulta", title: "Limpieza Dental", status: "Completado", doctor: "Dra. Ana Gomez", notes: "Paciente refiere sensibilidad leve." },
+                            { date: "15 Ene 2024", type: "Pago", title: "Pago Recibido", status: "Aprobado", amount: "$3.500", method: "Mercado Pago" },
+                            { date: "10 Dic 2023", type: "Consulta", title: "Consulta General", status: "Completado", doctor: "Dr. Admin", notes: "Control rutinario. Todo en orden." },
+                             { date: "05 Nov 2023", type: "Cancelacion", title: "Turno Cancelado", status: "Cancelado", reason: "Fuerza mayor" },
+                        ].map((item, i) => (
+                            <div key={i} className="pl-8 relative group">
+                                <div className={`absolute left-0 top-1 w-4 h-4 rounded-full border-2 border-white shadow-sm z-10 ${
+                                    item.type === 'Consulta' ? 'bg-indigo-500' :
+                                    item.type === 'Pago' ? 'bg-green-500' : 'bg-red-400'
+                                }`}></div>
+
+                                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 hover:shadow-md transition-shadow">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div>
+                                            <h4 className="font-bold text-slate-800 text-sm">{item.title}</h4>
+                                            <p className="text-xs text-slate-500">{item.date}</p>
+                                        </div>
+                                        <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase ${
+                                            item.status === 'Completado' || item.status === 'Aprobado' ? 'bg-green-100 text-green-700' :
+                                            item.status === 'Cancelado' ? 'bg-red-100 text-red-700' : 'bg-slate-200 text-slate-600'
+                                        }`}>
+                                            {item.status}
+                                        </span>
+                                    </div>
+
+                                    {item.type === 'Consulta' && (
+                                        <div className="space-y-2">
+                                            <div className="flex items-center gap-2 text-xs text-slate-600">
+                                                <User className="w-3 h-3" /> {item.doctor}
+                                            </div>
+                                            <p className="text-sm text-slate-600 italic">"{item.notes}"</p>
+                                        </div>
+                                    )}
+
+                                    {item.type === 'Pago' && (
+                                        <div className="flex items-center gap-4 text-sm font-medium text-slate-700 bg-white p-2 rounded-lg border border-slate-100">
+                                            <span className="flex items-center gap-1 text-green-600"><CreditCard className="w-3 h-3" /> {item.amount}</span>
+                                            <span className="text-xs text-slate-400">{item.method}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
       )}
     </div>
   );
