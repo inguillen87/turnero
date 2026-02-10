@@ -180,6 +180,13 @@ model Appointment {
   notes          String?
   source         String            @default("WEB") // WEB, WHATSAPP, MANUAL
 
+  // Payment fields
+  paymentStatus  String?           @default("PENDING") // PENDING, PAID, REFUNDED
+  paymentId      String?           // External Payment ID (e.g. MercadoPago ID)
+  paymentLink    String?           // URL for payment
+  priceCents     Int?              // Price at the time of booking
+  depositAmount  Int?              // Amount required to confirm (if partial)
+
   createdAt DateTime @default(now())
 
   tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)

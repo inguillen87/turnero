@@ -21,7 +21,8 @@ export function WhatsAppSimulator({ onAction }: { onAction: (action: any) => voi
       timestamp: new Date(),
       options: [
         { label: '📅 Reservar Turno', value: 'book' },
-        { label: '❓ Consultar Precios', value: 'prices' }
+        { label: '❓ Consultar Precios', value: 'prices' },
+        { label: '👤 Mi Dueño', value: 'owner' }
       ]
     }
   ]);
