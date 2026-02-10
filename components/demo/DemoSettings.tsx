@@ -18,6 +18,7 @@ import {
   X,
   FileSpreadsheet
 } from "lucide-react";
+import { DemoBilling } from "@/components/demo/DemoBilling";
 
 interface DemoSettingsProps {
     services?: any[];
@@ -43,9 +44,11 @@ export function DemoSettings({ services, setServices }: DemoSettingsProps) {
                 <h2 className="text-2xl font-bold text-slate-800">Configuración</h2>
                 <p className="text-slate-500">Personaliza tu clínica</p>
             </div>
-            <button className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200">
-                <Save className="w-4 h-4" /> Guardar Cambios
-            </button>
+            {activeTab !== 'billing' && (
+                <button className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200">
+                    <Save className="w-4 h-4" /> Guardar Cambios
+                </button>
+            )}
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8 flex-1 overflow-hidden">
@@ -73,7 +76,7 @@ export function DemoSettings({ services, setServices }: DemoSettingsProps) {
                 {activeTab === 'schedule' && <SettingsSchedule />}
                 {activeTab === 'staff' && <SettingsStaff />}
                 {activeTab === 'services' && <SettingsServices services={services} setServices={setServices} />}
-                {activeTab === 'billing' && <SettingsBilling />}
+                {activeTab === 'billing' && <DemoBilling />}
                 {activeTab === 'integrations' && <SettingsIntegrations />}
             </div>
         </div>
@@ -305,10 +308,6 @@ function SettingsServices({ services, setServices }: { services?: any[], setServ
             </div>
         </div>
     )
-}
-
-function SettingsBilling() {
-    return <div className="text-center py-12 text-slate-400">Configuración de facturación (Demo)</div>
 }
 
 function SettingsIntegrations() {
