@@ -30,6 +30,7 @@ model Tenant {
   name      String
   status    String   @default("active") // active, suspended, demo
   planId    String?
+  timezone  String   @default("America/Argentina/Buenos_Aires")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -45,6 +46,8 @@ model Tenant {
   usage         TenantUsage[]
   auditLogs     AuditLog[]
   integrations  Integration[]
+  channels      Channel[]
+  payments      Payment[]
 }
 
 // Billing / Features
@@ -111,6 +114,7 @@ model Customer {
   email     String?
   notes     String?
   createdAt DateTime @default(now())
+  lastSeenAt DateTime @default(now())
 
   tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   appointments Appointment[]
@@ -152,16 +156,17 @@ model Service {
 model AvailabilityRule {
   id             String   @id @default(cuid())
   tenantId       String
-  professionalId String
+  professionalId String? // Nullable if general rule
   locationId     String?
   dayOfWeek      Int      // 0=Sunday, 1=Monday...
   startTime      String   // "09:00"
   endTime        String   // "17:00"
+  slotMinutes    Int      @default(30)
   breakStart     String?  // "13:00"
   breakEnd       String?  // "14:00"
 
   tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  professional Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  professional Professional? @relation(fields: [professionalId], references: [id], onDelete: Cascade)
   location     Location?    @relation(fields: [locationId], references: [id])
 
   @@index([tenantId, professionalId])
@@ -171,7 +176,7 @@ model Appointment {
   id             String            @id @default(cuid())
   tenantId       String
   customerId     String
-  professionalId String
+  professionalId String?
   serviceId      String
   locationId     String?
   startAt        DateTime
@@ -180,7 +185,7 @@ model Appointment {
   notes          String?
   source         String            @default("WEB") // WEB, WHATSAPP, MANUAL
 
-  // Payment fields
+  // Payment fields (Legacy/Quick access)
   paymentStatus  String?           @default("PENDING") // PENDING, PAID, REFUNDED
   paymentId      String?           // External Payment ID (e.g. MercadoPago ID)
   paymentLink    String?           // URL for payment
@@ -191,12 +196,43 @@ model Appointment {
 
   tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   customer     Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  professional Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  professional Professional? @relation(fields: [professionalId], references: [id], onDelete: Cascade)
   service      Service      @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   location     Location?    @relation(fields: [locationId], references: [id])
   messages     Message[]
+  payments     Payment[]
 
   @@index([tenantId, startAt])
+}
+
+model Payment {
+  id            String   @id @default(cuid())
+  tenantId      String
+  appointmentId String
+  provider      String   // "mercadopago", "stripe"
+  status        String   // "PENDING", "PAID", "FAILED", "REFUNDED"
+  amountCents   Int
+  externalId    String?  // MP Preference ID or Payment ID
+  createdAt     DateTime @default(now())
+
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model Channel {
+  id        String   @id @default(cuid())
+  tenantId  String
+  provider  String   // "twilio_whatsapp", "web_demo"
+  toAddress String   // "whatsapp:+1415..." or "web_demo_ID"
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([toAddress])
+  @@index([tenantId])
 }
 
 model Message {
@@ -207,6 +243,7 @@ model Message {
   direction     String   // "inbound", "outbound"
   body          String
   status        String   // "sent", "delivered", "read", "failed"
+  rawJson       String?  // Store full provider payload
   createdAt     DateTime @default(now())
 
   customerId    String?

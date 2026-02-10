@@ -36,6 +36,10 @@ export async function GET(
       service: { name: a.service?.name, price: a.service?.priceCents ? a.service.priceCents / 100 : 0 },
       professional: { name: a.professional?.name },
       notes: a.notes,
+      payment: {
+        status: a.paymentStatus,
+        link: a.paymentLink
+      }
     }));
 
     return NextResponse.json(flat);
@@ -52,6 +56,7 @@ export async function GET(
         service: { name: 'Consulta General', price: 50 },
         professional: { name: 'Dr. Demo' },
         notes: 'Mock appointment due to DB error',
+        payment: { status: 'PAID', link: null }
       },
       {
         id: 'mock-2',
@@ -62,6 +67,7 @@ export async function GET(
         service: { name: 'Limpieza Dental', price: 80 },
         professional: { name: 'Dra. Demo' },
         notes: 'Mock appointment',
+        payment: { status: 'PENDING', link: 'https://mpago.la/demo' }
       }
     ];
     return NextResponse.json(mockAppointments);

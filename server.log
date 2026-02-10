@@ -39,3 +39,38 @@ Please make sure your database server is running at `localhost:5432`.
   errorCode: undefined
 }
  GET /api/t/demo-clinica/appointments 200 in 1766ms (compile: 1389ms, render: 377ms)
+ GET /demo/clinica 200 in 392ms (compile: 163ms, render: 229ms)
+Database error, falling back to mock data: Error [PrismaClientInitializationError]:
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["prisma"].tenant.findUnique()` invocation in
+/app/.next/dev/server/chunks/[root-of-the-server]__5250b4a7._.js:80:150
+
+  77 async function GET(req, { params }) {
+  78     const { tenant: slug } = await params;
+  79     try {
+→ 80         const t = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["prisma"].tenant.findUnique(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at <unknown> (app/api/t/[tenant]/appointments/route.ts:14:35)
+    at async GET (app/api/t/[tenant]/appointments/route.ts:14:15)
+  12 |
+  13 |   try {
+> 14 |     const t = await prisma.tenant.findUnique({
+     |                                   ^
+  15 |       where: { slug },
+  16 |     });
+  17 | {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+ GET /api/t/demo-clinica/appointments 200 in 696ms (compile: 127ms, render: 568ms)
+Demo API Error: SyntaxError: Unexpected end of JSON input
+    at JSON.parse (<anonymous>)
+    at POST (app/api/demo/whatsapp/route.ts:9:28)
+   7 | export async function POST(req: Request) {
+   8 |   try {
+>  9 |     const body = await req.json();
+     |                            ^
+  10 |     const { tenantSlug, text } = body;
+  11 |
+  12 |     // 1. Mock Tenant & Customer (since DB might be offline in this sandbox)
