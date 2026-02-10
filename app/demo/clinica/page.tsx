@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Calendar, Users, BarChart3, CheckCircle2 } from "lucide-react";
+import { Calendar, Users, BarChart3, CheckCircle2, LayoutDashboard, Contact, Settings } from "lucide-react";
 import { WhatsAppSimulator } from "@/components/demo/WhatsAppSimulator";
 import { DemoAgenda } from "@/components/demo/DemoAgenda";
+import { DemoPatients } from "@/components/demo/DemoPatients";
 import { ClientDate } from "@/components/ui/ClientDate";
 
 export default function DemoPage() {
   const [appointments, setAppointments] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'agenda' | 'patients' | 'settings'>('agenda');
 
   // Initial Load
   useEffect(() => {
@@ -76,15 +78,36 @@ export default function DemoPage() {
             </div>
 
             <div className="grid grid-cols-3 gap-8 h-[600px]">
-               {/* Agenda Column */}
-               <div className="col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
-                  <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                     <h3 className="font-bold text-slate-700">Agenda del Día</h3>
-                     <button className="text-xs text-indigo-600 font-bold hover:underline">Ver Calendario Completo</button>
-                  </div>
-                  <div className="flex-1 overflow-y-auto p-4 custom-scroll">
-                     <DemoAgenda appointments={appointments} />
-                  </div>
+               {/* Agenda/Content Column */}
+               <div className="col-span-2">
+                  {activeTab === 'agenda' && (
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden h-full">
+                        <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                            <h3 className="font-bold text-slate-700">Agenda del Día</h3>
+                            <button className="text-xs text-indigo-600 font-bold hover:underline">Ver Calendario Completo</button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4 custom-scroll">
+                            <DemoAgenda appointments={appointments} />
+                        </div>
+                    </div>
+                  )}
+
+                  {activeTab === 'patients' && (
+                    <div className="h-full">
+                        <DemoPatients />
+                    </div>
+                  )}
+
+                  {activeTab === 'settings' && (
+                     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 h-full flex flex-col items-center justify-center text-center">
+                        <Settings className="w-16 h-16 text-slate-300 mb-4" />
+                        <h3 className="font-bold text-lg text-slate-700">Configuración</h3>
+                        <p className="text-slate-500 text-sm max-w-xs mb-6">Aquí podrás configurar tus servicios, horarios, integraciones y reglas de negocio.</p>
+                        <button className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-700 transition-colors" disabled>
+                            Próximamente en Demo
+                        </button>
+                     </div>
+                  )}
                </div>
 
                {/* Quick Actions / Notifications */}
@@ -101,9 +124,27 @@ export default function DemoPage() {
                   <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                      <h3 className="font-bold text-slate-700 mb-4">Accesos Rápidos</h3>
                      <div className="space-y-2">
-                        <button className="w-full text-left px-4 py-3 rounded-lg hover:bg-slate-50 text-slate-600 text-sm font-medium border border-transparent hover:border-slate-200 transition-all">Crear Turno Manual</button>
-                        <button className="w-full text-left px-4 py-3 rounded-lg hover:bg-slate-50 text-slate-600 text-sm font-medium border border-transparent hover:border-slate-200 transition-all">Ver Pacientes</button>
-                        <button className="w-full text-left px-4 py-3 rounded-lg hover:bg-slate-50 text-slate-600 text-sm font-medium border border-transparent hover:border-slate-200 transition-all">Configurar Servicios</button>
+                        <button
+                            onClick={() => setActiveTab('agenda')}
+                            className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 text-sm font-medium border transition-all ${activeTab === 'agenda' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'hover:bg-slate-50 border-transparent hover:border-slate-200 text-slate-600'}`}
+                        >
+                            <LayoutDashboard className="w-4 h-4" />
+                            Agenda / Turnos
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('patients')}
+                            className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 text-sm font-medium border transition-all ${activeTab === 'patients' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'hover:bg-slate-50 border-transparent hover:border-slate-200 text-slate-600'}`}
+                        >
+                            <Contact className="w-4 h-4" />
+                            Ver Pacientes
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('settings')}
+                            className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 text-sm font-medium border transition-all ${activeTab === 'settings' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'hover:bg-slate-50 border-transparent hover:border-slate-200 text-slate-600'}`}
+                        >
+                            <Settings className="w-4 h-4" />
+                            Configurar Servicios
+                        </button>
                      </div>
                   </div>
                </div>
