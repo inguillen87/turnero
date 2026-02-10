@@ -9,12 +9,23 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { tenantSlug, text } = body;
 
-    // 1. Mock Tenant & Customer (since DB might be offline in this sandbox)
-    // In production, we would fetch these from DB.
+    // 1. Mock Tenant & Customer
+    // Auto-detect locale from slug for demo purposes
+    let locale = 'es';
+    if (tenantSlug.endsWith('-en')) locale = 'en';
+    if (tenantSlug.endsWith('-pt')) locale = 'pt';
+
     let tenant = {
         id: 'mock-tenant-id',
         slug: tenantSlug,
         name: 'Clínica Demo',
+        locale: locale,
+        metadata: JSON.stringify({
+            // Example of Custom JSON Menu (only for ES demo to show off)
+            bot_strings: locale === 'es' ? {
+                menu: { booking: "📅 Nuevo Turno (Custom)" }
+            } : {}
+        }),
         services: [
             { id: 's1', name: 'Consulta General', priceCents: 5000, active: true, durationMin: 30 },
             { id: 's2', name: 'Limpieza Dental', priceCents: 3500, active: true, durationMin: 45 },
@@ -23,7 +34,7 @@ export async function POST(req: Request) {
         ]
     };
 
-    // Try to fetch real if possible (will fail in sandbox without env)
+    // Try to fetch real if possible
     try {
         const realTenant = await prisma.tenant.findUnique({
             where: { slug: tenantSlug },
@@ -32,17 +43,8 @@ export async function POST(req: Request) {
         if (realTenant) tenant = realTenant as any;
     } catch (e) { /* ignore */ }
 
-    // Mock Customer State storage (Memory or Client-side passed?)
-    // For demo simplicity, we can't easily persist state across calls without DB.
-    // However, the `BotEngine` relies on `customer.metadata`.
-    // We'll have to "Mock" the persistence by just assuming IDLE or passing state back?
-    // No, the BotEngine reads from DB.
-
-    // WORKAROUND: For the Demo Simulator *specifically*, we will create a
-    // "Ephemeral Bot Engine" that mocks the DB updates.
-
+    // Mock Customer
     let mockMetadata = { state: "IDLE" };
-    // We could pass metadata from the client to persist state!
     if (body.metadata) mockMetadata = body.metadata;
 
     let customer = {
@@ -52,58 +54,26 @@ export async function POST(req: Request) {
         email: 'demo@paciente.com'
     };
 
-    // We need to override the engine's `setContext` to simply return the metadata
-    // so we can send it back to the client.
+    // 2. Instantiate Engine in DEMO MODE
+    const engine = new BotEngine(tenant, customer, true);
 
-    const engine = new BotEngine(tenant, customer);
+    // Process Message
+    const responseText = await engine.processMessage(text);
 
-    // Monkey-patch setContext to capture state changes
-    let nextMetadata = mockMetadata;
-    (engine as any).setContext = async (ctx: any) => {
-        nextMetadata = ctx;
-        customer.metadata = JSON.stringify(ctx); // Update local for immediate reads
-    };
-
-    // Monkey-patch prisma calls inside engine?
-    // The engine calls `prisma.appointment.create`.
-    // We need to intercept that too if we want "Action" triggers.
-
-    // ACTUALLY: The engine is tightly coupled to Prisma.
-    // Ideally I should refactor Engine to take an Interface for DB operations.
-    // But for this task, I will just let it fail or wrap it?
-    // If I cannot write to DB, `prisma.appointment.create` will throw.
-
-    // PLAN B: Minimal Logic Duplication for Demo if DB is unreachable.
-    // If DB is reachable, use Engine.
-    // If not, use a simple switch case *similar* to Engine.
-
-    // Let's try to use Engine but catch DB errors.
-    let responseText = "";
-    try {
-        responseText = await engine.processMessage(text);
-    } catch (e) {
-        // Fallback Logic if Engine fails (e.g. DB error)
-        console.warn("Engine failed (likely DB), using fallback logic");
-        if (text.includes("1") || text.includes("reservar")) {
-            responseText = "¿Qué servicio buscas?\n1. Consulta General ($50)\n2. Limpieza ($35)\n\nEscribe el número.";
-            nextMetadata = { state: "BOOKING_SELECT_SERVICE" } as any;
-        } else if (text.includes("2") || text.includes("precio")) {
-            responseText = "Nuestros precios:\n- Consulta: $50\n- Limpieza: $35";
-        } else if (['si', 'yes'].includes(text.toLowerCase())) {
-             responseText = "✅ Turno Confirmado (Demo).\n\n💳 Link de pago: https://mpago.la/demo";
-             nextMetadata = { state: "IDLE" } as any;
-        } else {
-             responseText = "No entendí. Escribe 'menu' para ver opciones.";
-        }
-    }
+    // Get updated metadata from customer object (modified by engine reference)
+    const nextMetadata = JSON.parse(customer.metadata);
 
     // Extract options from text to make UI nicer
     let options: any[] = [];
     if (responseText.includes("1.") && responseText.includes("2.")) {
-        options = [
-            { label: "1. Consulta", value: "1" },
-            { label: "2. Limpieza", value: "2" }
-        ];
+        // Simple extraction of numbered lists
+        const lines = responseText.split('\n');
+        lines.forEach(line => {
+            const match = line.match(/^(\d+)\.\s+(.*)/);
+            if (match) {
+                options.push({ label: match[0].substring(0, 15) + "...", value: match[1] });
+            }
+        });
     } else if (responseText.includes("SI") || responseText.includes("confirmar")) {
         options = [
             { label: "✅ Confirmar", value: "si" },
@@ -120,9 +90,9 @@ export async function POST(req: Request) {
           type: 'APPOINTMENT_CREATED',
           payload: {
               id: 'demo-'+Date.now(),
-              startAt: new Date().toISOString(),
+              startAt: nextMetadata.temp?.slot || new Date().toISOString(),
               clientName: 'Paciente Demo',
-              serviceName: 'Servicio Demo',
+              serviceName: nextMetadata.temp?.serviceName || 'Servicio Demo',
               status: 'confirmed'
           }
       } : null
