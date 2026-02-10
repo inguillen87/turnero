@@ -1,0 +1,246 @@
+"use client";
+
+import { useState } from "react";
+import {
+  Save,
+  Building,
+  Clock,
+  Users,
+  Wrench,
+  CreditCard,
+  Link as LinkIcon,
+  Plus,
+  Trash2,
+  MessageCircle,
+  Calendar
+} from "lucide-react";
+
+export function DemoSettings() {
+  const [activeTab, setActiveTab] = useState('general');
+
+  const tabs = [
+    { id: 'general', label: 'General', icon: Building },
+    { id: 'schedule', label: 'Horarios', icon: Clock },
+    { id: 'staff', label: 'Equipo', icon: Users },
+    { id: 'services', label: 'Servicios', icon: Wrench },
+    { id: 'billing', label: 'Facturación', icon: CreditCard },
+    { id: 'integrations', label: 'Integraciones', icon: LinkIcon },
+  ];
+
+  return (
+    <div className="flex flex-col h-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+       <div className="flex justify-between items-center">
+            <div>
+                <h2 className="text-2xl font-bold text-slate-800">Configuración</h2>
+                <p className="text-slate-500">Personaliza tu clínica</p>
+            </div>
+            <button className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200">
+                <Save className="w-4 h-4" /> Guardar Cambios
+            </button>
+        </div>
+
+        <div className="flex flex-col lg:flex-row gap-8 flex-1 overflow-hidden">
+            {/* Settings Sidebar */}
+            <div className="w-full lg:w-64 flex-shrink-0 space-y-1">
+                {tabs.map(tab => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                            activeTab === tab.id
+                                ? 'bg-white text-indigo-600 shadow-sm border border-slate-200'
+                                : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+                        }`}
+                    >
+                        <tab.icon className={`w-5 h-5 ${activeTab === tab.id ? 'text-indigo-600' : 'text-slate-400'}`} />
+                        {tab.label}
+                    </button>
+                ))}
+            </div>
+
+            {/* Content Area */}
+            <div className="flex-1 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-y-auto custom-scroll p-8">
+                {activeTab === 'general' && <SettingsGeneral />}
+                {activeTab === 'schedule' && <SettingsSchedule />}
+                {activeTab === 'staff' && <SettingsStaff />}
+                {activeTab === 'services' && <SettingsServices />}
+                {activeTab === 'billing' && <SettingsBilling />}
+                {activeTab === 'integrations' && <SettingsIntegrations />}
+            </div>
+        </div>
+    </div>
+  );
+}
+
+function SettingsGeneral() {
+    return (
+        <div className="space-y-6 max-w-2xl">
+            <h3 className="font-bold text-slate-800 text-lg border-b border-slate-100 pb-4">Información de la Clínica</h3>
+
+            <div className="grid grid-cols-1 gap-6">
+                <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Nombre de la Clínica</label>
+                    <input type="text" defaultValue="Clínica Dental Demo" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                    <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-2">Teléfono</label>
+                        <input type="text" defaultValue="+54 9 11 1234 5678" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-2">Email</label>
+                        <input type="email" defaultValue="contacto@clinicademo.com" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20" />
+                    </div>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Dirección</label>
+                    <input type="text" defaultValue="Av. Corrientes 1234, CABA" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20" />
+                </div>
+
+                <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Timezone</label>
+                    <select className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20">
+                        <option>America/Argentina/Buenos_Aires (GMT-3)</option>
+                        <option>America/Santiago (GMT-4)</option>
+                        <option>Europe/Madrid (GMT+1)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+function SettingsSchedule() {
+    const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    return (
+        <div className="space-y-6">
+             <h3 className="font-bold text-slate-800 text-lg border-b border-slate-100 pb-4">Horarios de Atención</h3>
+             <div className="space-y-4">
+                 {days.map((day, i) => (
+                     <div key={day} className="flex items-center gap-4 p-4 border border-slate-100 rounded-xl hover:bg-slate-50 transition-colors">
+                         <div className="w-32 font-bold text-slate-700">{day}</div>
+                         <div className="flex-1 flex items-center gap-4">
+                             <input type="time" defaultValue="09:00" className="p-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-600 outline-none focus:border-indigo-500" />
+                             <span className="text-slate-400">-</span>
+                             <input type="time" defaultValue={i === 5 ? "13:00" : "18:00"} className="p-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-600 outline-none focus:border-indigo-500" />
+                         </div>
+                         <div className="flex items-center gap-2">
+                             <label className="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" className="sr-only peer" defaultChecked={i !== 6} />
+                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                             </label>
+                         </div>
+                     </div>
+                 ))}
+             </div>
+        </div>
+    )
+}
+
+function SettingsStaff() {
+    return (
+        <div className="space-y-6">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+                <h3 className="font-bold text-slate-800 text-lg">Profesionales</h3>
+                <button className="text-indigo-600 text-sm font-bold hover:bg-indigo-50 px-3 py-1 rounded-lg transition-colors flex items-center gap-1">
+                    <Plus className="w-4 h-4" /> Agregar
+                </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                    { name: 'Dr. Admin', role: 'Dentista General', email: 'admin@clinica.com' },
+                    { name: 'Dra. Ana Gomez', role: 'Ortodoncista', email: 'ana@clinica.com' },
+                    { name: 'Dr. Pedro Lopez', role: 'Cirujano', email: 'pedro@clinica.com' },
+                ].map((s, i) => (
+                    <div key={i} className="flex items-center gap-4 p-4 border border-slate-200 rounded-xl hover:shadow-md transition-all group">
+                         <div className="w-12 h-12 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-lg">
+                             {s.name.charAt(0)}
+                         </div>
+                         <div className="flex-1">
+                             <h4 className="font-bold text-slate-800">{s.name}</h4>
+                             <p className="text-xs text-slate-500">{s.role}</p>
+                             <p className="text-xs text-indigo-500 mt-1">{s.email}</p>
+                         </div>
+                         <button className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 transition-all p-2">
+                             <Trash2 className="w-4 h-4" />
+                         </button>
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+}
+
+function SettingsServices() {
+    return (
+        <div className="space-y-6">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+                <h3 className="font-bold text-slate-800 text-lg">Servicios Ofrecidos</h3>
+                <button className="text-indigo-600 text-sm font-bold hover:bg-indigo-50 px-3 py-1 rounded-lg transition-colors flex items-center gap-1">
+                    <Plus className="w-4 h-4" /> Agregar
+                </button>
+            </div>
+            <div className="space-y-3">
+                {[
+                    { name: 'Consulta General', duration: '30 min', price: '$5.000' },
+                    { name: 'Limpieza Dental', duration: '45 min', price: '$3.500' },
+                    { name: 'Ortodoncia (Control)', duration: '20 min', price: '$4.000' },
+                    { name: 'Implante', duration: '60 min', price: '$45.000' },
+                ].map((s, i) => (
+                    <div key={i} className="flex items-center justify-between p-4 border border-slate-100 rounded-xl hover:bg-slate-50 transition-colors">
+                        <div>
+                            <h4 className="font-bold text-slate-800">{s.name}</h4>
+                            <div className="flex items-center gap-3 mt-1">
+                                <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded font-medium">{s.duration}</span>
+                                <span className="text-xs font-bold text-slate-500">{s.price}</span>
+                            </div>
+                        </div>
+                        <button className="text-slate-300 hover:text-indigo-600">Edit</button>
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+}
+
+function SettingsBilling() {
+    return <div className="text-center py-12 text-slate-400">Configuración de facturación (Demo)</div>
+}
+
+function SettingsIntegrations() {
+    return (
+        <div className="space-y-6">
+             <h3 className="font-bold text-slate-800 text-lg border-b border-slate-100 pb-4">Integraciones Activas</h3>
+
+             <div className="space-y-4">
+                 <div className="flex items-center justify-between p-6 border border-green-200 bg-green-50/50 rounded-2xl">
+                     <div className="flex items-center gap-4">
+                         <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                             <MessageCircle className="w-6 h-6 text-green-600" />
+                         </div>
+                         <div>
+                             <h4 className="font-bold text-slate-800">WhatsApp Business</h4>
+                             <p className="text-xs text-green-700 font-medium">Conectado y Activo</p>
+                         </div>
+                     </div>
+                     <button className="text-xs font-bold bg-white text-slate-600 px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">Configurar</button>
+                 </div>
+
+                 <div className="flex items-center justify-between p-6 border border-slate-200 rounded-2xl opacity-75">
+                     <div className="flex items-center gap-4">
+                         <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
+                             <Calendar className="w-6 h-6 text-blue-600" />
+                         </div>
+                         <div>
+                             <h4 className="font-bold text-slate-800">Google Calendar</h4>
+                             <p className="text-xs text-slate-500">Sincronización bidireccional</p>
+                         </div>
+                     </div>
+                     <button className="text-xs font-bold bg-indigo-600 text-white px-3 py-1.5 rounded-lg shadow-sm hover:bg-indigo-700 transition-colors">Conectar</button>
+                 </div>
+             </div>
+        </div>
+    )
+}
