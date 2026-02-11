@@ -1,4 +1,6 @@
 // lib/bot/stateMachine.ts
+import { analyzeMessage, AIIntent } from "@/lib/ai";
+import { getAvailableSlots, reserveSlot, Slot } from "@/lib/bot/slots";
 
 export type BookingState =
   | "HOME"
@@ -13,6 +15,8 @@ export type Session = {
   serviceId?: string;
   slotId?: string;
   updatedAt: number;
+  history?: { role: 'user' | 'assistant'; content: string }[];
+  cachedSlots?: Slot[]; // Cache slots shown to user to map selection 1,2,3
 };
 
 // DEMO DATA (This could come from DB in future)
@@ -23,19 +27,13 @@ export const DEFAULT_SERVICES = [
   { id: "blanqueamiento", name: "Blanqueamiento", price: 120000, durationMin: 60 },
 ];
 
-export const SLOTS = [
-  { id: "s1", label: "Mié 11 - 10:00" },
-  { id: "s2", label: "Mié 11 - 11:00" },
-  { id: "s3", label: "Mié 11 - 14:00" },
-];
-
 const APP_NAME = process.env.APP_NAME || "Turnero Pro";
 
-export function menu() {
+export function menu(appName?: string) {
   return (
-`👋 Hola! Soy el asistente de *${APP_NAME}*.
+`👋 Hola! Soy el asistente de *${appName || APP_NAME}*.
 
-Respondé con un número:
+Respondé con un número o escribe lo que necesitas:
 1) 📅 Reservar turno
 2) 💰 Ver precios
 3) 🔁 Cancelar
@@ -50,7 +48,7 @@ export function helpLine() {
 }
 
 function formatServices(services: any[]) {
-  return services.map((s, i) => `${i + 1}) ${s.name} ($${s.price.toLocaleString("es-AR")})`).join("\n");
+  return services.map((s, i) => `${i + 1}) ${s.name} ($${(s.price || s.priceCents/100).toLocaleString("es-AR")})`).join("\n");
 }
 
 function findServiceByChoice(choice: string, services: any[]) {
@@ -60,31 +58,65 @@ function findServiceByChoice(choice: string, services: any[]) {
   return byName || null;
 }
 
+function findServiceByName(name: string, services: any[]) {
+    if (!name) return null;
+    const lower = name.toLowerCase();
+    return services.find(s => s.name.toLowerCase().includes(lower)) || null;
+}
+
 function bodyRawMask(v: string) {
   if (!v) return "";
   if (v.length <= 4) return "****";
   return v.slice(0, 2) + "****" + v.slice(-2);
 }
 
-// Core Logic: Accepts input body and current session, returns reply and next session state
-export async function handleMessage(body: string, session: Session, customServices?: any[]) {
-  const services = customServices || DEFAULT_SERVICES;
+export interface BotContext {
+    tenantName: string;
+    services?: any[];
+    botSettings?: {
+        personality?: string;
+        tenantType?: string;
+        customInstructions?: string;
+    };
+}
 
-  // Global Navigation
-  if (body === "" || body === "hola" || body === "buenas" || body === "menu" || body === "menú" || body === "9") {
+// Core Logic: Accepts input body and current session, returns reply and next session state
+export async function handleMessage(
+    body: string,
+    session: Session,
+    context?: BotContext
+) {
+  const services = context?.services || DEFAULT_SERVICES;
+  const tenantName = context?.tenantName || APP_NAME;
+
+  // Initialize history if missing
+  if (!session.history) session.history = [];
+
+  // Global Navigation (Deterministic)
+  if (body === "menu" || body === "menú" || body === "9") {
     session.state = "HOME";
     session.serviceId = undefined;
     session.slotId = undefined;
-    return { reply: menu(), session };
+    session.cachedSlots = undefined;
+    session.history.push({ role: 'user', content: body });
+    const reply = menu(tenantName);
+    session.history.push({ role: 'assistant', content: reply });
+    return { reply, session };
   }
   if (body === "0") {
     session.state = "HOME";
     session.serviceId = undefined;
     session.slotId = undefined;
-    return { reply: menu(), session };
+    session.cachedSlots = undefined;
+    const reply = menu(tenantName);
+    session.history.push({ role: 'user', content: body });
+    session.history.push({ role: 'assistant', content: reply });
+    return { reply, session };
   }
 
-  // HOME
+  // --- DETERMINISTIC STATE HANDLING ---
+
+  // HOME - Deterministic Override
   if (session.state === "HOME") {
     if (body === "1") {
       session.state = "CHOOSE_SERVICE";
@@ -110,111 +142,127 @@ export async function handleMessage(body: string, session: Session, customServic
     if (body === "5") {
       return { reply: `🧑‍💼 Te paso con un humano.\n(Demo)\n${helpLine()}`, session };
     }
-
-    return { reply: `No entendí. Respondé con un número.\n\n${menu()}`, session };
   }
 
-  // CHOOSE_SERVICE
+  // CHOOSE_SERVICE (Deterministic)
   if (session.state === "CHOOSE_SERVICE") {
     const service = findServiceByChoice(body, services);
-    if (!service) {
-      return { reply: `Servicio inválido.\n${formatServices(services)}\n${helpLine()}`, session };
-    }
-    session.serviceId = service.id;
-    session.state = "CHOOSE_SLOT";
-    return {
-      reply:
-`✅ Elegiste *${service.name}*.
-🗓 Horarios sugeridos:
-1) ${SLOTS[0].label}
-2) ${SLOTS[1].label}
-3) ${SLOTS[2].label}
+    if (service) {
+        session.serviceId = service.id;
+        session.state = "CHOOSE_SLOT";
 
-Respondé con 1-3.
+        // Fetch dynamic slots
+        const slots = await getAvailableSlots();
+        session.cachedSlots = slots.slice(0, 5); // Show top 5
+
+        const slotsText = session.cachedSlots.map((s, i) => `${i + 1}) ${s.label}`).join("\n");
+
+        return {
+        reply:
+`✅ Elegiste *${service.name}*.
+🗓 Horarios disponibles:
+${slotsText}
+
+Respondé con 1-${session.cachedSlots.length}.
 ${helpLine()}`,
-      session,
-    };
+        session,
+        };
+    }
   }
 
-  // CHOOSE_SLOT
+  // CHOOSE_SLOT (Deterministic)
   if (session.state === "CHOOSE_SLOT") {
     const idx = Number(body) - 1;
-    if (Number.isNaN(idx) || idx < 0 || idx >= SLOTS.length) {
-      return { reply: `Horario inválido. Respondé 1-3.\n${helpLine()}`, session };
-    }
-    session.slotId = SLOTS[idx].id;
-    session.state = "CONFIRM";
-    const service = services.find((s) => s.id === session.serviceId);
-    return {
-      reply:
+    if (session.cachedSlots && !Number.isNaN(idx) && idx >= 0 && idx < session.cachedSlots.length) {
+        session.slotId = session.cachedSlots[idx].id;
+        session.state = "CONFIRM";
+        const service = services.find((s) => s.id === session.serviceId);
+        return {
+        reply:
 `Vas a reservar:
 - Servicio: *${service?.name || session.serviceId}*
-- Horario: *${SLOTS[idx].label}*
+- Horario: *${session.cachedSlots[idx].label}*
 
 Confirmá:
 1) ✅ Confirmar
 2) ❌ Cancelar
 ${helpLine()}`,
-      session,
-    };
+        session,
+        };
+    } else {
+        return { reply: `Opción inválida. Elegí del 1 al ${session.cachedSlots?.length || 0}.\n${helpLine()}`, session };
+    }
   }
 
-  // CONFIRM
+  // CONFIRM (Deterministic)
   if (session.state === "CONFIRM") {
-    if (body === "1" || body === "si" || body === "sí" || body === "confirmar") {
+    if (body === "1" || body === "si" || body === "sí" || body === "confirmar" || body === "yes") {
       const service = services.find((s) => s.id === session.serviceId);
-      const slot = SLOTS.find((s) => s.id === session.slotId);
+
+      // Try to reserve
+      const reserved = await reserveSlot(session.slotId!);
+
+      if (!reserved) {
+          session.state = "CHOOSE_SLOT";
+          // Refresh slots
+          const slots = await getAvailableSlots();
+          session.cachedSlots = slots.slice(0, 5);
+          const slotsText = session.cachedSlots.map((s, i) => `${i + 1}) ${s.label}`).join("\n");
+          return {
+              reply: `⚠️ Lo siento, ese horario ya fue ocupado por otra persona hace instantes.\n\nElegí otro:\n${slotsText}`,
+              session
+          }
+      }
+
+      // Find label for response (might be in cache or we reconstruct it, simplistic here)
+      // Ideally we stored the label in session, but we can assume success
+      const slotLabel = session.cachedSlots?.find(s => s.id === session.slotId)?.label || "Horario Reservado";
+      const slotIso = session.cachedSlots?.find(s => s.id === session.slotId)?.dateIso;
+
       session.state = "HOME";
-
-      // In prod: Save to DB here
-      // For now, create the mock payment link
-      const payLink = "https://mpago.la/demo"; // Or internal /demo/checkout link
-
-      // We'll reset session data after confirming
       session.serviceId = undefined;
       session.slotId = undefined;
+      session.cachedSlots = undefined;
+      const payLink = "https://mpago.la/demo";
+
+      const actionPayload = {
+          id: Date.now(),
+          startAt: slotIso || new Date().toISOString(),
+          clientName: 'Usuario WhatsApp',
+          status: 'confirmed',
+          serviceName: service?.name,
+          service: service
+      };
 
       return {
         reply:
 `✅ *Turno confirmado*
 - ${service?.name}
-- ${slot?.label}
+- ${slotLabel}
 
 💳 Para finalizar, aboná la seña: ${payLink}
 
-${menu()}`,
+${menu(tenantName)}`,
         session,
-        action: { // Optional: Return action for frontend/demo simulator to update UI
+        action: {
             type: 'APPOINTMENT_CREATED',
-            payload: {
-                id: Date.now(),
-                startAt: new Date().toISOString(), // Mock date based on slot logic if possible, or just now
-                clientName: 'Usuario WhatsApp',
-                status: 'confirmed',
-                serviceName: service?.name
-            }
+            payload: actionPayload
         }
       };
     }
-
     if (body === "2" || body === "no" || body === "cancelar") {
       session.state = "HOME";
       session.serviceId = undefined;
       session.slotId = undefined;
-      return { reply: `Cancelado.\n\n${menu()}`, session };
+      return { reply: `Cancelado.\n\n${menu(tenantName)}`, session };
     }
-
-    return { reply: `Respondé 1 o 2.\n${helpLine()}`, session };
   }
 
-  // CANCEL_FLOW
+  // CANCEL/MY_APPTS (Deterministic)
   if (session.state === "CANCEL_FLOW") {
-    // Mock cancellation logic
     session.state = "HOME";
-    return { reply: `🔁 (Demo) Cancelación recibida para: ${bodyRawMask(body)}\n\n${menu()}`, session };
+    return { reply: `🔁 (Demo) Cancelación recibida para: ${bodyRawMask(body)}\n\n${menu(tenantName)}`, session };
   }
-
-  // MY_APPTS
   if (session.state === "MY_APPTS") {
     session.state = "HOME";
     return {
@@ -223,12 +271,65 @@ ${menu()}`,
 - Mié 11 10:00 (Ortodoncia) ✅
 - Vie 13 12:00 (Consulta) ⏳
 
-${menu()}`,
+${menu(tenantName)}`,
       session,
     };
   }
 
-  // Fallback
-  session.state = "HOME";
-  return { reply: menu(), session };
+  // --- AI FALLBACK ---
+  try {
+      const aiResult = await analyzeMessage(body, {
+          services: services.map(s => ({
+              id: s.id,
+              name: s.name,
+              priceCents: s.price ? s.price * 100 : s.priceCents || 0
+          })),
+          conversationHistory: session.history,
+          now: new Date(),
+          tenantName: tenantName,
+          locale: 'es',
+          botPersonality: context?.botSettings?.personality,
+          tenantType: context?.botSettings?.tenantType,
+          customInstructions: context?.botSettings?.customInstructions
+      });
+
+      session.history.push({ role: 'user', content: body });
+      session.history.push({ role: 'assistant', content: aiResult.message });
+
+      if (aiResult.intent === 'booking') {
+          if (aiResult.entities?.serviceName) {
+              const service = findServiceByName(aiResult.entities.serviceName, services);
+              if (service) {
+                  session.serviceId = service.id;
+                  session.state = "CHOOSE_SLOT";
+
+                  // AI Logic should also fetch dynamic slots
+                  const slots = await getAvailableSlots();
+                  session.cachedSlots = slots.slice(0, 5);
+                  const slotsText = session.cachedSlots.map((s, i) => `${i + 1}) ${s.label}`).join("\n");
+
+                  return {
+                      reply: `(AI) Entendido, buscas ${service.name}.\n\n🗓 Horarios disponibles:\n${slotsText}\n\nRespondé con 1-${session.cachedSlots.length}.`,
+                      session
+                  }
+              }
+          }
+          session.state = "CHOOSE_SERVICE";
+          return {
+              reply: `(AI) ${aiResult.message}\n\n¿Qué servicio te interesa?\n${formatServices(services)}`,
+              session
+          };
+      }
+
+      if (aiResult.intent === 'query_prices') {
+          return { reply: `(AI) ${aiResult.message}\n\n${formatServices(services)}`, session };
+      }
+
+      return { reply: aiResult.message, session };
+
+  } catch (e) {
+      console.error("AI Error", e);
+      session.state = "HOME";
+      return { reply: menu(tenantName), session };
+  }
 }

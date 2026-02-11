@@ -1,26 +1,53 @@
-import { Sidebar } from "@/components/Sidebar";
+import { getServerSession } from "next-auth/next";
+import { redirect } from "next/navigation";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import Link from "next/link";
+import { LayoutDashboard, Users, PlusCircle, Settings, LogOut } from "lucide-react";
 
-export default function SuperAdminLayout({
+export default async function SuperAdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await getServerSession(authOptions);
+
+  if (!session || (session.user as any).role !== "SUPER_ADMIN") {
+    redirect("/login");
+  }
+
   return (
-    <div className="flex min-h-screen bg-slate-50 font-sans text-slate-900">
-      {/* Mock Sidebar for SA - in real app, separate component */}
-      <aside className="w-64 bg-slate-900 text-white p-6 hidden lg:block">
-         <div className="font-bold text-xl mb-8 flex items-center gap-2">
-           <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">S</div>
-           Super Admin
-         </div>
-         <nav className="space-y-1">
-            <div className="px-4 py-2 bg-white/10 rounded-lg font-medium text-sm">Tenants</div>
-            <div className="px-4 py-2 text-slate-400 hover:text-white rounded-lg font-medium text-sm transition-colors">Usuarios</div>
-            <div className="px-4 py-2 text-slate-400 hover:text-white rounded-lg font-medium text-sm transition-colors">Planes</div>
-            <div className="px-4 py-2 text-slate-400 hover:text-white rounded-lg font-medium text-sm transition-colors">Audit Logs</div>
-         </nav>
+    <div className="flex min-h-screen bg-gray-100">
+      {/* Sidebar */}
+      <aside className="w-64 bg-slate-900 text-white flex flex-col">
+        <div className="p-6 border-b border-slate-800">
+          <h1 className="text-xl font-bold tracking-tight">Turnero Admin</h1>
+          <p className="text-xs text-slate-400 mt-1">Super Admin Console</p>
+        </div>
+
+        <nav className="flex-1 p-4 space-y-1">
+          <Link href="/sa" className="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors">
+            <LayoutDashboard className="w-5 h-5" /> Dashboard
+          </Link>
+          <Link href="/sa/tenants" className="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors">
+            <Users className="w-5 h-5" /> Tenants
+          </Link>
+          <Link href="/sa/tenants/create" className="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors">
+            <PlusCircle className="w-5 h-5" /> Create Tenant
+          </Link>
+          <Link href="/sa/settings" className="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors">
+            <Settings className="w-5 h-5" /> System Settings
+          </Link>
+        </nav>
+
+        <div className="p-4 border-t border-slate-800">
+          <div className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-400 hover:text-white cursor-pointer">
+             <LogOut className="w-5 h-5" /> Logout
+          </div>
+        </div>
       </aside>
-      <main className="flex-1 overflow-auto">
+
+      {/* Main Content */}
+      <main className="flex-1 p-8 overflow-y-auto">
         {children}
       </main>
     </div>

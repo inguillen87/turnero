@@ -2,11 +2,11 @@ export const runtime = "nodejs";
 
 import twilio from "twilio";
 import { Redis } from "@upstash/redis";
-import { Session, handleMessage, menu } from "@/lib/bot/stateMachine";
+import { Session, handleMessage } from "@/lib/bot/stateMachine";
+import { prisma } from "@/lib/db";
+import { NextRequest } from "next/server";
 
 // --- ENV & UTILS ---
-const APP_NAME = process.env.APP_NAME || "Turnero Pro";
-
 const redis =
   process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
     ? new Redis({
@@ -15,7 +15,7 @@ const redis =
       })
     : null;
 
-// Fallback memory store if Redis fails or isn't set
+// Fallback memory store
 const memSessions = new Map<string, Session>();
 const memDedupe = new Map<string, number>();
 
@@ -43,18 +43,11 @@ function normalizeBody(s: string) {
   return (s || "").trim().toLowerCase();
 }
 
-function buildPublicUrl(req: Request) {
-  // Allow overriding the URL via env var for "bulletproof" signature validation in Prod
-  if (process.env.NEXT_PUBLIC_APP_URL) {
-      return `${process.env.NEXT_PUBLIC_APP_URL}`; // Should include /api/webhooks/twilio if configured that way, or we append it
-  }
-
-  const host =
-    req.headers.get("x-forwarded-host") ||
-    req.headers.get("host") ||
-    "";
+function buildPublicUrl(req: NextRequest, tenantSlug: string) {
+  // Use current host
   const proto = req.headers.get("x-forwarded-proto") || "https";
-  return `${proto}://${host}/api/webhooks/twilio`;
+  const host = req.headers.get("host") || "";
+  return `${proto}://${host}/api/webhooks/twilio/${tenantSlug}`;
 }
 
 function validateTwilioSignature(params: Record<string, string>, url: string, signature: string | null) {
@@ -112,63 +105,78 @@ async function setSession(userKey: string, session: Session) {
 
 // --- HANDLER ---
 
-export async function POST(req: Request) {
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ tenant: string }> }
+) {
+  const { tenant: tenantSlug } = await params;
+
   try {
     const raw = await req.text();
-    const params = new URLSearchParams(raw);
+    const urlParams = new URLSearchParams(raw);
 
-    const from = params.get("From") || "";
-    const bodyRaw = params.get("Body") || "";
+    const from = urlParams.get("From") || "";
+    const bodyRaw = urlParams.get("Body") || "";
     const body = normalizeBody(bodyRaw);
-    const messageSid = params.get("MessageSid") || "";
-
-    const url = buildPublicUrl(req);
+    const messageSid = urlParams.get("MessageSid") || "";
     const signature = req.headers.get("x-twilio-signature");
 
     const paramsObj: Record<string, string> = {};
-    params.forEach((v, k) => (paramsObj[k] = v));
+    urlParams.forEach((v, k) => (paramsObj[k] = v));
+
+    const url = buildPublicUrl(req, tenantSlug);
 
     // Validate Signature
     if (process.env.NODE_ENV === 'production' && process.env.TWILIO_AUTH_TOKEN) {
-        try {
-            const valid = validateTwilioSignature(paramsObj, url, signature);
-            if (!valid) {
-                console.warn("[WA TURNERO] Firma Twilio inválida", { url, from, signature });
-                return new Response(twiml("Unauthorized"), { status: 403, headers: { "Content-Type": "text/xml" } });
-            }
-        } catch (e: any) {
-            console.error("[WA TURNERO] Error validación Twilio:", e?.message || e);
-            return new Response(twiml("Server misconfigured"), { status: 500, headers: { "Content-Type": "text/xml" } });
+        if (!validateTwilioSignature(paramsObj, url, signature)) {
+            console.warn(`[WA ${tenantSlug}] Invalid Signature`, { url, from });
+            return new Response(twiml("Unauthorized"), { status: 403, headers: { "Content-Type": "text/xml" } });
         }
     }
 
     // Deduplicate
     if (await dedupeSeen(messageSid)) {
-        console.log("[WA TURNERO] Mensaje duplicado ignorado", messageSid);
         return new Response(twiml(""), { status: 200, headers: { "Content-Type": "text/xml" } });
     }
 
+    // Fetch Tenant Context
+    const tenant = await prisma.tenant.findUnique({
+        where: { slug: tenantSlug },
+        include: {
+            services: true,
+            integrations: true
+        }
+    });
+
+    if (!tenant) {
+        console.warn(`[WA ${tenantSlug}] Tenant not found`);
+        return new Response(twiml("Error: Clínica no encontrada."), { status: 404, headers: { "Content-Type": "text/xml" } });
+    }
+
+    // Bot Settings
+    const botConfig = tenant.integrations.find(i => i.type === 'bot_settings')?.config;
+    const botSettings = botConfig ? JSON.parse(botConfig) : undefined;
+
     // Get Session
-    const userKey = `turnero:${from}`;
+    const userKey = `turnero:${tenantSlug}:${from}`;
     const session = await getSession(userKey);
 
-    console.log("[WA TURNERO]", { from, body: bodyRaw, state: session.state });
+    console.log(`[WA ${tenantSlug}]`, { from, body: bodyRaw, state: session.state });
 
     // Handle Logic
-    const { reply, session: nextSession } = await handleMessage(body, session);
+    const { reply, session: nextSession } = await handleMessage(body, session, {
+        tenantName: tenant.name,
+        services: tenant.services.length > 0 ? tenant.services : undefined,
+        botSettings
+    });
 
     // Save Session
     await setSession(userKey, nextSession);
 
-    // Reply
     return new Response(twiml(reply), { status: 200, headers: { "Content-Type": "text/xml" } });
 
   } catch (err) {
       console.error("Webhook Error:", err);
-      return new Response(twiml("Error interno"), { status: 500 });
+      return new Response(twiml("Error interno"), { status: 500, headers: { "Content-Type": "text/xml" } });
   }
-}
-
-export async function GET(req: Request) {
-  return new Response("OK /api/webhooks/twilio (WhatsApp Webhook Active)", { status: 200, headers: { "Content-Type": "text/plain" } });
 }
