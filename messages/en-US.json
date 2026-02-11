@@ -1,0 +1,12 @@
+{
+  "common": {
+    "welcome": "Welcome",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "menu": {
+    "dashboard": "Dashboard",
+    "calendar": "Calendar",
+    "settings": "Settings"
+  }
+}

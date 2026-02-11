@@ -14,16 +14,23 @@ import {
   Shield,
   CreditCard,
   Bot,
-  Sparkles
+  Sparkles,
+  ShoppingBag,
+  Loader2,
+  CheckCircle,
+  XCircle
 } from 'lucide-react';
+import { useRouter } from "next/navigation";
 
 export default function SettingsClient({ tenant, services, professionals, integrations }: any) {
   const [activeTab, setActiveTab] = useState("general");
+  const router = useRouter();
 
   const tabs = [
     { id: "general", label: "General", icon: <Settings className="w-4 h-4" /> },
     { id: "bot", label: "Bot AI", icon: <Bot className="w-4 h-4" /> },
     { id: "services", label: "Servicios", icon: <Briefcase className="w-4 h-4" /> },
+    { id: "catalog", label: "Catálogo", icon: <ShoppingBag className="w-4 h-4" /> },
     { id: "team", label: "Equipo", icon: <Users className="w-4 h-4" /> },
     { id: "integrations", label: "Integraciones", icon: <Globe className="w-4 h-4" /> },
     { id: "billing", label: "Facturación", icon: <CreditCard className="w-4 h-4" /> },
@@ -49,7 +56,13 @@ export default function SettingsClient({ tenant, services, professionals, integr
                  {tabs.map(tab => (
                     <button
                       key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
+                      onClick={() => {
+                          if (tab.id === 'catalog') {
+                              router.push(`/t/${tenant.slug}/catalog`);
+                          } else {
+                              setActiveTab(tab.id);
+                          }
+                      }}
                       className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all ${
                         activeTab === tab.id
                           ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 shadow-sm'
@@ -68,16 +81,17 @@ export default function SettingsClient({ tenant, services, professionals, integr
         <div className="lg:col-span-3 space-y-6">
            {activeTab === "general" && <GeneralSettings tenant={tenant} />}
            {activeTab === "bot" && <BotSettings tenant={tenant} integrations={integrations} />}
-           {activeTab === "services" && <ServicesSettings services={services} />}
+           {activeTab === "services" && <ServicesSettings services={services} tenant={tenant} />}
            {activeTab === "team" && <TeamSettings professionals={professionals} />}
            {activeTab === "integrations" && <IntegrationsSettings integrations={integrations} slug={tenant.slug} />}
-           {activeTab === "billing" && <div className="p-12 text-center text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">Próximamente</div>}
+           {activeTab === "billing" && <BillingSettings tenant={tenant} />}
         </div>
       </div>
     </div>
   );
 }
 
+// ... (Other components remain same: BotSettings, GeneralSettings, ServicesSettings, TeamSettings, IntegrationsSettings)
 function BotSettings({ tenant, integrations }: any) {
   // Try to find existing bot settings or use defaults
   const botSettings = integrations?.find((i: any) => i.type === 'bot_settings')?.config
@@ -233,7 +247,12 @@ function GeneralSettings({ tenant }: any) {
   )
 }
 
-function ServicesSettings({ services }: any) {
+function ServicesSettings({ services, tenant }: any) {
+  // Simple formatter
+  const formatPrice = (cents: number, currency: string) => {
+    return new Intl.NumberFormat('es-AR', { style: 'currency', currency: currency || 'ARS' }).format(cents / 100 || 0);
+  };
+
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm animate-fade-in">
        <div className="flex justify-between items-center mb-8 pb-6 border-b border-slate-100 dark:border-slate-800">
@@ -259,7 +278,7 @@ function ServicesSettings({ services }: any) {
                    <div>
                       <h4 className="font-semibold text-slate-900 dark:text-white text-sm">{s.name}</h4>
                       <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                         <Clock className="w-3 h-3" /> {s.durationMin} min • ${s.priceCents/100}
+                         <Clock className="w-3 h-3" /> {s.durationMin} min • {formatPrice(s.priceCents || s.price, s.currency || tenant.currency)}
                       </p>
                    </div>
                 </div>
@@ -370,4 +389,77 @@ function IntegrationsSettings({ integrations, slug }: any) {
        </div>
     </div>
   )
+}
+
+function BillingSettings({ tenant }: any) {
+  const [loading, setLoading] = useState(false);
+
+  const handleSubscribe = async () => {
+      setLoading(true);
+      try {
+          // Dynamic Link Creation via API
+          const res = await fetch(`/api/t/${tenant.slug}/billing/subscribe`, { method: 'POST' });
+          if (res.ok) {
+              const data = await res.json();
+              if (data.init_point) {
+                  window.location.href = data.init_point;
+              } else {
+                  alert("Error al generar link de pago.");
+              }
+          }
+      } catch (e) {
+          alert("Error de conexión");
+      } finally {
+          setLoading(false);
+      }
+  };
+
+  const isEnterprise = tenant.plan === 'enterprise' && tenant.planStatus === 'active';
+
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm animate-fade-in">
+        <div className="flex items-center gap-4 mb-8 pb-6 border-b border-slate-100 dark:border-slate-800">
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ring-4 ${isEnterprise ? 'bg-indigo-50 text-indigo-600 ring-indigo-50' : 'bg-orange-50 text-orange-600 ring-orange-50'}`}>
+                <CreditCard className="w-6 h-6" />
+            </div>
+            <div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Facturación y Planes</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Gestiona tu suscripción.</p>
+            </div>
+        </div>
+
+        {isEnterprise ? (
+            <div className="p-6 rounded-xl border border-green-100 bg-green-50/50 dark:bg-green-900/10 dark:border-green-800">
+                <div className="flex items-center gap-3 mb-2">
+                    <CheckCircle className="w-6 h-6 text-green-600" />
+                    <h4 className="font-bold text-lg text-green-900 dark:text-green-100">Plan Enterprise Activo</h4>
+                </div>
+                <p className="text-sm text-green-700 dark:text-green-300 mt-1">Disfruta de todas las funciones premium.</p>
+                <div className="mt-4 text-xs text-green-600 font-mono">
+                   Renueva el: {tenant.planRenewsAt ? new Date(tenant.planRenewsAt).toLocaleDateString() : 'N/A'}
+                </div>
+            </div>
+        ) : (
+            <div className="p-6 rounded-xl border border-indigo-100 bg-indigo-50/50 dark:bg-indigo-900/10 dark:border-indigo-800">
+                <h4 className="font-bold text-lg text-indigo-900 dark:text-indigo-100">Plan Actual: Free Demo</h4>
+                <p className="text-sm text-indigo-700 dark:text-indigo-300 mt-1">Estás utilizando la versión gratuita limitada.</p>
+
+                <div className="mt-6 flex flex-col md:flex-row gap-4 items-center">
+                    <button
+                        onClick={handleSubscribe}
+                        disabled={loading}
+                        className="w-full md:w-auto px-6 py-3 bg-[#009EE3] hover:bg-[#008ED6] text-white font-bold rounded-lg shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                        {loading ? "Generando Link..." : "Actualizar a Enterprise"}
+                        {!loading && <span className="bg-white/20 px-2 py-0.5 rounded text-xs">Recomendado</span>}
+                    </button>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Procesado de forma segura por MercadoPago.
+                    </p>
+                </div>
+            </div>
+        )}
+    </div>
+  );
 }

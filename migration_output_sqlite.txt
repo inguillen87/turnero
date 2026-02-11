@@ -1,0 +1,74 @@
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": SQLite database "dev.db" at "file:./dev.db"
+
+
+Error: Prisma schema validation - (validate wasm)
+Error code: P1012
+[1;91merror[0m: [1mError validating: You defined the enum `GlobalRole`. But the current connector does not support enums.[0m
+  [1;94m-->[0m  [4mprisma/schema.prisma:14[0m
+[1;94m   | [0m
+[1;94m13 | [0m// Enums
+[1;94m14 | [0m[1;91menum GlobalRole {[0m
+[1;94m15 | [0m  SUPER_ADMIN
+[1;94m16 | [0m  USER
+[1;94m17 | [0m}
+[1;94m   | [0m
+[1;91merror[0m: [1mError validating: You defined the enum `TenantRole`. But the current connector does not support enums.[0m
+  [1;94m-->[0m  [4mprisma/schema.prisma:19[0m
+[1;94m   | [0m
+[1;94m18 | [0m
+[1;94m19 | [0m[1;91menum TenantRole {[0m
+[1;94m20 | [0m  OWNER
+[1;94m21 | [0m  ADMIN
+[1;94m22 | [0m  STAFF
+[1;94m23 | [0m  VIEWER
+[1;94m24 | [0m}
+[1;94m   | [0m
+[1;91merror[0m: [1mError validating: You defined the enum `ChannelType`. But the current connector does not support enums.[0m
+  [1;94m-->[0m  [4mprisma/schema.prisma:26[0m
+[1;94m   | [0m
+[1;94m25 | [0m
+[1;94m26 | [0m[1;91menum ChannelType {[0m
+[1;94m27 | [0m  WHATSAPP
+[1;94m28 | [0m  WIDGET
+[1;94m29 | [0m  WEB
+[1;94m30 | [0m}
+[1;94m   | [0m
+[1;91merror[0m: [1mError validating: You defined the enum `MsgDirection`. But the current connector does not support enums.[0m
+  [1;94m-->[0m  [4mprisma/schema.prisma:32[0m
+[1;94m   | [0m
+[1;94m31 | [0m
+[1;94m32 | [0m[1;91menum MsgDirection {[0m
+[1;94m33 | [0m  IN
+[1;94m34 | [0m  OUT
+[1;94m35 | [0m}
+[1;94m   | [0m
+[1;91merror[0m: [1mError validating: You defined the enum `ApptStatus`. But the current connector does not support enums.[0m
+  [1;94m-->[0m  [4mprisma/schema.prisma:37[0m
+[1;94m   | [0m
+[1;94m36 | [0m
+[1;94m37 | [0m[1;91menum ApptStatus {[0m
+[1;94m38 | [0m  PENDING
+[1;94m39 | [0m  CONFIRMED
+[1;94m40 | [0m  CANCELLED
+[1;94m41 | [0m  NO_SHOW
+[1;94m42 | [0m  DONE
+[1;94m43 | [0m}
+[1;94m   | [0m
+[1;91merror[0m: [1mError validating: You defined the enum `CatalogStatus`. But the current connector does not support enums.[0m
+  [1;94m-->[0m  [4mprisma/schema.prisma:45[0m
+[1;94m   | [0m
+[1;94m44 | [0m
+[1;94m45 | [0m[1;91menum CatalogStatus {[0m
+[1;94m46 | [0m  UPLOADED
+[1;94m47 | [0m  PROCESSING
+[1;94m48 | [0m  READY
+[1;94m49 | [0m  FAILED
+[1;94m50 | [0m}
+[1;94m   | [0m
+
+Validation Error Count: 6
+[Context: validate]
+
+Prisma CLI Version : 5.22.0

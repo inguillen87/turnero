@@ -1,0 +1,12 @@
+{
+  "common": {
+    "welcome": "Bienvenido",
+    "save": "Guardar",
+    "cancel": "Cancelar"
+  },
+  "menu": {
+    "dashboard": "Panel",
+    "calendar": "Agenda",
+    "settings": "Configuración"
+  }
+}
