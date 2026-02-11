@@ -1,0 +1,26 @@
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "mydb", schema "public" at "localhost:5432"
+
+
+Error: Prisma schema validation - (validate wasm)
+Error code: P1012
+[1;91merror[0m: [1mError validating field `tenant` in model `Message`: The relation field `tenant` on model `Message` is missing an opposite relation field on the model `Tenant`. Either run `prisma format` or add it manually.[0m
+  [1;94m-->[0m  [4mprisma/schema.prisma:192[0m
+[1;94m   | [0m
+[1;94m191 | [0m
+[1;94m192 | [0m  [1;91mtenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)[0m
+[1;94m193 | [0m  conversation Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+[1;94m   | [0m
+[1;91merror[0m: [1mError validating field `tenant` in model `AvailabilityRule`: The relation field `tenant` on model `AvailabilityRule` is missing an opposite relation field on the model `Tenant`. Either run `prisma format` or add it manually.[0m
+  [1;94m-->[0m  [4mprisma/schema.prisma:223[0m
+[1;94m   | [0m
+[1;94m222 | [0m
+[1;94m223 | [0m  [1;91mtenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)[0m
+[1;94m224 | [0m  staff  Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+[1;94m   | [0m
+
+Validation Error Count: 2
+[Context: validate]
+
+Prisma CLI Version : 5.22.0

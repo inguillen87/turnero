@@ -1,7 +1,4 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html><head>
-<title>404 Not Found</title>
-</head><body>
-<h1>Not Found</h1>
-<p>The requested URL was not found on this server.</p>
-</body></html>
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
+<rect width="32" height="32" rx="6" fill="#4F46E5"/>
+<path d="M16 8V24M8 16H24" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

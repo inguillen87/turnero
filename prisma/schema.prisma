@@ -6,8 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 // Global User (Auth)
@@ -25,54 +25,49 @@ model User {
 
 // Tenant / Organization
 model Tenant {
-  id        String   @id @default(cuid())
-  slug      String   @unique
-  name      String
-  status    String   @default("active") // active, suspended, demo
-  planId    String?
-  timezone  String   @default("America/Argentina/Buenos_Aires")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  name            String
+  status          String   @default("active") // active, suspended, demo
+  timezone        String   @default("America/Argentina/Buenos_Aires")
+  currency        String   @default("ARS")
 
-  plan          Plan?        @relation(fields: [planId], references: [id])
+  // i18n
+  defaultLocale   String   @default("es-AR")
+  localesEnabled  String?  // JSON ["es-AR", "pt-BR"]
+
+  // Plan & Billing
+  plan            String   @default("free") // free, enterprise
+  planStatus      String   @default("DEMO") // DEMO, PENDING, ACTIVE, PAST_DUE, CANCELED
+  mpPreapprovalId String?  @unique
+  mpSubscriptionId String? // Legacy field, keeping for safety
+  planRenewsAt    DateTime?
+  planActivatedAt DateTime?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
   users         TenantUser[]
-  customers     Customer[]
-  professionals Professional[]
+  rubros        TenantRubro[]
+  integrations  Integration[]
+  waNumbers     WhatsappNumber[]
   services      Service[]
-  locations     Location[]
+  staff         Staff[]
+  contacts      Contact[]
+  conversations Conversation[]
   appointments  Appointment[]
+  catalogFiles  CatalogFile[]
+  catalogItems  CatalogItem[]
+  locations     Location[]
   messages      Message[]
   availabilityRules AvailabilityRule[]
-  usage         TenantUsage[]
-  auditLogs     AuditLog[]
-  integrations  Integration[]
-  channels      Channel[]
-  payments      Payment[]
 }
 
-// Billing / Features
-model Plan {
-  id          String   @id @default(cuid())
-  name        String   // "Free", "Pro", "Enterprise"
-  limits      String   // JSON: { max_users: 5, max_appointments: 100 }
-  features    String   // JSON: ["whatsapp", "calendar_sync"]
-  priceCents  Int
-  currency    String   @default("USD")
-  createdAt   DateTime @default(now())
-
-  tenants     Tenant[]
-}
-
-model TenantUsage {
-  id          String   @id @default(cuid())
-  tenantId    String
-  month       String   // "2023-10"
-  counters    String   // JSON: { appointments: 50, whatsapp_msgs: 120 }
-  updatedAt   DateTime @updatedAt
-
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, month])
+model WebhookEvent {
+  id        String   @id @default(cuid())
+  provider  String   // "mercadopago"
+  eventKey  String   @unique // resourceId or eventId
+  createdAt DateTime @default(now())
 }
 
 // User role within a specific Tenant
@@ -80,7 +75,7 @@ model TenantUser {
   id        String     @id @default(cuid())
   tenantId  String
   userId    String
-  role      String     @default("STAFF") // OWNER, ADMIN, STAFF
+  role      String     @default("STAFF") // OWNER, ADMIN, STAFF, VIEWER
   createdAt DateTime   @default(now())
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -91,7 +86,209 @@ model TenantUser {
   @@index([userId])
 }
 
-// Core Domain
+// Tenant Rubros (Verticals/Categories)
+model TenantRubro {
+  id       String @id @default(cuid())
+  tenantId String
+  slug     String // dentista, gym, hotel, etc
+  name     String
+  config   String // JSON: menu, politicas, datos_reserva, etc
+
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, slug])
+}
+
+// Integrations
+model Integration {
+  id        String @id @default(cuid())
+  tenantId  String
+  provider  String // "twilio_whatsapp" | "meta_whatsapp" | "google_calendar"
+  config    String? // JSON
+  status    String @default("active")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  waNumbers WhatsappNumber[]
+}
+
+// WhatsApp Numbers Routing
+model WhatsappNumber {
+  id            String @id @default(cuid())
+  tenantId      String
+  integrationId String
+  toE164        String @unique
+  label         String?
+  status        String @default("active")
+
+  tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  integration   Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+}
+
+// CRM Contacts
+model Contact {
+  id        String   @id @default(cuid())
+  tenantId  String
+  phoneE164 String
+  name      String?
+  email     String?
+  locale    String?  // es-AR, pt-BR
+  tags      String?  // JSON
+  meta      String?  // JSON
+  lastSeen  DateTime?
+  createdAt DateTime @default(now())
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversations Conversation[]
+  appointments  Appointment[]
+  messages      Message[]
+
+  @@unique([tenantId, phoneE164])
+}
+
+// Conversations
+model Conversation {
+  id        String      @id @default(cuid())
+  tenantId  String
+  channel   String      // WHATSAPP, WIDGET, WEB
+  contactId String
+  state     String?     // JSON: state machine: rubro_activo, flow, step, etc
+  openedAt  DateTime    @default(now())
+  closedAt  DateTime?
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contact  Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  messages Message[]
+}
+
+// Messages
+model Message {
+  id             String       @id @default(cuid())
+  tenantId       String
+  conversationId String
+  contactId      String?
+  direction      String       // IN, OUT
+  body           String?      // Text content
+  media          String?      // JSON
+  status         String       @default("sent")
+  createdAt      DateTime     @default(now())
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversation Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  contact      Contact?      @relation(fields: [contactId], references: [id])
+}
+
+// Staff / Professionals
+model Staff {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  role      String?
+  phone     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  tenant            Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  availabilityRules AvailabilityRule[]
+  appointments      Appointment[]
+}
+
+// Staff Availability
+model AvailabilityRule {
+  id          String  @id @default(cuid())
+  tenantId    String
+  staffId     String
+  dayOfWeek   Int     // 0=Sunday
+  startTime   String  // "09:00"
+  endTime     String  // "18:00"
+  breakStart  String?
+  breakEnd    String?
+  slotMinutes Int     @default(30)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  staff  Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+}
+
+// Services
+model Service {
+  id          String  @id @default(cuid())
+  tenantId    String
+  rubroSlug   String?
+  name        String
+  durationMin Int
+  price       Int?
+  currency    String  @default("ARS")
+  active      Boolean @default(true)
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+}
+
+// Appointments
+model Appointment {
+  id        String     @id @default(cuid())
+  tenantId  String
+  contactId String
+  staffId   String?
+  serviceId String?
+  locationId String?
+  startAt   DateTime
+  endAt     DateTime
+  status    String     @default("PENDING") // PENDING, CONFIRMED, CANCELLED, NO_SHOW, DONE
+  notes     String?
+  source    String?    // whatsapp/widget/admin
+
+  // Payment fields
+  price       Int?
+  currency    String?
+  paymentStatus String?
+
+  createdAt DateTime @default(now())
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contact  Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  staff    Staff?   @relation(fields: [staffId], references: [id])
+  service  Service? @relation(fields: [serviceId], references: [id])
+  location Location? @relation(fields: [locationId], references: [id])
+}
+
+// Catalog Files
+model CatalogFile {
+  id         String        @id @default(cuid())
+  tenantId   String
+  rubroSlug  String?
+  filename   String
+  mime       String
+  storageUrl String
+  checksum   String?
+  status     String        @default("UPLOADED") // UPLOADED, PROCESSING, READY, FAILED
+  createdAt  DateTime      @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+// Catalog Items
+model CatalogItem {
+  id          String  @id @default(cuid())
+  tenantId    String
+  rubroSlug   String?
+  tipo        String  // servicio | producto | habitacion | clase | plan | tour
+  name        String
+  category    String?
+  description String?
+  price       Int?
+  currency    String  @default("ARS")
+  unit        String? // sesion | noche | clase | hora
+  durationMin Int?
+  tags        String? // JSON
+  extra       String? // JSON
+  active      Boolean @default(true)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+// Legacy/Compatibility models (Optional, keeping Location for now)
 model Location {
   id        String   @id @default(cuid())
   tenantId  String
@@ -99,184 +296,6 @@ model Location {
   address   String?
   createdAt DateTime @default(now())
 
-  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  availabilityRules AvailabilityRule[]
-  appointments      Appointment[]
-
-  @@index([tenantId])
-}
-
-model Customer {
-  id        String   @id @default(cuid())
-  tenantId  String
-  name      String
-  phone     String?
-  email     String?
-  notes     String?
-  createdAt DateTime @default(now())
-  lastSeenAt DateTime @default(now())
-
   tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   appointments Appointment[]
-  messages     Message[]
-  metadata     String?       // JSON: { "state": "SELECT_SERVICE", "temp_data": {...} }
-
-  @@index([tenantId])
-}
-
-model Professional {
-  id        String   @id @default(cuid())
-  tenantId  String
-  name      String
-  specialty String?
-  email     String?
-  active    Boolean  @default(true)
-
-  tenant            Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  availabilityRules AvailabilityRule[]
-  appointments      Appointment[]
-
-  @@index([tenantId])
-}
-
-model Service {
-  id          String  @id @default(cuid())
-  tenantId    String
-  name        String
-  durationMin Int
-  priceCents  Int
-  active      Boolean @default(true)
-
-  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  appointments Appointment[]
-
-  @@index([tenantId])
-}
-
-model AvailabilityRule {
-  id             String   @id @default(cuid())
-  tenantId       String
-  professionalId String? // Nullable if general rule
-  locationId     String?
-  dayOfWeek      Int      // 0=Sunday, 1=Monday...
-  startTime      String   // "09:00"
-  endTime        String   // "17:00"
-  slotMinutes    Int      @default(30)
-  breakStart     String?  // "13:00"
-  breakEnd       String?  // "14:00"
-
-  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  professional Professional? @relation(fields: [professionalId], references: [id], onDelete: Cascade)
-  location     Location?    @relation(fields: [locationId], references: [id])
-
-  @@index([tenantId, professionalId])
-}
-
-model Appointment {
-  id             String            @id @default(cuid())
-  tenantId       String
-  customerId     String
-  professionalId String?
-  serviceId      String
-  locationId     String?
-  startAt        DateTime
-  endAt          DateTime
-  status         String            @default("PENDING") // PENDING, CONFIRMED, CANCELLED, DONE, NO_SHOW
-  notes          String?
-  source         String            @default("WEB") // WEB, WHATSAPP, MANUAL
-
-  // Payment fields (Legacy/Quick access)
-  paymentStatus  String?           @default("PENDING") // PENDING, PAID, REFUNDED
-  paymentId      String?           // External Payment ID (e.g. MercadoPago ID)
-  paymentLink    String?           // URL for payment
-  priceCents     Int?              // Price at the time of booking
-  depositAmount  Int?              // Amount required to confirm (if partial)
-
-  createdAt DateTime @default(now())
-
-  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  customer     Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  professional Professional? @relation(fields: [professionalId], references: [id], onDelete: Cascade)
-  service      Service      @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  location     Location?    @relation(fields: [locationId], references: [id])
-  messages     Message[]
-  payments     Payment[]
-
-  @@index([tenantId, startAt])
-}
-
-model Payment {
-  id            String   @id @default(cuid())
-  tenantId      String
-  appointmentId String
-  provider      String   // "mercadopago", "stripe"
-  status        String   // "PENDING", "PAID", "FAILED", "REFUNDED"
-  amountCents   Int
-  externalId    String?  // MP Preference ID or Payment ID
-  createdAt     DateTime @default(now())
-
-  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-}
-
-model Channel {
-  id        String   @id @default(cuid())
-  tenantId  String
-  provider  String   // "twilio_whatsapp", "web_demo"
-  toAddress String   // "whatsapp:+1415..." or "web_demo_ID"
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([toAddress])
-  @@index([tenantId])
-}
-
-model Message {
-  id            String   @id @default(cuid())
-  tenantId      String
-  appointmentId String?
-  channel       String   // "whatsapp", "email", "sms"
-  direction     String   // "inbound", "outbound"
-  body          String
-  status        String   // "sent", "delivered", "read", "failed"
-  rawJson       String?  // Store full provider payload
-  createdAt     DateTime @default(now())
-
-  customerId    String?
-  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  appointment Appointment? @relation(fields: [appointmentId], references: [id])
-  customer    Customer?    @relation(fields: [customerId], references: [id])
-
-  @@index([tenantId, createdAt])
-}
-
-model Integration {
-  id        String   @id @default(cuid())
-  tenantId  String
-  type      String   // "google_calendar", "whatsapp"
-  status    String   // "active", "disconnected"
-  config    String?  // JSON: { accessToken, refreshToken, calendarId }
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-}
-
-model AuditLog {
-  id          String   @id @default(cuid())
-  tenantId    String?  // Nullable if system-wide action
-  actorUserId String?
-  action      String   // "CREATE_TENANT", "DELETE_APPOINTMENT"
-  metadata    String?  // JSON
-  createdAt   DateTime @default(now())
-
-  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId, createdAt])
 }
