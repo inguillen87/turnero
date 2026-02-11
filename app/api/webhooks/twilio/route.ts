@@ -1,4 +1,3 @@
-// app/api/webhooks/twilio/route.ts
 export const runtime = "nodejs";
 
 import twilio from "twilio";
@@ -43,8 +42,15 @@ function normalizeBody(s: string) {
 }
 
 function buildPublicUrl(req: Request) {
-  const requestUrl = new URL(req.url);
-  const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || requestUrl.host;
+  // Allow overriding the URL via env var for "bulletproof" signature validation in Prod
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+      return `${process.env.NEXT_PUBLIC_APP_URL}`; // Should include /api/webhooks/twilio if configured that way, or we append it
+  }
+
+  const host =
+    req.headers.get("x-forwarded-host") ||
+    req.headers.get("host") ||
+    "";
   const proto = req.headers.get("x-forwarded-proto") || "https";
   return `${proto}://${host}${requestUrl.pathname}`;
 }
@@ -142,12 +148,17 @@ export async function handleTwilioWebhook(req: Request) {
     const paramsObj: Record<string, string> = {};
     params.forEach((v, k) => (paramsObj[k] = v));
 
-    if (process.env.NODE_ENV === "production" || process.env.TWILIO_AUTH_TOKEN) {
-      try {
-        const valid = validateTwilioSignature(paramsObj, url, signature);
-        if (!valid) {
-          console.warn("[WA TURNERO] Firma Twilio inválida", { url, from });
-          return new Response(twiml("Unauthorized"), { status: 403, headers: { "Content-Type": "text/xml" } });
+    // Validate Signature
+    if (process.env.NODE_ENV === 'production' && process.env.TWILIO_AUTH_TOKEN) {
+        try {
+            const valid = validateTwilioSignature(paramsObj, url, signature);
+            if (!valid) {
+                console.warn("[WA TURNERO] Firma Twilio inválida", { url, from, signature });
+                return new Response(twiml("Unauthorized"), { status: 403, headers: { "Content-Type": "text/xml" } });
+            }
+        } catch (e: any) {
+            console.error("[WA TURNERO] Error validación Twilio:", e?.message || e);
+            return new Response(twiml("Server misconfigured"), { status: 500, headers: { "Content-Type": "text/xml" } });
         }
       } catch (e: any) {
         console.error("[WA TURNERO] Error validación Twilio:", e?.message || e);
@@ -156,7 +167,8 @@ export async function handleTwilioWebhook(req: Request) {
     }
 
     if (await dedupeSeen(messageSid)) {
-      return new Response(twiml(""), { status: 200, headers: { "Content-Type": "text/xml" } });
+        console.log("[WA TURNERO] Mensaje duplicado ignorado", messageSid);
+        return new Response(twiml(""), { status: 200, headers: { "Content-Type": "text/xml" } });
     }
 
     const userKey = `turnero:${from}`;
@@ -165,7 +177,8 @@ export async function handleTwilioWebhook(req: Request) {
 
     console.log("[WA TURNERO]", { from, body: bodyRaw, routedBody, state: session.state });
 
-    const { reply, session: nextSession } = await handleMessage(routedBody, session);
+    // Handle Logic
+    const { reply, session: nextSession } = await handleMessage(body, session);
 
     await setSession(userKey, nextSession);
 
@@ -176,10 +189,6 @@ export async function handleTwilioWebhook(req: Request) {
   }
 }
 
-export async function POST(req: Request) {
-  return handleTwilioWebhook(req);
-}
-
-export async function GET() {
-  return new Response("OK /api/webhooks/twilio turnero", { status: 200, headers: { "Content-Type": "text/plain" } });
+export async function GET(req: Request) {
+  return new Response("OK /api/webhooks/twilio (WhatsApp Webhook Active)", { status: 200, headers: { "Content-Type": "text/plain" } });
 }

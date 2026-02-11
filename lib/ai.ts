@@ -26,50 +26,92 @@ export interface AIResponse {
     slotIndex?: number;
     personName?: string;
   };
+  options?: { label: string; value: string }[];
 }
 
-export async function analyzeMessage(
-  message: string,
-  context: {
+export interface AIContext {
     services: { id: string; name: string; priceCents: number }[];
     conversationHistory: { role: 'user' | 'assistant'; content: string }[];
     now: Date;
     tenantName: string;
     locale: string; // 'es', 'en', 'pt'
-  }
+    tenantType?: string; // 'medical', 'beauty', 'general'
+    botPersonality?: string; // 'professional', 'friendly', 'empathetic', 'sales'
+    customInstructions?: string;
+}
+
+export async function analyzeMessage(
+  message: string,
+  context: AIContext,
+  systemPromptOverride?: string
 ): Promise<AIResponse> {
   const serviceList = context.services.map(s => `- ${s.name} ($${s.priceCents/100})`).join('\n');
 
-  const systemPrompt = `
-    You are the smart receptionist for "${context.tenantName}".
+  // Dynamic Personality Construction
+  let personalityInstruction = "You are a helpful and efficient assistant.";
+  if (context.botPersonality === 'empathetic') {
+      personalityInstruction = "You are a warm, caring, and highly empathetic assistant. If the user expresses pain, urgency, or doubt, show genuine concern before proceeding. Prioritize their well-being.";
+  } else if (context.botPersonality === 'friendly') {
+      personalityInstruction = "You are a cheerful, super friendly, and enthusiastic assistant. Use emojis where appropriate. Make the user feel welcome and excited.";
+  } else if (context.botPersonality === 'professional') {
+      personalityInstruction = "You are a highly professional, polite, and concise assistant. Maintain a formal but approachable tone. Focus on efficiency.";
+  } else if (context.botPersonality === 'sales') {
+      personalityInstruction = "You are a persuasive and sales-oriented assistant. Always highlight the value of services. If a user asks for a price, mention the benefits. Try to upsell premium services if appropriate.";
+  }
+
+  // Dynamic Tenant Type Context
+  let typeInstruction = "";
+  if (context.tenantType === 'medical') {
+      typeInstruction = "This is a medical facility. Treat all information with privacy. Be precise about times.";
+  } else if (context.tenantType === 'beauty') {
+      typeInstruction = "This is a beauty/wellness center. Focus on relaxation, aesthetic results, and self-care.";
+  }
+
+  const generatedSystemPrompt = `
+    ${personalityInstruction}
+    ${typeInstruction}
+    You work for "${context.tenantName}".
+    ${context.customInstructions ? `Special Instructions: ${context.customInstructions}` : ''}
+
     Current Date: ${context.now.toLocaleString()}
     Language: Reply in ${context.locale === 'pt' ? 'Portuguese' : context.locale === 'en' ? 'English' : 'Spanish'}.
 
-    Services:
+    Services Offered:
     ${serviceList}
 
-    Intents:
-    - booking: User wants to schedule an appointment. Extract service, date, time.
-    - query_prices: User asks for prices. List them.
-    - query_owner: User asks for the owner/manager.
-    - cancellation: User wants to cancel or reschedule.
-    - confirmation: User says "yes", "confirm", "ok" to a proposed slot.
-    - handoff: User explicitly asks for a human, support, or is frustrated.
-    - faq: User asks about location, hours, parking, policies (if not booking specific).
-    - other: Greeting or unclear.
+    Your Goal:
+    - Identify the user's intent clearly.
+    - If they want to book, extract specific details (Service, Date, Time).
+    - If they are undecided, ask clarifying questions or suggest popular options.
+    - If they confirm, acknowledge it.
+    - ALWAYS provide a 'message' that is ready to send to the user via WhatsApp. Keep it under 300 characters usually, unless detailed info is requested.
+    - ALWAYS provide 'options' (suggested quick replies) to guide the user.
 
-    Output JSON:
+    Intents:
+    - booking: User wants to schedule.
+    - query_prices: User asks for prices.
+    - query_owner: User asks for manager/human.
+    - cancellation: User wants to cancel.
+    - confirmation: User confirms a proposal.
+    - handoff: User is angry or needs complex help.
+    - faq: General questions.
+    - other: Greeting/Unclear.
+
+    Output JSON Format:
     {
-      "intent": "...",
-      "message": "Response in [Language]. Be concise (WhatsApp style).",
+      "intent": "booking|query_prices|...",
+      "message": "The actual text reply to the user...",
       "entities": {
-        "serviceName": "...",
+        "serviceName": "extracted service name",
         "date": "YYYY-MM-DD",
         "time": "HH:mm",
-        "personName": "User's name if introduced"
-      }
+        "personName": "User Name"
+      },
+      "options": [ { "label": "Reply Button 1", "value": "payload1" } ]
     }
   `;
+
+  const systemPrompt = systemPromptOverride || generatedSystemPrompt;
 
   try {
     if (apiKey === 'dummy-key') throw new Error("Missing API Key");
@@ -82,7 +124,7 @@ export async function analyzeMessage(
         { role: "user", content: message }
       ],
       response_format: { type: "json_object" },
-      temperature: 0.5,
+      temperature: 0.7, // Slightly higher for more "human" feel
     });
 
     const content = completion.choices[0].message.content;
@@ -95,12 +137,9 @@ export async function analyzeMessage(
     const lower = message.toLowerCase();
 
     // Check for Service Names
-    // Improved fallback: Check if service name is in message OR if message contains significant part of service name
     const foundService = context.services.find(s => {
         const sName = s.name.toLowerCase();
-        // Exact containment
         if (lower.includes(sName)) return true;
-        // Word overlap (e.g. "Limpieza" matches "Limpieza Dental")
         const words = sName.split(' ');
         return words.some(w => w.length > 3 && lower.includes(w));
     });
@@ -113,7 +152,6 @@ export async function analyzeMessage(
         return { intent: "cancellation", message: "Let's cancel..." };
     }
 
-    // Date/Time Extraction (Simple)
     let entities: any = {};
     let hasDate = false;
 

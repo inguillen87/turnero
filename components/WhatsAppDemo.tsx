@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from "react";
 import { MessageCircle, X, Send, Check } from "lucide-react";
 import { format } from "date-fns";
-import { es } from "date-fns/locale";
 
 interface Message {
   id: string;
@@ -22,14 +21,13 @@ export function WhatsAppDemo({ onBooking }: { onBooking?: (data: any) => void })
       text: '¡Hola! 👋 Soy el asistente virtual de Turnero Pro. ¿En qué puedo ayudarte hoy?',
       timestamp: new Date(),
       options: [
-        { label: '📅 Reservar Turno', value: 'book' },
-        { label: '❓ Consultar Precios', value: 'prices' }
+        { label: '📅 Reservar Turno', value: 'Quiero reservar un turno' },
+        { label: '❓ Consultar Precios', value: '¿Cuáles son los precios?' }
       ]
     }
   ]);
   const [input, setInput] = useState("");
-  const [step, setStep] = useState<'init' | 'service' | 'time' | 'confirm' | 'done'>('init');
-  const [bookingData, setBookingData] = useState<any>({});
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -52,73 +50,61 @@ export function WhatsAppDemo({ onBooking }: { onBooking?: (data: any) => void })
     };
     setMessages(prev => [...prev, userMsg]);
     setInput("");
+    setIsLoading(true);
 
-    // Simulate Bot Response
-    setTimeout(async () => {
-      let botMsg: Message = {
+    try {
+      // Build history for API
+      const history = messages.map(m => ({
+        role: m.sender === 'user' ? 'user' : 'assistant',
+        content: m.text
+      }));
+
+      // Call AI API
+      const response = await fetch('/api/demo/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: value || text, history }),
+      });
+
+      const data = await response.json();
+
+      const botMsg: Message = {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
-        text: '',
-        timestamp: new Date()
+        text: data.message || "Lo siento, no entendí.",
+        timestamp: new Date(),
+        options: data.options || []
       };
 
-      if (step === 'init') {
-        if (value === 'book') {
-           botMsg.text = 'Perfecto. ¿Qué servicio estás buscando?';
-           botMsg.options = [
-             { label: '💇 Corte de Pelo ($1500)', value: 'corte' },
-             { label: '💅 Manicura ($800)', value: 'manicura' },
-             { label: '💆 Masaje ($2500)', value: 'masaje' }
-           ];
-           setStep('service');
-        } else {
-           botMsg.text = 'Nuestros precios varían según el profesional. ¿Te gustaría ver la lista completa en nuestra web?';
-        }
-      } else if (step === 'service') {
-        setBookingData({ ...bookingData, service: text });
-        botMsg.text = `Excelente elección (${text}). ¿Para cuándo te gustaría agendar?`;
-        // Mock slots
-        botMsg.options = [
-          { label: 'Mañana 10:00', value: 'tomorrow_10' },
-          { label: 'Mañana 16:30', value: 'tomorrow_16' },
-          { label: 'Viernes 11:00', value: 'friday_11' }
-        ];
-        setStep('time');
-      } else if (step === 'time') {
-        setBookingData({ ...bookingData, time: text });
-        botMsg.text = `Entendido. Confirmo turno para ${bookingData.service} el ${text}. ¿Es correcto?`;
-        botMsg.options = [
-          { label: '✅ Sí, confirmar', value: 'yes' },
-          { label: '❌ No, cambiar', value: 'no' }
-        ];
-        setStep('confirm');
-      } else if (step === 'confirm') {
-        if (value === 'yes') {
-          botMsg.text = '¡Listo! Tu turno ha sido confirmado. Te enviamos un recordatorio por WhatsApp un día antes. Gracias por elegirnos.';
-          setStep('done');
+      setMessages(prev => [...prev, botMsg]);
 
-          // Real API Call for Demo Effect
-          const payload = { ...bookingData, status: 'confirmed', clientName: 'Demo User', startAt: new Date().toISOString() };
-          try {
-             await fetch('/api/t/demo/appointments', {
-               method: 'POST',
-               headers: { 'Content-Type': 'application/json' },
-               body: JSON.stringify(payload),
-             });
-             if (onBooking) onBooking(payload);
-          } catch (e) {
-             console.error("Failed to sync with demo backend", e);
-          }
-
-        } else {
-          botMsg.text = 'Entendido, cancelemos. ¿Qué te gustaría hacer ahora?';
-          botMsg.options = [{ label: '📅 Reservar Turno', value: 'book' }];
-          setStep('init');
-        }
+      // If booking confirmed (check intent or specific entities), we could call onBooking
+      if (data.intent === 'confirmation' || data.intent === 'booking_confirmed') {
+         if (onBooking) {
+            onBooking({
+                status: 'confirmed',
+                clientName: 'Demo User',
+                startAt: new Date().toISOString(),
+                ...data.entities
+            });
+         }
+         // Optional: Fire a real "save" to the demo backend if needed
+         // await fetch('/api/t/demo/appointments', ...);
       }
 
-      setMessages(prev => [...prev, botMsg]);
-    }, 1000);
+    } catch (error) {
+      console.error("Chat Error:", error);
+      const errorMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        sender: 'bot',
+        text: "Lo siento, tuve un problema de conexión. Intenta de nuevo.",
+        timestamp: new Date(),
+        options: [{ label: "Reintentar", value: text }]
+      };
+      setMessages(prev => [...prev, errorMsg]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -140,30 +126,36 @@ export function WhatsAppDemo({ onBooking }: { onBooking?: (data: any) => void })
              <MessageCircle className="w-6 h-6" />
            </div>
            <div>
-             <h3 className="font-bold text-sm">Turnero Demo Bot</h3>
-             <p className="text-xs text-green-100">En línea</p>
+             <h3 className="font-bold text-sm">Turnero AI Bot</h3>
+             <div className="flex items-center gap-1">
+                <span className={`w-2 h-2 rounded-full ${isLoading ? 'bg-yellow-400 animate-pulse' : 'bg-green-400'}`}></span>
+                <p className="text-xs text-green-100">{isLoading ? 'Escribiendo...' : 'En línea'}</p>
+             </div>
            </div>
         </div>
 
         {/* Messages Area */}
-        <div className="h-80 overflow-y-auto p-4 space-y-4 custom-scroll" style={{ backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")', backgroundBlendMode: 'soft-light' }}>
+        <div className="h-80 overflow-y-auto p-4 space-y-4 custom-scroll relative" style={{ backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")', backgroundBlendMode: 'soft-light' }}>
+           {/* Loading Indicator Overlay (Optional, but subtle is better) */}
+
            {messages.map((msg) => (
              <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-               <div className={`max-w-[80%] p-3 rounded-lg text-sm shadow-sm relative ${msg.sender === 'user' ? 'bg-[#dcf8c6] text-slate-900 rounded-tr-none' : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-tl-none'}`}>
-                 <p>{msg.text}</p>
+               <div className={`max-w-[85%] p-3 rounded-lg text-sm shadow-sm relative ${msg.sender === 'user' ? 'bg-[#dcf8c6] text-slate-900 rounded-tr-none' : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-tl-none'}`}>
+                 <p className="whitespace-pre-wrap">{msg.text}</p>
                  <span className="text-[10px] text-slate-400 block text-right mt-1">
                    {format(msg.timestamp, 'HH:mm')}
                    {msg.sender === 'user' && <Check className="w-3 h-3 inline ml-1 text-blue-500" />}
                  </span>
 
                  {/* Options Chips */}
-                 {msg.options && (
+                 {msg.options && msg.options.length > 0 && (
                    <div className="mt-3 flex flex-wrap gap-2">
-                     {msg.options.map((opt) => (
+                     {msg.options.map((opt, idx) => (
                        <button
-                         key={opt.value}
-                         onClick={() => handleSend(opt.label, opt.value)}
-                         className="bg-white border border-slate-200 text-indigo-600 text-xs font-bold px-3 py-2 rounded-full shadow-sm hover:bg-slate-50 transition-colors"
+                         key={idx}
+                         onClick={() => handleSend(opt.label, opt.value)} // Send label as text, value as hidden payload/context? Actually simple chat just sends text usually.
+                         disabled={isLoading}
+                         className="bg-white border border-slate-200 text-indigo-600 text-xs font-bold px-3 py-2 rounded-full shadow-sm hover:bg-slate-50 transition-colors disabled:opacity-50"
                        >
                          {opt.label}
                        </button>
@@ -184,11 +176,13 @@ export function WhatsAppDemo({ onBooking }: { onBooking?: (data: any) => void })
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend(input)}
             placeholder="Escribe un mensaje..."
-            className="flex-1 px-4 py-2 rounded-full border border-slate-300 dark:border-slate-600 focus:outline-none focus:border-[#075E54] text-sm dark:bg-slate-700 dark:text-white"
+            disabled={isLoading}
+            className="flex-1 px-4 py-2 rounded-full border border-slate-300 dark:border-slate-600 focus:outline-none focus:border-[#075E54] text-sm dark:bg-slate-700 dark:text-white disabled:opacity-50"
           />
           <button
             onClick={() => handleSend(input)}
-            className="p-2 bg-[#075E54] text-white rounded-full hover:bg-[#128C7E] transition-colors"
+            disabled={isLoading || !input.trim()}
+            className="p-2 bg-[#075E54] text-white rounded-full hover:bg-[#128C7E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send className="w-5 h-5" />
           </button>
