@@ -9,7 +9,7 @@ if (!process.env.NEXTAUTH_SECRET) {
   console.warn("NEXTAUTH_SECRET is missing. Authentication will fail in production.");
 }
 
-const authOptions: NextAuthOptions = {
+export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET || "development-secret-fallback", // Fallback for dev only
   providers: [
     CredentialsProvider({

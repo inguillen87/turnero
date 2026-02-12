@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
     await prisma.integration.create({
         data: {
             tenantId: tenant.id,
-            type: "google_calendar",
+            provider: "google_calendar",
             status: "active",
             config: JSON.stringify(tokens)
         }

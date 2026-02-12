@@ -154,7 +154,7 @@ export async function POST(
     }
 
     // Bot Settings
-    const botConfig = tenant.integrations.find(i => i.type === 'bot_settings')?.config;
+    const botConfig = tenant.integrations.find(i => i.provider === 'bot_settings')?.config;
     const botSettings = botConfig ? JSON.parse(botConfig) : undefined;
 
     // Get Session

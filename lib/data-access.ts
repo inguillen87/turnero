@@ -24,7 +24,7 @@ export async function getAppointments(tenantSlug: string) {
 
         const appointments = await prisma.appointment.findMany({
             where: { tenantId: tenant.id },
-            include: { customer: true, service: true, professional: true },
+            include: { contact: true, service: true, staff: true },
             orderBy: { startAt: 'asc' },
         });
 
@@ -33,9 +33,9 @@ export async function getAppointments(tenantSlug: string) {
             startAt: a.startAt.toISOString(),
             endAt: a.endAt.toISOString(),
             status: a.status.toLowerCase(),
-            clientName: a.customer?.name || 'Walk-in',
-            service: { name: a.service?.name, price: a.service?.priceCents ? a.service.priceCents / 100 : 0 },
-            professional: { name: a.professional?.name },
+            clientName: a.contact?.name || 'Walk-in',
+            service: { name: a.service?.name, price: a.service?.price ? a.service.price / 100 : 0 },
+            professional: { name: a.staff?.name },
             notes: a.notes,
         }));
     } catch (e) {
@@ -63,33 +63,33 @@ export async function createAppointment(tenantSlug: string, data: any) {
         if (!tenant) throw new Error("Tenant not found");
 
         // Logic similar to POST route
-        let customer = await prisma.customer.findFirst({ where: { tenantId: tenant.id } }); // Simplify
+        let contact = await prisma.contact.findFirst({ where: { tenantId: tenant.id } }); // Simplify
         let service = await prisma.service.findFirst({ where: { tenantId: tenant.id } });
-        let pro = await prisma.professional.findFirst({ where: { tenantId: tenant.id } });
+        let staff = await prisma.staff.findFirst({ where: { tenantId: tenant.id } });
 
-        if (!customer || !service || !pro) throw new Error("Missing data");
+        if (!contact || !service || !staff) throw new Error("Missing data");
 
         const appt = await prisma.appointment.create({
             data: {
                 tenantId: tenant.id,
-                customerId: customer.id,
+                contactId: contact.id,
                 serviceId: service.id,
-                professionalId: pro.id,
+                staffId: staff.id,
                 startAt: new Date(data.startAt),
                 endAt: new Date(new Date(data.startAt).getTime() + service.durationMin * 60000),
                 status: 'CONFIRMED',
                 notes: data.notes || 'Created via API',
                 source: 'API',
             },
-            include: { customer: true, service: true, professional: true }
+            include: { contact: true, service: true, staff: true }
         });
 
         return {
             id: appt.id,
             startAt: appt.startAt.toISOString(),
             status: appt.status.toLowerCase(),
-            clientName: appt.customer.name,
-            service: { name: appt.service.name },
+            clientName: appt.contact.name,
+            service: { name: appt.service?.name },
         };
 
     } catch (e) {

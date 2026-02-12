@@ -38,7 +38,7 @@ export default async function ClientsPage({ params }: { params: Promise<{ tenant
     });
 
     if (tenant) {
-      clients = await prisma.customer.findMany({
+      clients = await prisma.contact.findMany({
         where: { tenantId: tenant.id },
         include: { _count: { select: { appointments: true } } },
         orderBy: { createdAt: 'desc' },

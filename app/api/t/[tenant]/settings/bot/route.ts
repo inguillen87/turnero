@@ -40,7 +40,7 @@ export async function POST(
 
       const body = await req.json();
 
-      const existingConfig = tenant.integrations.find(i => i.type === 'bot_settings');
+      const existingConfig = tenant.integrations.find(i => i.provider === 'bot_settings');
 
       if (existingConfig) {
           await prisma.integration.update({
@@ -54,7 +54,7 @@ export async function POST(
           await prisma.integration.create({
               data: {
                   tenantId: tenant.id,
-                  type: 'bot_settings',
+                  provider: 'bot_settings',
                   status: 'active',
                   config: JSON.stringify(body)
               }

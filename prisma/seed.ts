@@ -66,8 +66,7 @@ async function main() {
                           tenantId: tenant.id,
                           name: svc.nombre,
                           durationMin: svc.duracion_min,
-                          price: svc.precio, // Legacy int
-                          priceCents: svc.precio * 100, // Correct cents
+                          price: svc.precio * 100, // Store as cents
                           currency: "ARS",
                           active: true
                       }

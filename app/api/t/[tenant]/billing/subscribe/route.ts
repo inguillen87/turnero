@@ -6,9 +6,9 @@ const MP_ACCESS_TOKEN = process.env.MERCADOPAGO_ACCESS_TOKEN || "mock_token";
 const MP_PREAPPROVAL_PLAN_ID = process.env.MERCADOPAGO_PREAPPROVAL_PLAN_ID || "03d3ce9b7aff4c53913c4dd13dde907d";
 const APP_BASE_URL = process.env.NEXTAUTH_URL || "http://localhost:3000";
 
-export async function POST(req: NextRequest, { params }: { params: { tenant: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ tenant: string }> }) {
   try {
-    const tenantSlug = params.tenant;
+    const { tenant: tenantSlug } = await params;
 
     // Auth check should be here (session)
 
