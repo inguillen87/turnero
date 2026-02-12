@@ -41,20 +41,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ ten
     }
 
     // Save extracted items
-    for (const item of items) {
-        await prisma.catalogItem.create({
-            data: {
-                tenantId: tenant.id,
-                name: item.name,
-                price: item.price,
-                category: item.category,
-                description: item.description,
-                currency: tenant.currency,
-                tipo: "servicio",
-                active: true
-            }
-        });
-    }
+    await prisma.catalogItem.createMany({
+      data: items.map((item) => ({
+        tenantId: tenant.id,
+        name: item.name,
+        price: item.price,
+        category: item.category,
+        description: item.description,
+        currency: tenant.currency,
+        tipo: "servicio",
+        active: true,
+      })),
+    });
 
     // Also store a record of the file
     await prisma.catalogFile.create({
