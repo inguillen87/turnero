@@ -7,7 +7,7 @@
     "build": "npx prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --experimental-strip-types --test lib/bot/slots.test.ts",
+    "test": "node --experimental-strip-types --test lib/bot/slots.test.ts lib/bot/stateMachine.test.ts",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
