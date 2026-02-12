@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
-export async function GET(req: NextRequest, { params }: { params: { tenant: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ tenant: string }> }) {
   try {
-    const tenantSlug = params.tenant;
+    const { tenant: tenantSlug } = await params;
     const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
 
     if (!tenant) {

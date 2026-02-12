@@ -104,13 +104,13 @@ async function main() {
         // Seed Hours for this Staff
         const hours = staff_hours.filter(h => h.staffName === s.name);
         for (const h of hours) {
-             await prisma.staffHours.create({
+             await prisma.availabilityRule.create({
                  data: {
                      tenantId: t.id,
                      staffId: createdStaff.id,
-                     dow: h.dow,
-                     start: h.start,
-                     end: h.end
+                     dayOfWeek: h.dow,
+                     startTime: h.start,
+                     endTime: h.end
                  }
              });
         }

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
-export async function POST(req: NextRequest, { params }: { params: { tenant: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ tenant: string }> }) {
   try {
-    const tenantSlug = params.tenant;
+    const { tenant: tenantSlug } = await params;
     const formData = await req.formData();
     const file = formData.get("file") as File;
 

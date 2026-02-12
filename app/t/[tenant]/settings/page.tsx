@@ -25,7 +25,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ tenan
          where: { slug },
          include: {
              services: true,
-             professionals: true,
+             staff: true,
              integrations: true
          }
      });
@@ -33,7 +33,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ tenan
      if (tenant) {
          tenantData = tenant;
          services = tenant.services;
-         professionals = tenant.professionals;
+         professionals = tenant.staff;
          integrations = tenant.integrations;
      } else {
          // Should not happen if middleware is working, but just in case
