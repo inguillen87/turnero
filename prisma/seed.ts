@@ -1,34 +1,64 @@
 import { prisma } from "@/lib/db";
-import { RUBROS } from "@/lib/rubros"; // Use existing templates if possible, or new JSON
+import { RUBROS } from "@/lib/rubros";
+import { DEMO_TENANTS } from "@/lib/demo-tenants";
+import bcrypt from "bcryptjs";
 
 async function main() {
   console.log("Seeding database...");
 
-  // Seed Rubros based on Templates
-  // For each template in RUBROS, ensure a demo tenant exists
+  // 1. Seed Demo Tenants
+  for (const dt of DEMO_TENANTS) {
+    const { tenant, rubros, staff, staff_hours, services, catalog_items, whatsapp_numbers } = dt;
 
-  const DEMO_TENANTS = [
-      { slug: "demo-dentista", name: "Demo Odonto Centro", rubro: "dentista" },
-      { slug: "demo-gym", name: "Demo Gym Force", rubro: "gimnasio" },
-      { slug: "demo-hotel", name: "Demo Hotel Andes", rubro: "hotel" }
-  ];
+    console.log(`Seeding Tenant: ${tenant.slug}`);
 
-  for (const t of DEMO_TENANTS) {
-      // Create/Update Tenant
-      const tenant = await prisma.tenant.upsert({
-          where: { slug: t.slug },
-          update: { name: t.name },
-          create: {
-              slug: t.slug,
-              name: t.name,
-              status: "demo",
-              plan: "free",
-              defaultLocale: "es-AR"
-          }
-      });
+    // Create Tenant
+    const t = await prisma.tenant.upsert({
+      where: { slug: tenant.slug },
+      update: {
+        name: tenant.name,
+        timezone: tenant.timezone,
+        currency: tenant.currency,
+        plan: "demo", // Using 'demo' string to map to PlanStatus.DEMO via default or explicit
+        defaultLocale: "es-AR"
+      },
+      create: {
+        slug: tenant.slug,
+        name: tenant.name,
+        timezone: tenant.timezone,
+        currency: tenant.currency,
+        planStatus: "DEMO",
+        defaultLocale: "es-AR"
+      }
+    });
 
-      // Assign Rubro
-      const template = RUBROS.find(r => r.slug === t.rubro);
+    // Create Tenant Admin User (One for all demos or one per demo?)
+    // Let's create one admin per demo: admin@demo-dentista.com / Demo123!
+    const email = `admin@${tenant.slug}.com`;
+    const passwordHash = await bcrypt.hash("Demo123!", 10);
+
+    const user = await prisma.user.upsert({
+      where: { email },
+      update: {},
+      create: {
+        email,
+        name: `Admin ${tenant.name}`,
+        passwordHash,
+        globalRole: "USER"
+      }
+    });
+
+    // Link User to Tenant
+    await prisma.tenantUser.upsert({
+      where: { tenantId_userId: { tenantId: t.id, userId: user.id } },
+      update: { role: "TENANT_ADMIN" },
+      create: { tenantId: t.id, userId: user.id, role: "TENANT_ADMIN" }
+    });
+
+
+    // Create/Update Rubros
+    for (const rubroSlug of rubros) {
+      const template = RUBROS.find(r => r.slug === rubroSlug);
       if (template) {
           await prisma.tenantRubro.upsert({
               where: {
@@ -73,10 +103,132 @@ async function main() {
                   });
               }
           }
+        });
       }
+    }
 
-      console.log(`Seeded ${t.slug}`);
+    // Seed Staff
+    for (const s of staff) {
+        const createdStaff = await prisma.staff.create({
+             data: {
+                 tenantId: t.id,
+                 name: s.name,
+                 role: s.role,
+                 active: true
+             }
+        });
+
+        // Seed Hours for this Staff
+        const hours = staff_hours.filter(h => h.staffName === s.name);
+        for (const h of hours) {
+             await prisma.staffHours.create({
+                 data: {
+                     tenantId: t.id,
+                     staffId: createdStaff.id,
+                     dow: h.dow,
+                     start: h.start,
+                     end: h.end
+                 }
+             });
+        }
+    }
+
+    // Seed Services
+    for (const svc of services) {
+        // Find existing to avoid duplicates if re-running
+        const exists = await prisma.service.findFirst({
+            where: { tenantId: t.id, name: svc.name }
+        });
+
+        if (!exists) {
+            await prisma.service.create({
+                data: {
+                    tenantId: t.id,
+                    rubroSlug: svc.rubroSlug,
+                    name: svc.name,
+                    durationMin: svc.durationMin,
+                    price: svc.price, // Uses correct Int (e.g. 18000)
+                    currency: tenant.currency,
+                    active: true
+                }
+            });
+        }
+    }
+
+    // Seed Catalog Items
+    if (catalog_items) {
+        for (const item of catalog_items) {
+            const exists = await prisma.catalogItem.findFirst({
+                where: { tenantId: t.id, name: item.name }
+            });
+
+            if (!exists) {
+                await prisma.catalogItem.create({
+                     data: {
+                         tenantId: t.id,
+                         rubroSlug: item.rubroSlug,
+                         tipo: item.tipo,
+                         name: item.name,
+                         category: item.category,
+                         price: item.price,
+                         currency: item.currency,
+                         unit: item.unit,
+                         durationMin: item.durationMin,
+                         tags: item.tags ? JSON.stringify(item.tags) : undefined,
+                         active: true
+                     }
+                });
+            }
+        }
+    }
+
+    // Seed WhatsApp Numbers (if provided)
+    if (whatsapp_numbers) {
+        for (const wn of whatsapp_numbers) {
+             const exists = await prisma.whatsappNumber.findFirst({
+                 where: { toE164: wn.toE164 }
+             });
+
+             if (!exists) {
+                 // Create a mock integration first if needed, or assume integrationId is optional or created separately.
+                 // The schema requires integrationId. Let's create a dummy integration.
+                 const integration = await prisma.integration.create({
+                     data: {
+                         tenantId: t.id,
+                         provider: 'twilio_whatsapp',
+                         config: JSON.stringify({ sid: 'mock', token: 'mock' }),
+                         status: 'active'
+                     }
+                 });
+
+                 await prisma.whatsappNumber.create({
+                     data: {
+                         tenantId: t.id,
+                         integrationId: integration.id,
+                         toE164: wn.toE164,
+                         label: wn.label,
+                         status: 'active'
+                     }
+                 });
+             }
+        }
+    }
   }
+
+  // Create Super Admin
+  const saEmail = "admin@turnero.pro";
+  const saPass = await bcrypt.hash("SuperAdmin123!", 10);
+  await prisma.user.upsert({
+      where: { email: saEmail },
+      update: { globalRole: "SUPER_ADMIN" },
+      create: {
+          email: saEmail,
+          name: "Super Admin",
+          passwordHash: saPass,
+          globalRole: "SUPER_ADMIN"
+      }
+  });
+  console.log("Seeded Super Admin: admin@turnero.pro");
 
   console.log("Seeding complete.");
 }

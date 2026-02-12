@@ -249,8 +249,14 @@ function GeneralSettings({ tenant }: any) {
 
 function ServicesSettings({ services, tenant }: any) {
   // Simple formatter
-  const formatPrice = (cents: number, currency: string) => {
-    return new Intl.NumberFormat('es-AR', { style: 'currency', currency: currency || 'ARS' }).format(cents / 100 || 0);
+  const formatPrice = (value: number, currency: string) => {
+    // DB stores integer units (e.g. 18000 for $18,000)
+    return new Intl.NumberFormat('es-AR', {
+        style: 'currency',
+        currency: currency || 'ARS',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(value || 0);
   };
 
   return (
@@ -278,7 +284,7 @@ function ServicesSettings({ services, tenant }: any) {
                    <div>
                       <h4 className="font-semibold text-slate-900 dark:text-white text-sm">{s.name}</h4>
                       <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                         <Clock className="w-3 h-3" /> {s.durationMin} min • {formatPrice(s.priceCents || s.price, s.currency || tenant.currency)}
+                         <Clock className="w-3 h-3" /> {s.durationMin} min • {formatPrice(s.price, s.currency || tenant.currency)}
                       </p>
                    </div>
                 </div>

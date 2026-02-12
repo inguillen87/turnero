@@ -19,9 +19,8 @@ export interface Slot {
 }
 
 // Generate base slots for the next 3 days
-function generateBaseSlots(): Slot[] {
+export function generateBaseSlots(now: Date = new Date()): Slot[] {
     const slots: Slot[] = [];
-    const now = new Date();
 
     // Start tomorrow
     for (let day = 1; day <= 3; day++) {
