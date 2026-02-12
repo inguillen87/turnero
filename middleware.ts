@@ -32,13 +32,15 @@ export async function middleware(req: NextRequest) {
   // and get their defaultLocale from cache/DB.
   // const tenantLocale = await getTenantLocale(req.headers.get("host"));
 
-  const locale = DEFAULT_LOCALE;
+  // const locale = DEFAULT_LOCALE;
 
-  // 4. Redirect to localized path
+  // 4. Redirect to localized path - DISABLED due to missing app/[locale] structure
   // Only redirect if it's a page visit, not internal resource
-  const url = req.nextUrl.clone();
-  url.pathname = `/${locale}${pathname}`;
-  return NextResponse.redirect(url);
+  // const url = req.nextUrl.clone();
+  // url.pathname = `/${locale}${pathname}`;
+  // return NextResponse.redirect(url);
+
+  return NextResponse.next();
 }
 
 export const config = {
