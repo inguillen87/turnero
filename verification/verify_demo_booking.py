@@ -37,9 +37,9 @@ def run():
         # Step 4: Confirm "1"
         input_box.fill("1")
         input_box.press("Enter")
-        time.sleep(2) # Wait for bot to send action and UI to update
+        expect(page.get_by_text("Turno Confirmado")).to_be_visible(timeout=10000)
 
-        print("   - Booking confirmed in chat.")
+        print("   - Booking confirmed in chat (verified via text).")
 
         # 3. Verify Reflection in Dashboard (Agenda List)
         print("3. Verifying Agenda Update...")
