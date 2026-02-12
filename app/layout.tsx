@@ -14,12 +14,6 @@ export const metadata: Metadata = {
   title: "Turnero Pro - Gestiona tu negocio, no tu agenda",
   description: "El sistema de gestión de turnos definitivo para profesionales.",
   applicationName: "Turnero Pro",
-  manifest: "/manifest.json",
-  icons: {
-    icon: "/icon.png",
-    shortcut: "/favicon.png",
-    apple: "/icon.png",
-  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
