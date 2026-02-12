@@ -35,9 +35,9 @@ export async function GET(
     const flat = payments.map(p => ({
         id: p.id,
         date: p.startAt.toISOString(),
-        client: p.contact?.name || 'Unknown',
-        concept: p.service?.name || 'Unknown',
-        amount: (p.price || 0) / 100,
+        client: p.contact?.name || "Unknown",
+        concept: p.service?.name || "Service",
+        amount: (p.price || 0),
         status: p.paymentStatus,
         link: null
     }));

@@ -1,7 +1,7 @@
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "@/components/ui/toaster";
+import { Toaster } from "@/components/ui/sonner";
 import type { Metadata, Viewport } from "next";
 
 const plusJakartaSans = Plus_Jakarta_Sans({

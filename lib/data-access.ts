@@ -34,7 +34,7 @@ export async function getAppointments(tenantSlug: string) {
             endAt: a.endAt.toISOString(),
             status: a.status.toLowerCase(),
             clientName: a.contact?.name || 'Walk-in',
-            service: { name: a.service?.name, price: a.service?.price ? a.service.price / 100 : 0 },
+            service: { name: a.service?.name, price: a.service?.price || 0 },
             professional: { name: a.staff?.name },
             notes: a.notes,
         }));
@@ -63,18 +63,18 @@ export async function createAppointment(tenantSlug: string, data: any) {
         if (!tenant) throw new Error("Tenant not found");
 
         // Logic similar to POST route
-        let contact = await prisma.contact.findFirst({ where: { tenantId: tenant.id } }); // Simplify
+        let customer = await prisma.contact.findFirst({ where: { tenantId: tenant.id } }); // Simplify
         let service = await prisma.service.findFirst({ where: { tenantId: tenant.id } });
-        let staff = await prisma.staff.findFirst({ where: { tenantId: tenant.id } });
+        let pro = await prisma.staff.findFirst({ where: { tenantId: tenant.id } });
 
         if (!contact || !service || !staff) throw new Error("Missing data");
 
         const appt = await prisma.appointment.create({
             data: {
                 tenantId: tenant.id,
-                contactId: contact.id,
+                contactId: customer.id,
                 serviceId: service.id,
-                staffId: staff.id,
+                staffId: pro.id,
                 startAt: new Date(data.startAt),
                 endAt: new Date(new Date(data.startAt).getTime() + service.durationMin * 60000),
                 status: 'CONFIRMED',
@@ -89,7 +89,7 @@ export async function createAppointment(tenantSlug: string, data: any) {
             startAt: appt.startAt.toISOString(),
             status: appt.status.toLowerCase(),
             clientName: appt.contact.name,
-            service: { name: appt.service?.name },
+            service: { name: appt.service?.name || "Unknown" },
         };
 
     } catch (e) {

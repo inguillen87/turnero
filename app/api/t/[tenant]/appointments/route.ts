@@ -33,12 +33,12 @@ export async function GET(
       endAt: a.endAt.toISOString(),
       status: a.status.toLowerCase(),
       clientName: a.contact?.name || 'Walk-in',
-      service: { name: a.service?.name, price: a.price ? a.price / 100 : 0 },
+      service: { name: a.service?.name, price: a.service?.price || 0 },
       professional: { name: a.staff?.name },
       notes: a.notes,
       payment: {
         status: a.paymentStatus,
-        link: null // Payment link logic needs update if needed
+        link: null
       }
     }));
 
@@ -89,13 +89,13 @@ export async function POST(
       let contact;
       if (body.clientName) {
          const existing = await prisma.contact.findFirst({ where: { tenantId: t.id, name: body.clientName } });
-         if (existing) contact = existing;
+         if (existing) customer = existing;
          else {
-           contact = await prisma.contact.create({
+           customer = await prisma.contact.create({
              data: {
                tenantId: t.id,
                name: body.clientName,
-               phoneE164: body.clientPhone || 'unknown',
+               phoneE164: body.clientPhone || "0000000000",
              }
            });
          }
@@ -105,7 +105,7 @@ export async function POST(
       let service = await prisma.service.findFirst({ where: { tenantId: t.id, name: { contains: body.serviceName || 'Consulta' } } });
       if (!service) service = await prisma.service.findFirst({ where: { tenantId: t.id } });
 
-      let staff = await prisma.staff.findFirst({ where: { tenantId: t.id } });
+      let pro = await prisma.staff.findFirst({ where: { tenantId: t.id } });
 
       if (!contact || !service || !staff) {
           return NextResponse.json({ error: 'Missing demo data references' }, { status: 400 });
@@ -114,9 +114,9 @@ export async function POST(
       const appt = await prisma.appointment.create({
         data: {
           tenantId: t.id,
-          contactId: contact.id,
+          contactId: customer.id,
           serviceId: service.id,
-          staffId: staff.id,
+          staffId: pro.id,
           startAt: new Date(body.startAt || Date.now()),
           endAt: new Date(new Date(body.startAt || Date.now()).getTime() + service.durationMin * 60000),
           status: 'CONFIRMED',
@@ -134,7 +134,7 @@ export async function POST(
           startAt: appt.startAt,
           clientName: appt.contact.name,
           status: appt.status.toLowerCase(),
-          service: { name: appt.service?.name },
+          service: { name: appt.service?.name || "Unknown" },
       }, { status: 201 });
 
   } catch (error) {
