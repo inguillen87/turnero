@@ -19,11 +19,8 @@ export async function getAppointments(tenantSlug: string) {
     }
 
     try {
-        const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
-        if (!tenant) return [];
-
         const appointments = await prisma.appointment.findMany({
-            where: { tenantId: tenant.id },
+            where: { tenant: { slug: tenantSlug } },
             include: { contact: true, service: true, staff: true },
             orderBy: { startAt: 'asc' },
         });
