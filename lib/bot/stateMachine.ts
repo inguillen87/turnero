@@ -1,6 +1,8 @@
 // lib/bot/stateMachine.ts
-import { analyzeMessage, AIIntent } from "@/lib/ai";
-import { getAvailableSlots, reserveSlot, Slot } from "@/lib/bot/slots";
+import { analyzeMessage } from "../ai.ts";
+import type { AIIntent } from "../ai.ts";
+import { getAvailableSlots, reserveSlot } from "./slots.ts";
+import type { Slot } from "./slots.ts";
 
 export type BookingState =
   | "HOME"
