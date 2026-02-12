@@ -85,7 +85,7 @@ export async function getSession() {
         email: 'admin@demo.com',
         globalRole: 'USER', // 'SUPER_ADMIN' for SA testing
       }
-    };
+      return token;
+    }
   }
-  return null;
-}
+};

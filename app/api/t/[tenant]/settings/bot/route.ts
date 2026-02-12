@@ -23,9 +23,20 @@ export async function POST(
 
       if (!tenant) return NextResponse.json({ message: "Tenant not found" }, { status: 404 });
 
-      // Verify user has access to this tenant (TODO: Improve this check with TenantUser)
-      // For now, assuming if logged in and knows slug, it's okay for demo or if global admin
-      // But strictly we should check prisma.tenantUser.findFirst({ where: { userId: session.user.id, tenantId: tenant.id } })
+      // Verify user has access to this tenant
+      const userRole = (session.user as any).role;
+      const userId = (session.user as any).id;
+
+      const hasAccess = userRole === 'SUPER_ADMIN' || await prisma.tenantUser.findFirst({
+          where: {
+              userId: userId,
+              tenantId: tenant.id
+          }
+      });
+
+      if (!hasAccess) {
+          return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+      }
 
       const body = await req.json();
 
