@@ -62,9 +62,11 @@ export async function createAppointment(tenantSlug: string, data: any) {
         if (!tenant) throw new Error("Tenant not found");
 
         // Logic similar to POST route
-        let contact = await prisma.contact.findFirst({ where: { tenantId: tenant.id } }); // Simplify
-        let service = await prisma.service.findFirst({ where: { tenantId: tenant.id } });
-        let staff = await prisma.staff.findFirst({ where: { tenantId: tenant.id } });
+        const [contact, service, staff] = await Promise.all([
+            prisma.contact.findFirst({ where: { tenantId: tenant.id } }),
+            prisma.service.findFirst({ where: { tenantId: tenant.id } }),
+            prisma.staff.findFirst({ where: { tenantId: tenant.id } })
+        ]);
 
         if (!contact || !service || !staff) throw new Error("Missing data");
 
