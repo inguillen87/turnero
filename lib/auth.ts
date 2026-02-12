@@ -1,16 +1,77 @@
-// Placeholder for Auth (NextAuth or other)
-// In a real app, this would integrate with next-auth/react session
-// For now, we mock a session if DEMO_MODE is set
+import { NextAuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { prisma } from "@/lib/db";
+import bcrypt from "bcryptjs";
 
-export async function getSession() {
-  if (process.env.DEMO_MODE === '1') {
-    return {
-      user: {
-        id: 'demo-user-id',
-        email: 'admin@demo.com',
-        globalRole: 'USER', // 'SUPER_ADMIN' for SA testing
+export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET || "development-secret-fallback", // Fallback for dev only
+  providers: [
+    CredentialsProvider({
+      name: "Credentials",
+      credentials: {
+        email: { label: "Email", type: "text" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) return null;
+
+        let user;
+        try {
+           // Ensure we connect to DB or handle error
+           user = await prisma.user.findUnique({
+             where: { email: credentials.email },
+           });
+        } catch (e) {
+           console.error("Auth DB Connection Error:", e);
+           // Mock user for demo login if DB is down
+           if (credentials.email === 'admin@demo.com' && credentials.password === 'Demo123!') {
+              return { id: 'mock-admin', email: 'admin@demo.com', name: 'Admin Demo', role: 'SUPER_ADMIN' };
+           }
+           return null;
+        }
+
+        if (!user) return null;
+
+        // Verify password
+        let isValid = false;
+
+        // Mock hash check for seed data 'hashed_secret' -> 'Demo123!'
+        if (user.passwordHash === 'hashed_secret') {
+             isValid = credentials.password === 'Demo123!';
+        } else {
+             try {
+                isValid = await bcrypt.compare(credentials.password, user.passwordHash);
+             } catch {
+                isValid = false;
+             }
+        }
+
+        if (!isValid) return null;
+
+        return { id: user.id, email: user.email, name: user.name || "User", role: user.globalRole || 'USER' };
+      },
+    }),
+  ],
+  pages: {
+    signIn: "/login",
+    error: "/auth/error", // Custom error page
+  },
+  session: {
+    strategy: "jwt",
+  },
+  callbacks: {
+    async session({ session, token }) {
+      if (session.user) {
+        (session.user as any).id = token.sub;
+        (session.user as any).role = token.role;
       }
-    };
+      return session;
+    },
+    async jwt({ token, user }) {
+      if (user) {
+        token.role = (user as any).role;
+      }
+      return token;
+    }
   }
-  return null;
-}
+};

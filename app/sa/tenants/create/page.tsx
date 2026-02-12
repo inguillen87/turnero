@@ -2,127 +2,155 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle, Store, Mail, Lock, Phone } from "lucide-react";
 
-export default function CreateTenant() {
+export default function CreateTenantPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [formData, setFormData] = useState({
+  const [form, setForm] = useState({
     tenantName: "",
     slug: "",
     email: "",
-    password: ""
+    password: "",
+    plan: "demo"
   });
+  const [msg, setMsg] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    setError("");
+    setMsg("");
 
     try {
-      const res = await fetch("/api/auth/register", {
+      const res = await fetch("/api/sa/tenants", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(form)
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || "Failed to create tenant");
+        const d = await res.json();
+        throw new Error(d.message || "Error creating tenant");
       }
 
-      router.push("/sa/tenants");
+      setMsg("Tenant created successfully!");
       router.refresh();
+      setTimeout(() => router.push("/sa/tenants"), 1500);
     } catch (err: any) {
-      setError(err.message);
+      setMsg(err.message);
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">Create New Tenant</h1>
-        <p className="text-slate-500 mt-2">Onboard a new client manually.</p>
+    <div className="max-w-2xl mx-auto">
+      <div className="mb-8">
+         <h2 className="text-2xl font-bold text-slate-900">Provision New Tenant</h2>
+         <p className="text-slate-500">Create a new workspace, admin user, and initial configuration.</p>
       </div>
 
-      <div className="bg-white p-8 rounded-xl shadow-sm border border-slate-200">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {error && (
-            <div className="p-4 bg-red-50 text-red-600 rounded-lg text-sm border border-red-100">
-              {error}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="p-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
+        <form onSubmit={handleSubmit} className="p-8 space-y-6">
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+             <div className="space-y-2">
+               <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                  <Store className="w-4 h-4 text-slate-400" /> Business Name
+               </label>
+               <input
+                 className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
+                 placeholder="e.g. Clínica Dental Pro"
+                 value={form.tenantName}
+                 onChange={(e) => setForm({ ...form, tenantName: e.target.value })}
+                 required
+               />
+             </div>
+
+             <div className="space-y-2">
+               <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                  <Store className="w-4 h-4 text-slate-400" /> URL Slug
+               </label>
+               <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">turnero.pro/t/</span>
+                  <input
+                    className="w-full pl-28 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-mono text-sm"
+                    placeholder="clinica-dental"
+                    value={form.slug}
+                    onChange={(e) => setForm({ ...form, slug: e.target.value })}
+                    required
+                  />
+               </div>
+             </div>
+          </div>
+
+          <div className="border-t border-slate-100 pt-6">
+             <h3 className="text-sm font-semibold text-slate-900 mb-4 uppercase tracking-wider">Admin User</h3>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               <div className="space-y-2">
+                 <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-slate-400" /> Admin Email
+                 </label>
+                 <input
+                   type="email"
+                   className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
+                   placeholder="admin@example.com"
+                   value={form.email}
+                   onChange={(e) => setForm({ ...form, email: e.target.value })}
+                   required
+                 />
+               </div>
+
+               <div className="space-y-2">
+                 <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-slate-400" /> Initial Password
+                 </label>
+                 <input
+                   type="password"
+                   className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
+                   placeholder="••••••••"
+                   value={form.password}
+                   onChange={(e) => setForm({ ...form, password: e.target.value })}
+                   required
+                 />
+               </div>
+             </div>
+          </div>
+
+          <div className="border-t border-slate-100 pt-6">
+              <h3 className="text-sm font-semibold text-slate-900 mb-4 uppercase tracking-wider">Plan & Features</h3>
+              <div className="space-y-2">
+                 <label className="text-sm font-medium text-slate-700">Subscription Plan</label>
+                 <select
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none bg-white"
+                    value={form.plan}
+                    onChange={(e) => setForm({...form, plan: e.target.value})}
+                 >
+                    <option value="demo">Demo (Trial)</option>
+                    <option value="pro">Pro (Monthly)</option>
+                    <option value="enterprise">Enterprise</option>
+                 </select>
+              </div>
+          </div>
+
+          {msg && (
+            <div className={`p-4 rounded-lg flex items-center gap-2 text-sm font-medium animate-in fade-in slide-in-from-top-2 ${msg.includes("success") ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
+               {msg.includes("success") ? <CheckCircle className="w-4 h-4" /> : null}
+               {msg}
             </div>
           )}
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Company Name</label>
-              <input
-                type="text"
-                required
-                className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
-                placeholder="e.g. Clínica Dental Pro"
-                value={formData.tenantName}
-                onChange={(e) => setFormData({ ...formData, tenantName: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">URL Slug</label>
-              <div className="flex">
-                <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-slate-300 bg-slate-50 text-slate-500 text-sm">
-                  turnero.com/t/
-                </span>
-                <input
-                  type="text"
-                  required
-                  className="flex-1 px-4 py-2 rounded-r-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
-                  placeholder="clinica-dental"
-                  value={formData.slug}
-                  onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
-                />
-              </div>
-            </div>
-
-            <div className="border-t border-slate-100 my-6 pt-6">
-              <h3 className="text-lg font-medium text-slate-900 mb-4">Admin Account</h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-                  <input
-                    type="email"
-                    required
-                    className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
-                    placeholder="admin@clinica.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
-                  <input
-                    type="password"
-                    required
-                    className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
-                    placeholder="••••••••"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end pt-4">
-            <button
+          <div className="pt-4 flex justify-end gap-3">
+             <button type="button" onClick={() => router.back()} className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-50 rounded-lg transition-colors">
+                Cancel
+             </button>
+             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-all disabled:opacity-50 shadow-lg shadow-indigo-200"
             >
-              {loading && <Loader2 className="w-5 h-5 animate-spin" />}
+              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               {loading ? "Creating..." : "Create Tenant"}
             </button>
           </div>
