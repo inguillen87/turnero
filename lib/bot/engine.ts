@@ -25,14 +25,14 @@ interface BotContext {
 
 export class BotEngine {
   private tenant: any;
-  private customer: any;
+  private contact: any;
   private demoMode: boolean;
   private locale: Locale;
   private strings: any;
 
-  constructor(tenant: any, customer: any, demoMode = false) {
+  constructor(tenant: any, contact: any, demoMode = false) {
     this.tenant = tenant;
-    this.customer = customer;
+    this.contact = contact;
     this.demoMode = demoMode;
 
     // Resolve Locale
@@ -73,7 +73,7 @@ export class BotEngine {
     }
 
     // Load Context
-    let context: BotContext = this.customer.metadata ? JSON.parse(this.customer.metadata) : { state: "IDLE" };
+    let context: BotContext = this.contact.meta ? JSON.parse(this.contact.meta) : { state: "IDLE" };
 
     // State Machine
     switch (context.state) {
@@ -132,7 +132,7 @@ export class BotEngine {
          }];
        } else {
          appointments = await prisma.appointment.findMany({
-            where: { customerId: this.customer.id, status: { in: ['CONFIRMED', 'PENDING'] } },
+            where: { contactId: this.contact.id, status: { in: ['CONFIRMED', 'PENDING'] } },
             include: { service: true },
             orderBy: { startAt: 'asc' },
             take: 3
@@ -177,9 +177,10 @@ export class BotEngine {
 
        if (!selected) {
           // Use AI to extract service name if it was a sentence
+          const history = await this.getConversationHistory();
           const analysis = await analyzeMessage(input, {
               services: this.tenant.services,
-              conversationHistory: [],
+              conversationHistory: history,
               now: new Date(),
               tenantName: this.tenant.name,
               locale: this.locale
@@ -228,9 +229,10 @@ export class BotEngine {
       }
 
       // Use AI to parse date
+      const history = await this.getConversationHistory();
       const analysis = await analyzeMessage(input, {
         services: this.tenant.services,
-        conversationHistory: [],
+        conversationHistory: history,
         now: new Date(),
         tenantName: this.tenant.name,
         locale: this.locale
@@ -281,7 +283,7 @@ export class BotEngine {
               appt = await prisma.appointment.create({
                  data: {
                      tenantId: this.tenant.id,
-                     customerId: this.customer.id,
+                     contactId: this.contact.id,
                      serviceId: service!.id,
                      startAt,
                      endAt,
@@ -296,7 +298,7 @@ export class BotEngine {
               if (service && service.priceCents > 0) {
                  const link = await createPaymentPreference(
                      [{ title: service.name, unit_price: service.priceCents / 100, quantity: 1 }],
-                     { email: this.customer.email || "guest@turnero.com" },
+                     { email: this.contact.email || "guest@turnero.com" },
                      appt.id
                  );
                  if (link) {
@@ -329,7 +331,7 @@ export class BotEngine {
               }];
           } else {
               appointments = await prisma.appointment.findMany({
-                where: { customerId: this.customer.id, status: { in: ['CONFIRMED'] }, startAt: { gt: new Date() } },
+                where: { contactId: this.contact.id, status: { in: ['CONFIRMED'] }, startAt: { gt: new Date() } },
                 include: { service: true }
              });
           }
@@ -349,9 +351,10 @@ export class BotEngine {
 
   private async handleSmartRouting(text: string, context: BotContext): Promise<string> {
       // Use AI
+      const history = await this.getConversationHistory();
       const analysis = await analyzeMessage(text, {
           services: this.tenant.services,
-          conversationHistory: [], // TODO: Load history
+          conversationHistory: history,
           now: new Date(),
           tenantName: this.tenant.name,
           locale: this.locale
@@ -402,11 +405,11 @@ export class BotEngine {
   // --- Helpers ---
 
   private async setContext(ctx: BotContext) {
-      this.customer.metadata = JSON.stringify(ctx);
+      this.contact.meta = JSON.stringify(ctx);
       if (!this.demoMode) {
-        await prisma.customer.update({
-            where: { id: this.customer.id },
-            data: { metadata: this.customer.metadata }
+        await prisma.contact.update({
+            where: { id: this.contact.id },
+            data: { meta: this.contact.meta }
         });
       }
   }
@@ -433,5 +436,20 @@ ${this.strings.prompt_selection}`;
       const s2 = new Date(d); s2.setHours(11, 0, 0, 0);
       const s3 = new Date(d); s3.setHours(14, 0, 0, 0);
       return [s1.toISOString(), s2.toISOString(), s3.toISOString()];
+  }
+
+  private async getConversationHistory(): Promise<{ role: 'user' | 'assistant'; content: string }[]> {
+      if (this.demoMode) return [];
+
+      const messages = await prisma.message.findMany({
+          where: { contactId: this.contact.id },
+          orderBy: { createdAt: 'desc' },
+          take: 10
+      });
+
+      return messages.reverse().map((m: any) => ({
+          role: m.direction === 'IN' ? 'user' : 'assistant',
+          content: m.body || ''
+      }));
   }
 }
