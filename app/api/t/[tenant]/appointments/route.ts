@@ -102,10 +102,16 @@ export async function POST(
       }
 
       // Find Service/Staff
-      let service = await prisma.service.findFirst({ where: { tenantId: t.id, name: { contains: body.serviceName || 'Consulta' } } });
-      if (!service) service = await prisma.service.findFirst({ where: { tenantId: t.id } });
-
-      let staff = await prisma.staff.findFirst({ where: { tenantId: t.id } });
+      const [service, staff] = await Promise.all([
+        (async () => {
+          let s = await prisma.service.findFirst({
+            where: { tenantId: t.id, name: { contains: body.serviceName || 'Consulta' } }
+          });
+          if (!s) s = await prisma.service.findFirst({ where: { tenantId: t.id } });
+          return s;
+        })(),
+        prisma.staff.findFirst({ where: { tenantId: t.id } })
+      ]);
 
       if (!contact || !service || !staff) {
           return NextResponse.json({ error: 'Missing demo data references' }, { status: 400 });
