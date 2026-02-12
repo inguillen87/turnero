@@ -17,20 +17,20 @@ export default function Icon() {
       // ImageResponse JSX element
       <div
         style={{
-          background: '#4f46e5',
+          background: 'linear-gradient(135deg, #6366f1, #9333ea)',
           width: '100%',
           height: '100%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           color: 'white',
-          borderRadius: '20%',
+          borderRadius: '25%',
         }}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          width="60%"
-          height="60%"
+          width="66%"
+          height="66%"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
