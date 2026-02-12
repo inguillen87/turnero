@@ -388,7 +388,7 @@ function IntegrationsSettings({ integrations, slug }: any) {
                 {google ? (
                    <button className="px-4 py-2 text-sm font-medium rounded-lg bg-red-50 text-red-600 hover:bg-red-100 border border-red-100 transition-all">Desconectar</button>
                 ) : (
-                   <a href="/api/integrations/google-calendar/connect" className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-500/20 transition-all">Conectar</a>
+                   <a href={`/api/integrations/google-calendar/connect?slug=${slug}`} className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-500/20 transition-all">Conectar</a>
                 )}
              </div>
           </div>
