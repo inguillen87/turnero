@@ -1,18 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ tenant: string }> }) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { tenant: tenantSlug } = await params;
+
+    const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
+    if (!tenant) return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
+
+    // Check permissions
+    const userRole = (session.user as any).role;
+    const userId = (session.user as any).id;
+
+    if (userRole !== 'SUPER_ADMIN') {
+      const tenantUser = await prisma.tenantUser.findFirst({
+        where: {
+          tenantId: tenant.id,
+          userId: userId
+        }
+      });
+
+      if (!tenantUser) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+    }
+
     const formData = await req.formData();
     const file = formData.get("file") as File;
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
-
-    const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
-    if (!tenant) return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
 
     const filename = file.name.toLowerCase();
 
