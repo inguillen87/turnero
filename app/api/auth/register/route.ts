@@ -11,18 +11,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "Faltan datos requeridos." }, { status: 400 });
     }
 
-    // 1. Check if slug exists
-    const existingTenant = await prisma.tenant.findUnique({
-      where: { slug }
-    });
+    // 1. Check if slug or user already exists in parallel
+    const [existingTenant, existingUser] = await Promise.all([
+      prisma.tenant.findUnique({ where: { slug } }),
+      prisma.user.findUnique({ where: { email } })
+    ]);
+
     if (existingTenant) {
       return NextResponse.json({ message: "La URL de la clínica ya está en uso." }, { status: 400 });
     }
 
-    // 2. Check if user exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
-    });
     if (existingUser) {
       return NextResponse.json({ message: "El email ya está registrado." }, { status: 400 });
     }
