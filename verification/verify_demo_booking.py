@@ -37,7 +37,8 @@ def run():
         # Step 4: Confirm "1"
         input_box.fill("1")
         input_box.press("Enter")
-        time.sleep(2) # Wait for bot to send action and UI to update
+        # Wait for bot to send action and UI to update
+        time.sleep(2)
 
         print("   - Booking confirmed in chat.")
 
