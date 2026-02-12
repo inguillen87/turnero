@@ -1,8 +1,10 @@
 // lib/data-access.ts
-import { prisma } from "@/lib/db";
+import { prisma } from "./db.ts";
 import { PrismaClientInitializationError } from "@prisma/client/runtime/library";
 
-const MOCK_MODE = process.env.MOCK_MODE === 'true' || !process.env.DATABASE_URL;
+function isMockMode() {
+    return process.env.MOCK_MODE === 'true' || !process.env.DATABASE_URL;
+}
 
 // Mock Data Store (In-Memory for Demo)
 const mockData = {
@@ -13,7 +15,7 @@ const mockData = {
 };
 
 export async function getAppointments(tenantSlug: string) {
-    if (MOCK_MODE) {
+    if (isMockMode()) {
         console.warn("⚠️ Running in MOCK MODE");
         return mockData.appointments;
     }
@@ -42,7 +44,7 @@ export async function getAppointments(tenantSlug: string) {
 }
 
 export async function createAppointment(tenantSlug: string, data: any) {
-    if (MOCK_MODE) {
+    if (isMockMode()) {
         const newAppt = {
             id: Math.random().toString(36).substr(2, 9),
             ...data,

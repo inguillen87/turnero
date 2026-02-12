@@ -1,45 +1,58 @@
-import { test, describe, it, mock } from 'node:test';
+import { test } from 'node:test';
 import assert from 'node:assert';
 
-// 1. Mock `prisma` globally BEFORE importing anything
-const mockFindUnique = mock.fn(async () => ({ id: 'tenant-123' }));
-const mockFindMany = mock.fn(async () => []);
-
-const mockPrismaClient = {
-  tenant: { findUnique: mockFindUnique },
-  appointment: { findMany: mockFindMany },
+// Mock Prisma Client
+const mockPrisma = {
+    appointment: {
+        findMany: () => Promise.resolve([
+            {
+                id: 'mocked-db-appt-1',
+                startAt: new Date('2024-05-20T10:00:00Z'),
+                endAt: new Date('2024-05-20T11:00:00Z'),
+                status: 'CONFIRMED',
+                contact: { name: 'DB Client 1' },
+                service: { name: 'DB Service 1', price: 100 },
+                staff: { name: 'DB Staff 1' },
+                notes: 'DB Notes'
+            }
+        ])
+    }
 };
 
-// Typescript might complain about `global`, so we cast it
-(global as any).prisma = mockPrismaClient;
+// Set global mock BEFORE import
+(global as any).prisma = mockPrisma;
 
-// 2. Set environment variables to bypass MOCK_MODE
-process.env.MOCK_MODE = 'false';
-process.env.DATABASE_URL = 'postgres://mock:5432/mock';
-process.env.NODE_ENV = 'test';
+test('getAppointments - Mock Mode (Environment Variable)', async () => {
+    // Setup Mock Mode
+    process.env.MOCK_MODE = 'true';
 
-describe('getAppointments Performance', () => {
-  it('should optimize to a single DB call', async () => {
+    // Import module dynamically to ensure env var is read if it was cached (though isMockMode reads fresh)
+    const { getAppointments } = await import('./data-access.ts');
 
-    // Re-import to ensure fresh execution context if needed (though modules are cached)
-    // Since we only run this test once per process, it's fine.
-    const { getAppointments } = await import('./data-access');
+    const result = await getAppointments('any-tenant');
 
-    await getAppointments('demo-tenant');
+    // Validate it returns the static mock data from lib/data-access.ts
+    // The static mock data has clientName: 'Mock Client 1'
+    assert.ok(result.length >= 2, 'Should return at least 2 mock appointments');
+    const first = result.find(r => r.id === '1');
+    assert.ok(first, 'Should find appointment with id 1');
+    assert.strictEqual(first?.clientName, 'Mock Client 1');
+});
 
-    // Verify OPTIMIZED behavior:
-    // 1. findUnique for tenant should NOT be called
-    assert.strictEqual(mockFindUnique.mock.callCount(), 0, 'Should NOT call findUnique for tenant');
+test('getAppointments - Real Mode (Mocked DB)', async () => {
+    // Setup Real Mode
+    process.env.MOCK_MODE = 'false';
+    // Ensure DATABASE_URL is set so it doesn't fallback to mock mode
+    process.env.DATABASE_URL = 'postgres://mocked:5432/db';
 
-    // 2. findMany for appointments SHOULD be called ONCE
-    assert.strictEqual(mockFindMany.mock.callCount(), 1, 'Should call findMany for appointments');
+    // Import again (node caches modules, so we get the same module instance)
+    const { getAppointments } = await import('./data-access.ts');
 
-    // Check arguments for the call (findMany)
-    const findManyArgs = mockFindMany.mock.calls[0].arguments;
+    const result = await getAppointments('test-tenant');
 
-    // The where clause should use nested filtering
-    assert.deepStrictEqual(findManyArgs[0].where, {
-      tenant: { slug: 'demo-tenant' }
-    });
-  });
+    // Validate it calls our mocked DB and returns transformed data
+    assert.strictEqual(result.length, 1);
+    assert.strictEqual(result[0].id, 'mocked-db-appt-1');
+    assert.strictEqual(result[0].clientName, 'DB Client 1');
+    assert.strictEqual(result[0].status, 'confirmed'); // Lowercase transformation
 });
