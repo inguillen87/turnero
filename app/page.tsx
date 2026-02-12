@@ -130,7 +130,7 @@ export default function LandingPage() {
                    <div className="text-center mb-10 mt-4">
                        <h3 className="text-2xl font-bold text-indigo-300 mb-2">Full Pro Access</h3>
                        <div className="flex items-baseline justify-center gap-1">
-                          <span className="text-6xl font-black tracking-tighter">$300</span>
+                          <span className="text-6xl font-black tracking-tighter">USD 300</span>
                           <span className="text-lg text-indigo-200 font-medium">/mes</span>
                        </div>
                        <p className="text-indigo-100/80 mt-4">Facturación anual disponible</p>
