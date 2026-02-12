@@ -4,18 +4,23 @@ import { prisma } from "@/lib/db";
 export async function GET(req: NextRequest, { params }: { params: { tenant: string } }) {
   try {
     const tenantSlug = params.tenant;
-    const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
+
+    // Optimized: Fetch tenant and its items in one query to preserve 404 behavior
+    const tenant = await prisma.tenant.findUnique({
+      where: { slug: tenantSlug },
+      select: {
+        catalogItems: {
+          where: { active: true },
+          // id is a default sort key if createdAt doesn't exist
+        },
+      },
+    });
 
     if (!tenant) {
       return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
     }
 
-    const items = await prisma.catalogItem.findMany({
-      where: { tenantId: tenant.id, active: true },
-      // id is a default sort key if createdAt doesn't exist
-    });
-
-    return NextResponse.json({ items });
+    return NextResponse.json({ items: tenant.catalogItems });
   } catch (error) {
     console.error("Fetch Items Error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
