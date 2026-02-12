@@ -18,8 +18,10 @@ export interface Slot {
     dateIso: string;
 }
 
+export const DEFAULT_SLOT_HOURS = [10, 11, 14, 16];
+
 // Generate base slots for the next 3 days
-export function generateBaseSlots(now: Date = new Date()): Slot[] {
+export function generateBaseSlots(now: Date = new Date(), hours: number[] = DEFAULT_SLOT_HOURS): Slot[] {
     const slots: Slot[] = [];
 
     // Start tomorrow
@@ -27,8 +29,8 @@ export function generateBaseSlots(now: Date = new Date()): Slot[] {
         const d = new Date(now);
         d.setDate(d.getDate() + day);
 
-        // 10:00, 11:00, 14:00, 16:00
-        [10, 11, 14, 16].forEach(hour => {
+        // Iterate over the configured hours
+        hours.forEach(hour => {
             d.setHours(hour, 0, 0, 0);
             const id = `slot_${d.getTime()}`;
             const dayName = d.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric' });
