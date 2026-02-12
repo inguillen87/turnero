@@ -199,7 +199,6 @@ export class BotEngine {
     if (selected) {
        context.temp = { ...context.temp, serviceId: selected.id, serviceName: selected.name };
        context.state = "BOOKING_SELECT_DATE";
-       await this.setContext(context);
 
        // Calculate Slots (Mock for now, real logic later)
        const slots = this.calculateSlots();
