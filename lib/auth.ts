@@ -23,10 +23,6 @@ export const authOptions: NextAuthOptions = {
            });
         } catch (e) {
            console.error("Auth DB Connection Error:", e);
-           // Mock user for demo login if DB is down
-           if (credentials.email === 'admin@demo.com' && credentials.password === 'Demo123!') {
-              return { id: 'mock-admin', email: 'admin@demo.com', name: 'Admin Demo', role: 'USER' };
-           }
            return null;
         }
 
