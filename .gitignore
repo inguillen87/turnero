@@ -35,5 +35,7 @@ ts-debug.log*
 next-env.d.ts
 
 # verification and logs
-/verification
 *.log
+__pycache__/
+*.pyc
+verification/*.png
