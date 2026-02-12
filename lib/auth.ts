@@ -25,7 +25,7 @@ export const authOptions: NextAuthOptions = {
            console.error("Auth DB Connection Error:", e);
            // Mock user for demo login if DB is down
            if (credentials.email === 'admin@demo.com' && credentials.password === 'Demo123!') {
-              return { id: 'mock-admin', email: 'admin@demo.com', name: 'Admin Demo', role: 'SUPER_ADMIN' };
+              return { id: 'mock-admin', email: 'admin@demo.com', name: 'Admin Demo', role: 'USER' };
            }
            return null;
         }
@@ -48,7 +48,7 @@ export const authOptions: NextAuthOptions = {
 
         if (!isValid) return null;
 
-        return { id: user.id, email: user.email, name: user.name || "User", role: user.globalRole || 'USER' };
+        return { id: user.id, email: user.email, name: user.name, role: user.globalRole || 'USER' };
       },
     }),
   ],
@@ -70,6 +70,20 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.role = (user as any).role;
+      }
+      return token;
+    }
+  }
+};
+
+// Original getSession placeholder
+export async function getSession() {
+  if (process.env.DEMO_MODE === '1') {
+    return {
+      user: {
+        id: 'demo-user-id',
+        email: 'admin@demo.com',
+        globalRole: 'USER', // 'SUPER_ADMIN' for SA testing
       }
       return token;
     }
