@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
-import { menu, helpLine } from './stateMachine.ts';
+import { menu, helpLine, handleMessage } from './stateMachine.ts';
+import type { Session, BookingState } from './stateMachine.ts';
 
 test('menu - returns correct menu with default app name', () => {
   const result = menu();
@@ -23,4 +24,25 @@ test('menu - returns correct menu with custom app name', () => {
 test('helpLine - returns correct help line', () => {
   const result = helpLine();
   assert.strictEqual(result, 'Tip: "9" menú, "0" volver.');
+});
+
+test('handleMessage - includes helpLine in responses', async () => {
+    const session: Session = {
+        state: 'HOME',
+        updatedAt: Date.now(),
+        history: []
+    };
+
+    // Test: 1 (Choose Service)
+    const { reply: reply1, session: session1 } = await handleMessage("1", session);
+    assert.ok(reply1.includes(helpLine()), 'Reply for "1" should include helpLine');
+    assert.strictEqual(session1.state, 'CHOOSE_SERVICE', 'Session state should be CHOOSE_SERVICE');
+
+    // Reset Session
+    session.state = 'HOME';
+
+    // Test: 2 (Precios)
+    const { reply: reply2, session: session2 } = await handleMessage("2", session);
+    assert.ok(reply2.includes(helpLine()), 'Reply for "2" should include helpLine');
+    assert.strictEqual(session2.state, 'HOME', 'Session state should remain HOME');
 });
