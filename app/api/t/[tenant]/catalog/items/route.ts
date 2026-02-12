@@ -4,7 +4,10 @@ import { prisma } from "@/lib/db";
 export async function GET(req: NextRequest, { params }: { params: Promise<{ tenant: string }> }) {
   try {
     const { tenant: tenantSlug } = await params;
-    const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
+    const tenant = await prisma.tenant.findUnique({
+      where: { slug: tenantSlug },
+      include: { catalogItems: true },
+    });
 
     if (!tenant) {
       return NextResponse.json({ error: "Tenant not found" }, { status: 404 });

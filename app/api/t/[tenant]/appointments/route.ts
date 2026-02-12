@@ -89,9 +89,9 @@ export async function POST(
       let contact;
       if (body.clientName) {
          const existing = await prisma.contact.findFirst({ where: { tenantId: t.id, name: body.clientName } });
-         if (existing) customer = existing;
+         if (existing) contact = existing;
          else {
-           customer = await prisma.contact.create({
+           contact = await prisma.contact.create({
              data: {
                tenantId: t.id,
                name: body.clientName,
@@ -105,7 +105,7 @@ export async function POST(
       let service = await prisma.service.findFirst({ where: { tenantId: t.id, name: { contains: body.serviceName || 'Consulta' } } });
       if (!service) service = await prisma.service.findFirst({ where: { tenantId: t.id } });
 
-      let pro = await prisma.staff.findFirst({ where: { tenantId: t.id } });
+      let staff = await prisma.staff.findFirst({ where: { tenantId: t.id } });
 
       if (!contact || !service || !staff) {
           return NextResponse.json({ error: 'Missing demo data references' }, { status: 400 });
@@ -114,9 +114,9 @@ export async function POST(
       const appt = await prisma.appointment.create({
         data: {
           tenantId: t.id,
-          contactId: customer.id,
+          contactId: contact.id,
           serviceId: service.id,
-          staffId: pro.id,
+          staffId: staff.id,
           startAt: new Date(body.startAt || Date.now()),
           endAt: new Date(new Date(body.startAt || Date.now()).getTime() + service.durationMin * 60000),
           status: 'CONFIRMED',

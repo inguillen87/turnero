@@ -63,18 +63,18 @@ export async function createAppointment(tenantSlug: string, data: any) {
         if (!tenant) throw new Error("Tenant not found");
 
         // Logic similar to POST route
-        let customer = await prisma.contact.findFirst({ where: { tenantId: tenant.id } }); // Simplify
+        let contact = await prisma.contact.findFirst({ where: { tenantId: tenant.id } }); // Simplify
         let service = await prisma.service.findFirst({ where: { tenantId: tenant.id } });
-        let pro = await prisma.staff.findFirst({ where: { tenantId: tenant.id } });
+        let staff = await prisma.staff.findFirst({ where: { tenantId: tenant.id } });
 
         if (!contact || !service || !staff) throw new Error("Missing data");
 
         const appt = await prisma.appointment.create({
             data: {
                 tenantId: tenant.id,
-                contactId: customer.id,
+                contactId: contact.id,
                 serviceId: service.id,
-                staffId: pro.id,
+                staffId: staff.id,
                 startAt: new Date(data.startAt),
                 endAt: new Date(new Date(data.startAt).getTime() + service.durationMin * 60000),
                 status: 'CONFIRMED',

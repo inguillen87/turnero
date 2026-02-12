@@ -62,7 +62,7 @@ async function main() {
       if (template) {
           await prisma.tenantRubro.upsert({
               where: {
-                  tenantId_slug: { tenantId: tenant.id, slug: t.rubro }
+                  tenantId_slug: { tenantId: t.id, slug: rubroSlug }
               },
               update: {
                   name: template.name,
@@ -73,8 +73,8 @@ async function main() {
                   })
               },
               create: {
-                  tenantId: tenant.id,
-                  slug: t.rubro,
+                  tenantId: t.id,
+                  slug: rubroSlug,
                   name: template.name,
                   config: JSON.stringify({
                       menu: template.menu,
@@ -88,12 +88,12 @@ async function main() {
           for (const svc of template.services_default) {
               // Simple check to avoid dups
               const exists = await prisma.service.findFirst({
-                  where: { tenantId: tenant.id, name: svc.nombre }
+                  where: { tenantId: t.id, name: svc.nombre }
               });
               if (!exists) {
                   await prisma.service.create({
                       data: {
-                          tenantId: tenant.id,
+                          tenantId: t.id,
                           name: svc.nombre,
                           durationMin: svc.duracion_min,
                           price: svc.precio * 100, // Store as cents
@@ -103,7 +103,6 @@ async function main() {
                   });
               }
           }
-        });
       }
     }
 
