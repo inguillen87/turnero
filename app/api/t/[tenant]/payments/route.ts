@@ -24,11 +24,10 @@ export async function GET(
         select: {
             id: true,
             startAt: true,
-            customer: { select: { name: true } },
-            service: { select: { name: true, priceCents: true } },
+            contact: { select: { name: true } },
+            service: { select: { name: true, price: true } },
             paymentStatus: true,
-            paymentLink: true,
-            priceCents: true
+            price: true
         },
         orderBy: { createdAt: 'desc' }
     });
@@ -36,11 +35,11 @@ export async function GET(
     const flat = payments.map(p => ({
         id: p.id,
         date: p.startAt.toISOString(),
-        client: p.customer.name,
-        concept: p.service.name,
-        amount: (p.priceCents || 0) / 100,
+        client: p.contact?.name || 'Unknown',
+        concept: p.service?.name || 'Unknown',
+        amount: (p.price || 0) / 100,
         status: p.paymentStatus,
-        link: p.paymentLink
+        link: null
     }));
 
     return NextResponse.json(flat);

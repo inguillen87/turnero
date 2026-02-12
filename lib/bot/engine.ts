@@ -108,7 +108,7 @@ export class BotEngine {
       const services = this.tenant.services.filter((s: any) => s.active);
       if (services.length === 0) return "Error: No services active.";
 
-      const list = services.map((s: any, i: number) => `${i+1}. ${s.name} ($${s.priceCents/100})`).join('\n');
+      const list = services.map((s: any, i: number) => `${i+1}. ${s.name} ($${(s.price || 0)/100})`).join('\n');
       return this.strings.service_selection.replace("{list}", list);
     }
 
@@ -289,20 +289,20 @@ export class BotEngine {
                      endAt,
                      status: "CONFIRMED", // Or PENDING if payment required
                      source: "WHATSAPP_BOT",
-                     priceCents: service?.priceCents,
+                     price: service?.price,
                      paymentStatus: "PENDING"
                  }
               });
 
               // Check for Payment Requirement
-              if (service && service.priceCents > 0) {
+              if (service && service.price && service.price > 0) {
                  const link = await createPaymentPreference(
-                     [{ title: service.name, unit_price: service.priceCents / 100, quantity: 1 }],
+                     [{ title: service.name, unit_price: service.price / 100, quantity: 1 }],
                      { email: this.contact.email || "guest@turnero.com" },
                      appt.id
                  );
                  if (link) {
-                     await prisma.appointment.update({ where: { id: appt.id }, data: { paymentLink: link } });
+                     // await prisma.appointment.update({ where: { id: appt.id }, data: { paymentLink: link } });
                      paymentMsg = this.strings.payment_link.replace("{link}", link);
                  }
               }
@@ -378,7 +378,7 @@ export class BotEngine {
       }
 
       if (analysis.intent === "query_prices") {
-          const list = this.tenant.services.map((s: any) => `• ${s.name}: $${s.priceCents/100}`).join('\n');
+          const list = this.tenant.services.map((s: any) => `• ${s.name}: $${(s.price || 0)/100}`).join('\n');
           return this.strings.prices_list.replace("{list}", list);
       }
 

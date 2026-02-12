@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
                 planStatus,
                 plan: "enterprise",
                 mpPreapprovalId: resourceId,
-                activatedAt: planStatus === "ACTIVE" ? new Date() : undefined
+                planActivatedAt: planStatus === "ACTIVE" ? new Date() : undefined
             }
         });
         console.log(`Tenant ${payload.tenantId} updated to ${planStatus}`);

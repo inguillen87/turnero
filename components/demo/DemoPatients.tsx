@@ -1,6 +1,6 @@
 "use client";
 
-import { User, Phone, Calendar, MoreHorizontal, Search, Filter, X, FileText, Activity, CreditCard, Clock, AlertTriangle, ShieldCheck, Banknote } from "lucide-react";
+import { User, Phone, Calendar, MoreHorizontal, Search, Filter, X, FileText, Activity, CreditCard, Clock, AlertTriangle, ShieldCheck, Banknote, MessageCircle } from "lucide-react";
 import { useState } from "react";
 
 export function DemoPatients() {

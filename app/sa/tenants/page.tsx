@@ -42,7 +42,7 @@ export default async function TenantList() {
                 </td>
                 <td className="px-6 py-4">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    {tenant.planId || 'Free'}
+                    {tenant.plan || 'Free'}
                   </span>
                 </td>
                 <td className="px-6 py-4">

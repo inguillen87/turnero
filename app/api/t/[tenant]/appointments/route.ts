@@ -20,9 +20,9 @@ export async function GET(
     const appointments = await prisma.appointment.findMany({
       where: { tenantId: t.id },
       include: {
-        customer: true,
+        contact: true,
         service: true,
-        professional: true,
+        staff: true,
       },
       orderBy: { startAt: 'asc' },
     });
@@ -32,13 +32,13 @@ export async function GET(
       startAt: a.startAt.toISOString(),
       endAt: a.endAt.toISOString(),
       status: a.status.toLowerCase(),
-      clientName: a.customer?.name || 'Walk-in',
-      service: { name: a.service?.name, price: a.service?.priceCents ? a.service.priceCents / 100 : 0 },
-      professional: { name: a.professional?.name },
+      clientName: a.contact?.name || 'Walk-in',
+      service: { name: a.service?.name, price: a.price ? a.price / 100 : 0 },
+      professional: { name: a.staff?.name },
       notes: a.notes,
       payment: {
         status: a.paymentStatus,
-        link: a.paymentLink
+        link: null // Payment link logic needs update if needed
       }
     }));
 
@@ -85,38 +85,38 @@ export async function POST(
       const t = await prisma.tenant.findUnique({ where: { slug } });
       if (!t) return NextResponse.json({ error: 'Tenant not found' }, { status: 404 });
 
-      // Find or Create Customer
-      let customer;
+      // Find or Create Contact
+      let contact;
       if (body.clientName) {
-         const existing = await prisma.customer.findFirst({ where: { tenantId: t.id, name: body.clientName } });
-         if (existing) customer = existing;
+         const existing = await prisma.contact.findFirst({ where: { tenantId: t.id, name: body.clientName } });
+         if (existing) contact = existing;
          else {
-           customer = await prisma.customer.create({
+           contact = await prisma.contact.create({
              data: {
                tenantId: t.id,
                name: body.clientName,
-               phone: body.clientPhone,
+               phoneE164: body.clientPhone || 'unknown',
              }
            });
          }
       }
 
-      // Find Service/Pro
+      // Find Service/Staff
       let service = await prisma.service.findFirst({ where: { tenantId: t.id, name: { contains: body.serviceName || 'Consulta' } } });
       if (!service) service = await prisma.service.findFirst({ where: { tenantId: t.id } });
 
-      let pro = await prisma.professional.findFirst({ where: { tenantId: t.id } });
+      let staff = await prisma.staff.findFirst({ where: { tenantId: t.id } });
 
-      if (!customer || !service || !pro) {
+      if (!contact || !service || !staff) {
           return NextResponse.json({ error: 'Missing demo data references' }, { status: 400 });
       }
 
       const appt = await prisma.appointment.create({
         data: {
           tenantId: t.id,
-          customerId: customer.id,
+          contactId: contact.id,
           serviceId: service.id,
-          professionalId: pro.id,
+          staffId: staff.id,
           startAt: new Date(body.startAt || Date.now()),
           endAt: new Date(new Date(body.startAt || Date.now()).getTime() + service.durationMin * 60000),
           status: 'CONFIRMED',
@@ -124,17 +124,17 @@ export async function POST(
         },
         include: {
             service: true,
-            professional: true,
-            customer: true,
+            staff: true,
+            contact: true,
         }
       });
 
       return NextResponse.json({
           id: appt.id,
           startAt: appt.startAt,
-          clientName: appt.customer.name,
+          clientName: appt.contact.name,
           status: appt.status.toLowerCase(),
-          service: { name: appt.service.name },
+          service: { name: appt.service?.name },
       }, { status: 201 });
 
   } catch (error) {

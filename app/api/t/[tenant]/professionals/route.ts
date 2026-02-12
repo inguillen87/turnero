@@ -15,7 +15,7 @@ export async function GET(
   if (!t) return NextResponse.json({ error: 'Tenant not found' }, { status: 404 });
 
   // 2. Fetch Professionals
-  const pros = await prisma.professional.findMany({
+  const pros = await prisma.staff.findMany({
     where: { tenantId: t.id },
   });
 
