@@ -10,12 +10,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ tena
       return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
     }
 
-    const items = await prisma.catalogItem.findMany({
-      where: { tenantId: tenant.id, active: true },
-      // id is a default sort key if createdAt doesn't exist
-    });
-
-    return NextResponse.json({ items });
+    return NextResponse.json({ items: tenant.catalogItems });
   } catch (error) {
     console.error("Fetch Items Error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

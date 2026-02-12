@@ -60,31 +60,48 @@ async function main() {
     for (const rubroSlug of rubros) {
       const template = RUBROS.find(r => r.slug === rubroSlug);
       if (template) {
-        await prisma.tenantRubro.upsert({
-          where: { tenantId_slug: { tenantId: t.id, slug: rubroSlug } },
-          update: {
-            name: template.nombre,
-            config: JSON.stringify({
-              menu: template.menu_principal,
-              politicas: template.politicas,
-              datos_reserva: template.datos_reserva,
-              demo_quick_prompts: template.demo_quick_prompts,
-              emoji: template.emoji,
-              tono: template.tono
-            })
-          },
-          create: {
-            tenantId: t.id,
-            slug: rubroSlug,
-            name: template.nombre,
-            config: JSON.stringify({
-              menu: template.menu_principal,
-              politicas: template.politicas,
-              datos_reserva: template.datos_reserva,
-              demo_quick_prompts: template.demo_quick_prompts,
-              emoji: template.emoji,
-              tono: template.tono
-            })
+          await prisma.tenantRubro.upsert({
+              where: {
+                  tenantId_slug: { tenantId: tenant.id, slug: t.rubro }
+              },
+              update: {
+                  name: template.name,
+                  config: JSON.stringify({
+                      menu: template.menu,
+                      politicas: template.politicas,
+                      datos_reserva: template.datos_reserva
+                  })
+              },
+              create: {
+                  tenantId: tenant.id,
+                  slug: t.rubro,
+                  name: template.name,
+                  config: JSON.stringify({
+                      menu: template.menu,
+                      politicas: template.politicas,
+                      datos_reserva: template.datos_reserva
+                  })
+              }
+          });
+
+          // Seed Services
+          for (const svc of template.services_default) {
+              // Simple check to avoid dups
+              const exists = await prisma.service.findFirst({
+                  where: { tenantId: tenant.id, name: svc.nombre }
+              });
+              if (!exists) {
+                  await prisma.service.create({
+                      data: {
+                          tenantId: tenant.id,
+                          name: svc.nombre,
+                          durationMin: svc.duracion_min,
+                          price: svc.precio * 100, // Store as cents
+                          currency: "ARS",
+                          active: true
+                      }
+                  });
+              }
           }
         });
       }

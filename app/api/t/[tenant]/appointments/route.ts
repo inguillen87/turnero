@@ -85,8 +85,8 @@ export async function POST(
       const t = await prisma.tenant.findUnique({ where: { slug } });
       if (!t) return NextResponse.json({ error: 'Tenant not found' }, { status: 404 });
 
-      // Find or Create Customer
-      let customer;
+      // Find or Create Contact
+      let contact;
       if (body.clientName) {
          const existing = await prisma.contact.findFirst({ where: { tenantId: t.id, name: body.clientName } });
          if (existing) customer = existing;
@@ -101,13 +101,13 @@ export async function POST(
          }
       }
 
-      // Find Service/Pro
+      // Find Service/Staff
       let service = await prisma.service.findFirst({ where: { tenantId: t.id, name: { contains: body.serviceName || 'Consulta' } } });
       if (!service) service = await prisma.service.findFirst({ where: { tenantId: t.id } });
 
       let pro = await prisma.staff.findFirst({ where: { tenantId: t.id } });
 
-      if (!customer || !service || !pro) {
+      if (!contact || !service || !staff) {
           return NextResponse.json({ error: 'Missing demo data references' }, { status: 400 });
       }
 

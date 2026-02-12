@@ -67,7 +67,7 @@ export async function createAppointment(tenantSlug: string, data: any) {
         let service = await prisma.service.findFirst({ where: { tenantId: tenant.id } });
         let pro = await prisma.staff.findFirst({ where: { tenantId: tenant.id } });
 
-        if (!customer || !service || !pro) throw new Error("Missing data");
+        if (!contact || !service || !staff) throw new Error("Missing data");
 
         const appt = await prisma.appointment.create({
             data: {
