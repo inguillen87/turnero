@@ -3,8 +3,16 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 
+if (!process.env.NEXTAUTH_SECRET) {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("NEXTAUTH_SECRET is not set");
+  } else {
+    console.warn("NEXTAUTH_SECRET is not set");
+  }
+}
+
 export const authOptions: NextAuthOptions = {
-  secret: process.env.NEXTAUTH_SECRET || "development-secret-fallback", // Fallback for dev only
+  secret: process.env.NEXTAUTH_SECRET,
   providers: [
     CredentialsProvider({
       name: "Credentials",
