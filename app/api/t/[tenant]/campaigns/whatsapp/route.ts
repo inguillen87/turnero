@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import twilio from "twilio";
+import { Redis } from "@upstash/redis";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { publishTenantEvent } from "@/lib/realtime";
@@ -11,6 +12,49 @@ import {
   normalizePhone,
   parseCampaignStorage,
 } from "@/lib/marketing-campaigns";
+
+const redis =
+  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+    ? new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN,
+      })
+    : null;
+
+const localQuota = new Map<string, { resetAt: number; used: number }>();
+
+function hourlyQuotaKey(tenantSlug: string) {
+  return `campaign:quota:${tenantSlug}:${Math.floor(Date.now() / 3600000)}`;
+}
+
+async function consumeCampaignQuota(tenantSlug: string, requested: number) {
+  const maxHourly = Math.max(Number(process.env.CAMPAIGN_HOURLY_LIMIT || 2000), 1);
+
+  if (redis) {
+    try {
+      const key = hourlyQuotaKey(tenantSlug);
+      const used = await redis.incrby(key, requested);
+      await redis.expire(key, 3600);
+      if (used > maxHourly) {
+        return { ok: false, maxHourly, used };
+      }
+      return { ok: true, maxHourly, used };
+    } catch {
+      // fallback local
+    }
+  }
+
+  const now = Date.now();
+  const current = localQuota.get(tenantSlug);
+  if (!current || current.resetAt < now) {
+    localQuota.set(tenantSlug, { resetAt: now + 3600000, used: requested });
+    return { ok: requested <= maxHourly, maxHourly, used: requested };
+  }
+
+  current.used += requested;
+  localQuota.set(tenantSlug, current);
+  return { ok: current.used <= maxHourly, maxHourly, used: current.used };
+}
 
 function toWhatsAppAddress(phoneE164: string) {
   return `whatsapp:${normalizePhone(phoneE164)}`;
@@ -40,7 +84,7 @@ async function resolveTenant(slug: string) {
   const hasAccess = role === "SUPER_ADMIN" || (await prisma.tenantUser.findFirst({ where: { tenantId: tenant.id, userId } }));
   if (!hasAccess) return { error: NextResponse.json({ message: "Forbidden" }, { status: 403 }) };
 
-  return { tenant };
+  return { tenant, userId };
 }
 
 async function saveCampaignStorage(tenantId: string, integrationId: string | undefined, storage: ReturnType<typeof defaultCampaignStorage>) {
@@ -62,13 +106,31 @@ async function saveCampaignStorage(tenantId: string, integrationId: string | und
   });
 }
 
-async function runCampaign(params: {
+type Segmentation = { rubro?: string; tag?: string; lastSeenDays?: number };
+
+async function fetchEligibleContacts(params: {
+  tenantId: string;
+  segmentation: Segmentation;
+  limit: number;
+  optOutPhones: string[];
+}) {
+  const contacts = await prisma.contact.findMany({
+    where: { tenantId: params.tenantId, phoneE164: { not: "" } },
+    orderBy: { lastSeen: "desc" },
+    take: Math.max(params.limit * 4, 800),
+    select: { id: true, phoneE164: true, name: true, tags: true, lastSeen: true, meta: true },
+  });
+
+  return contacts
+    .filter((c) => matchesSegmentation(c, params.segmentation, params.optOutPhones))
+    .slice(0, params.limit);
+}
+
+async function sendBatch(params: {
   tenant: any;
+  contacts: Array<{ phoneE164: string }>;
   message: string;
   flyerUrl?: string;
-  limit: number;
-  segmentation: { rubro?: string; tag?: string; lastSeenDays?: number };
-  storage: ReturnType<typeof defaultCampaignStorage>;
 }) {
   const runtimeConfig = params.tenant.integrations.find((i: any) => i.provider === "tenant_runtime_config")?.config;
   const parsedConfig = runtimeConfig ? JSON.parse(runtimeConfig) : {};
@@ -81,28 +143,11 @@ async function runCampaign(params: {
     return { error: "Faltan credenciales Twilio o número origen WhatsApp." };
   }
 
-  const contacts = await prisma.contact.findMany({
-    where: { tenantId: params.tenant.id, phoneE164: { not: "" } },
-    orderBy: { lastSeen: "desc" },
-    take: Math.max(params.limit * 4, 800),
-    select: { id: true, phoneE164: true, name: true, tags: true, lastSeen: true, meta: true },
-  });
-
-  const eligible = contacts
-    .filter((c) =>
-      matchesSegmentation(c, params.segmentation, params.storage.optOutPhones)
-    )
-    .slice(0, params.limit);
-
-  if (eligible.length === 0) {
-    return { sent: 0, failed: 0, attempted: 0, failures: [], error: "No hay contactos que cumplan la segmentación" };
-  }
-
   const client = twilio(accountSid, authToken);
   const failures: { phone: string; reason: string }[] = [];
   let sent = 0;
 
-  for (const contact of eligible) {
+  for (const contact of params.contacts) {
     try {
       await client.messages.create({
         from: twilioFrom.startsWith("whatsapp:") ? twilioFrom : `whatsapp:${twilioFrom}`,
@@ -116,7 +161,7 @@ async function runCampaign(params: {
     }
   }
 
-  return { sent, failed: failures.length, attempted: eligible.length, failures };
+  return { sent, failed: failures.length, attempted: params.contacts.length, failures };
 }
 
 export async function GET(
@@ -148,6 +193,7 @@ export async function POST(
   if ("error" in resolved) return resolved.error;
 
   const tenant = resolved.tenant;
+  const userId = resolved.userId;
   const body = await req.json();
   const action = String(body?.action || "send_now");
 
@@ -178,16 +224,17 @@ export async function POST(
     return NextResponse.json({ ok: true, templates: storage.templates });
   }
 
+  const segmentation: Segmentation = {
+    rubro: body?.segmentation?.rubro ? String(body.segmentation.rubro) : undefined,
+    tag: body?.segmentation?.tag ? String(body.segmentation.tag) : undefined,
+    lastSeenDays: body?.segmentation?.lastSeenDays ? Number(body.segmentation.lastSeenDays) : undefined,
+  };
+
   if (action === "schedule") {
     const message = String(body?.message || "").trim();
     const flyerUrl = normalizeMediaUrl(body?.flyerUrl);
     const scheduledAt = String(body?.scheduledAt || "").trim();
     const limit = Math.min(Math.max(Number(body?.limit || 100), 1), 500);
-    const segmentation = {
-      rubro: body?.segmentation?.rubro ? String(body.segmentation.rubro) : undefined,
-      tag: body?.segmentation?.tag ? String(body.segmentation.tag) : undefined,
-      lastSeenDays: body?.segmentation?.lastSeenDays ? Number(body.segmentation.lastSeenDays) : undefined,
-    };
 
     if (!message || !scheduledAt) {
       return NextResponse.json({ message: "Message and scheduledAt are required" }, { status: 400 });
@@ -201,7 +248,7 @@ export async function POST(
         flyerUrl,
         sent: 0,
         failed: 0,
-        attempted: 0,
+        attempted: limit,
         createdAt: new Date().toISOString(),
         scheduledAt,
         segmentation,
@@ -221,20 +268,21 @@ export async function POST(
     let totalFailed = 0;
 
     for (const item of due) {
-      const result = await runCampaign({
-        tenant,
-        message: item.message,
-        flyerUrl: item.flyerUrl,
-        limit: item.attempted || 100,
+      const quota = await consumeCampaignQuota(slug, item.attempted || 100);
+      if (!quota.ok) continue;
+
+      const eligible = await fetchEligibleContacts({
+        tenantId: tenant.id,
         segmentation: item.segmentation || {},
-        storage,
+        limit: item.attempted || 100,
+        optOutPhones: storage.optOutPhones,
       });
+
+      const result = await sendBatch({ tenant, contacts: eligible, message: item.message, flyerUrl: item.flyerUrl });
       if (result.error) continue;
 
       const sent = result.sent ?? 0;
       const failed = result.failed ?? 0;
-      const attempted = result.attempted ?? 0;
-
       totalSent += sent;
       totalFailed += failed;
 
@@ -244,7 +292,7 @@ export async function POST(
           status: "sent" as const,
           sent,
           failed,
-          attempted,
+          attempted: result.attempted ?? 0,
           createdAt: new Date().toISOString(),
         },
         ...storage.history,
@@ -263,20 +311,83 @@ export async function POST(
     return NextResponse.json({ ok: true, sent: totalSent, failed: totalFailed, remainingScheduled: storage.scheduled.length });
   }
 
+  if (action === "send_ab") {
+    const messageA = String(body?.messageA || "").trim();
+    const messageB = String(body?.messageB || "").trim();
+    const flyerA = normalizeMediaUrl(body?.flyerUrlA);
+    const flyerB = normalizeMediaUrl(body?.flyerUrlB);
+    const limit = Math.min(Math.max(Number(body?.limit || 100), 2), 500);
+
+    if (!messageA || !messageB) return NextResponse.json({ message: "messageA and messageB are required" }, { status: 400 });
+
+    const quota = await consumeCampaignQuota(slug, limit);
+    if (!quota.ok) return NextResponse.json({ message: `Límite horario superado (${quota.maxHourly})` }, { status: 429 });
+
+    const eligible = await fetchEligibleContacts({ tenantId: tenant.id, segmentation, limit, optOutPhones: storage.optOutPhones });
+    const half = Math.ceil(eligible.length / 2);
+    const groupA = eligible.slice(0, half);
+    const groupB = eligible.slice(half);
+
+    const [resultA, resultB] = await Promise.all([
+      sendBatch({ tenant, contacts: groupA, message: messageA, flyerUrl: flyerA }),
+      sendBatch({ tenant, contacts: groupB, message: messageB, flyerUrl: flyerB }),
+    ]);
+
+    if (resultA.error || resultB.error) {
+      return NextResponse.json({ message: resultA.error || resultB.error || "ab_send_error" }, { status: 400 });
+    }
+
+    const nowIso = new Date().toISOString();
+    storage.history = [
+      {
+        id: `abA_${Date.now()}`,
+        status: "sent" as const,
+        message: messageA,
+        flyerUrl: flyerA,
+        sent: resultA.sent ?? 0,
+        failed: resultA.failed ?? 0,
+        attempted: resultA.attempted ?? 0,
+        createdAt: nowIso,
+        segmentation,
+      },
+      {
+        id: `abB_${Date.now()}`,
+        status: "sent" as const,
+        message: messageB,
+        flyerUrl: flyerB,
+        sent: resultB.sent ?? 0,
+        failed: resultB.failed ?? 0,
+        attempted: resultB.attempted ?? 0,
+        createdAt: nowIso,
+        segmentation,
+      },
+      ...storage.history,
+    ].slice(0, 300);
+
+    await saveCampaignStorage(tenant.id, marketing?.id, storage);
+
+    publishTenantEvent(slug, {
+      type: "whatsapp.message",
+      title: "A/B test enviado",
+      body: `A: ${resultA.sent}/${resultA.attempted} | B: ${resultB.sent}/${resultB.attempted}`,
+    });
+
+    return NextResponse.json({ ok: true, resultA, resultB, metrics: buildCampaignStats(storage.history) });
+  }
+
   const message = String(body?.message || "").trim();
   const flyerUrl = normalizeMediaUrl(body?.flyerUrl);
   const limit = Math.min(Math.max(Number(body?.limit || 100), 1), 500);
-  const segmentation = {
-    rubro: body?.segmentation?.rubro ? String(body.segmentation.rubro) : undefined,
-    tag: body?.segmentation?.tag ? String(body.segmentation.tag) : undefined,
-    lastSeenDays: body?.segmentation?.lastSeenDays ? Number(body.segmentation.lastSeenDays) : undefined,
-  };
 
   if (!message) {
     return NextResponse.json({ message: "Campaign message is required" }, { status: 400 });
   }
 
-  const result = await runCampaign({ tenant, message, flyerUrl, limit, segmentation, storage });
+  const quota = await consumeCampaignQuota(slug, limit);
+  if (!quota.ok) return NextResponse.json({ message: `Límite horario superado (${quota.maxHourly})` }, { status: 429 });
+
+  const eligible = await fetchEligibleContacts({ tenantId: tenant.id, segmentation, limit, optOutPhones: storage.optOutPhones });
+  const result = await sendBatch({ tenant, contacts: eligible, message, flyerUrl });
   if (result.error) return NextResponse.json({ message: result.error }, { status: 400 });
 
   const sentNow = result.sent ?? 0;
@@ -313,5 +424,6 @@ export async function POST(
     attempted: attemptedNow,
     failures: (result.failures || []).slice(0, 20),
     metrics: buildCampaignStats(storage.history),
+    audit: { byUserId: userId, at: new Date().toISOString() },
   });
 }

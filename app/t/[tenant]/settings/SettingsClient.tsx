@@ -349,6 +349,7 @@ function IntegrationsSettings({ integrations, slug }: any) {
   const [campaignResult, setCampaignResult] = useState<{ sent?: number; failed?: number; message?: string }>({});
   const [templateName, setTemplateName] = useState("");
   const [campaignData, setCampaignData] = useState<any>({ templates: [], scheduled: [], metrics: { sent: 0, failed: 0, campaigns: 0, deliveryRate: 0 } });
+  const [journeyInfo, setJourneyInfo] = useState<any>({ suggestions: { reactivationFromCancellations: 0, paymentReminderFromPending: 0 } });
 
   useEffect(() => {
     fetch(`/api/t/${slug}/settings/runtime`)
@@ -363,6 +364,13 @@ function IntegrationsSettings({ integrations, slug }: any) {
     fetch(`/api/t/${slug}/campaigns/whatsapp`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("campaigns"))))
       .then((data) => setCampaignData(data))
+      .catch(() => {
+        // ignore
+      });
+
+    fetch(`/api/t/${slug}/campaigns/journeys`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("journeys"))))
+      .then((data) => setJourneyInfo(data))
       .catch(() => {
         // ignore
       });
@@ -389,6 +397,30 @@ function IntegrationsSettings({ integrations, slug }: any) {
   const refreshCampaignData = async () => {
     const res = await fetch(`/api/t/${slug}/campaigns/whatsapp`);
     if (res.ok) setCampaignData(await res.json());
+  };
+
+  const runJourneys = async (action: "plan" | "enqueue") => {
+    setCampaignState("sending");
+    setCampaignResult({});
+    try {
+      const res = await fetch(`/api/t/${slug}/campaigns/journeys`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCampaignState("ok");
+        setCampaignResult({ message: action === "enqueue" ? `Journeys encolados: ${data?.enqueued || 0}` : `Journeys sugeridos: ${data?.planned || 0}` });
+        await refreshCampaignData();
+      } else {
+        setCampaignState("error");
+        setCampaignResult({ message: data?.message || "No se pudo ejecutar journeys" });
+      }
+    } catch {
+      setCampaignState("error");
+      setCampaignResult({ message: "Error de conexión en journeys" });
+    }
   };
 
   const sendCampaign = async (action: "send_now" | "schedule" | "save_template" | "dispatch_scheduled" = "send_now") => {
@@ -572,6 +604,26 @@ function IntegrationsSettings({ integrations, slug }: any) {
                 Ejecutar programadas
               </button>
             </div>
+
+            <div className="rounded-lg border border-dashed border-slate-300 dark:border-slate-700 p-3 space-y-2">
+              <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">Journeys automáticos sugeridos</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Reactivación por cancelación: {journeyInfo?.suggestions?.reactivationFromCancellations || 0} • Reminder de pago pendiente: {journeyInfo?.suggestions?.paymentReminderFromPending || 0}</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => runJourneys("plan")}
+                  className="px-3 py-1.5 rounded bg-violet-600 text-white text-xs font-semibold hover:bg-violet-700"
+                >
+                  Simular journeys
+                </button>
+                <button
+                  onClick={() => runJourneys("enqueue")}
+                  className="px-3 py-1.5 rounded bg-fuchsia-600 text-white text-xs font-semibold hover:bg-fuchsia-700"
+                >
+                  Encolar journeys
+                </button>
+              </div>
+            </div>
+
             <div className="text-xs text-slate-500 dark:text-slate-400">
               Métricas: {campaignData?.metrics?.campaigns || 0} campañas • enviados {campaignData?.metrics?.sent || 0} • fallidos {campaignData?.metrics?.failed || 0} • delivery {campaignData?.metrics?.deliveryRate || 0}%
             </div>
