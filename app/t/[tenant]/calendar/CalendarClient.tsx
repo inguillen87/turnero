@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { addDays, addWeeks, endOfWeek, format, isSameDay, parseISO, startOfWeek } from "date-fns";
+import { addDays, addWeeks, endOfWeek, format, parseISO, startOfWeek } from "date-fns";
 import { es } from "date-fns/locale";
 import { AlertTriangle, CalendarDays, ChevronLeft, ChevronRight, Copy, Lock, Save } from "lucide-react";
 
@@ -70,8 +70,24 @@ export default function CalendarClient({ tenantSlug }: { tenantSlug: string }) {
     [appointments, weekStart, weekEnd]
   );
 
-  const dayAppointments = (day: Date) => filteredAppointments.filter((a) => isSameDay(new Date(a.startAt), day));
-  const dayBlocks = (day: Date) => blockedRanges.filter((b) => isSameDay(new Date(b.startAt), day));
+  const dayAppointments = (day: Date) =>
+    filteredAppointments.filter((a) => {
+      const start = new Date(a.startAt);
+      return start.getFullYear() === day.getFullYear() && start.getMonth() === day.getMonth() && start.getDate() === day.getDate();
+    });
+
+  const isHourBlocked = (day: Date, hour: number) => {
+    const slotStart = new Date(day);
+    slotStart.setHours(hour, 0, 0, 0);
+    const slotEnd = new Date(day);
+    slotEnd.setHours(hour + 1, 0, 0, 0);
+
+    return blockedRanges.find((b) => {
+      const blockStart = new Date(b.startAt);
+      const blockEnd = new Date(b.endAt);
+      return blockStart < slotEnd && blockEnd > slotStart;
+    });
+  };
 
   const saveBlockedRanges = async (nextRanges: BlockedRange[]) => {
     setSaving(true);
@@ -113,6 +129,11 @@ export default function CalendarClient({ tenantSlug }: { tenantSlug: string }) {
       return;
     }
 
+    if (new Date(newBlock.endAt) <= new Date(newBlock.startAt)) {
+      setMessage("La fecha/hora de fin debe ser posterior al inicio.");
+      return;
+    }
+
     const range: BlockedRange = {
       id: `block-${Date.now()}`,
       startAt: new Date(newBlock.startAt).toISOString(),
@@ -122,6 +143,22 @@ export default function CalendarClient({ tenantSlug }: { tenantSlug: string }) {
 
     await saveBlockedRanges([...blockedRanges, range]);
     setNewBlock({ startAt: "", endAt: "", reason: "Vacaciones" });
+  };
+
+  const blockFullCurrentWeek = async () => {
+    const start = new Date(weekStart);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(weekEnd);
+    end.setHours(23, 59, 59, 999);
+
+    const range: BlockedRange = {
+      id: `block-week-${Date.now()}`,
+      startAt: start.toISOString(),
+      endAt: end.toISOString(),
+      reason: "Semana cerrada (vacaciones/remodelación)",
+    };
+
+    await saveBlockedRanges([...blockedRanges, range]);
   };
 
   const removeBlockedRange = async (id: string) => {
@@ -141,8 +178,26 @@ export default function CalendarClient({ tenantSlug }: { tenantSlug: string }) {
     }, 0);
   }, [blockedRanges, appointments]);
 
+  const weeklyBlockedHours = useMemo(() => {
+    let hours = 0;
+    for (const day of days) {
+      for (const h of HOURS) {
+        if (isHourBlocked(day, h)) hours += 1;
+      }
+    }
+    return hours;
+  }, [days, blockedRanges]);
+
+  const weeklyBusyHours = useMemo(() => {
+    return filteredAppointments.reduce((acc, appt) => {
+      const start = new Date(appt.startAt).getTime();
+      const end = new Date(appt.endAt).getTime();
+      return acc + Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60)));
+    }, 0);
+  }, [filteredAppointments]);
+
   const copyWhatsappStatus = async () => {
-    const text = `Hola 👋 Te avisamos que tuvimos cambios de agenda. Esta semana tenemos ${blockedRanges.length} bloqueos operativos y estamos reprogramando turnos afectados. Si querés, respondé este mensaje y te ofrecemos nuevos horarios.`;
+      const text = `Hola 👋 Te avisamos cambios de agenda. Esta semana tenemos ${blockedRanges.length} bloqueos operativos, ${conflicts} turnos afectados y ya estamos reprogramando. Si querés, respondé este mensaje y te ofrecemos nuevos horarios.`;
     try {
       await navigator.clipboard.writeText(text);
       setMessage("Mensaje para WhatsApp copiado.");
@@ -184,11 +239,7 @@ export default function CalendarClient({ tenantSlug }: { tenantSlug: string }) {
                 <div className="p-2 text-slate-500 border-r border-slate-100 dark:border-slate-800">{String(h).padStart(2, "0")}:00</div>
                 {days.map((d) => {
                   const appt = dayAppointments(d).find((a) => new Date(a.startAt).getHours() === h);
-                  const block = dayBlocks(d).find((b) => {
-                    const s = new Date(b.startAt).getHours();
-                    const e = new Date(b.endAt).getHours();
-                    return h >= s && h < e;
-                  });
+                  const block = isHourBlocked(d, h);
 
                   return (
                     <div key={`${d.toISOString()}-${h}`} className="p-1 border-l border-slate-100 dark:border-slate-800 relative">
@@ -222,6 +273,8 @@ export default function CalendarClient({ tenantSlug }: { tenantSlug: string }) {
 
           <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-2">
             <p className="text-sm font-semibold flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-amber-500" /> Conflictos detectados: {conflicts}</p>
+            <p className="text-xs text-slate-500">Horas ocupadas semanales: {weeklyBusyHours} · Horas bloqueadas: {weeklyBlockedHours}</p>
+            <button onClick={blockFullCurrentWeek} className="w-full rounded-lg border px-3 py-2 text-sm">Cerrar semana completa</button>
             <button onClick={copyWhatsappStatus} className="w-full rounded-lg border px-3 py-2 text-sm flex items-center justify-center gap-2"><Copy className="w-4 h-4" /> Copiar estado para WhatsApp</button>
           </div>
 
