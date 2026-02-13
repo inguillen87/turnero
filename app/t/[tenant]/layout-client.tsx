@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Calendar, Users, Settings, LogOut, CheckCircle2, Menu, X, User, Ticket } from 'lucide-react';
 import { useState } from 'react';
+import { RealtimeBell } from '@/components/RealtimeBell';
 
 export default function TenantLayoutClient({
   children,
@@ -83,6 +84,9 @@ export default function TenantLayoutClient({
 
       {/* Main Content */}
       <main className="flex-1 md:ml-64 p-4 md:p-8 pt-20 md:pt-8 w-full max-w-[1600px] mx-auto transition-all duration-300">
+        <div className="mb-4 flex justify-end">
+          <RealtimeBell tenantSlug={slug} />
+        </div>
         {children}
       </main>
     </div>
