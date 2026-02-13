@@ -75,6 +75,18 @@ export async function POST(
       cancellation: payload?.notifications?.cancellation ?? true,
       delay: payload?.notifications?.delay ?? true,
     },
+    calendar: {
+      provider: payload?.calendar?.provider || "google",
+      googleCalendarId: payload?.calendar?.googleCalendarId || "primary",
+      calendlyUrl: payload?.calendar?.calendlyUrl || "",
+      icalUrl: payload?.calendar?.icalUrl || "",
+    },
+    googleSheets: {
+      enabled: payload?.googleSheets?.enabled ?? false,
+      spreadsheetId: payload?.googleSheets?.spreadsheetId || "",
+      worksheetName: payload?.googleSheets?.worksheetName || "Turnos",
+      autoSyncAppointments: payload?.googleSheets?.autoSyncAppointments ?? true,
+    },
   };
 
   const existing = resolved.tenant.integrations.find((i) => i.provider === PROVIDER);
