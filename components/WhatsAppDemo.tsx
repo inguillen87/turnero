@@ -18,16 +18,32 @@ export function WhatsAppDemo({ onBooking }: { onBooking?: (data: any) => void })
     {
       id: '1',
       sender: 'bot',
-      text: '¡Hola! 👋 Soy el asistente virtual de Turnero Pro. ¿En qué puedo ayudarte hoy?',
+      text: '¡Hola! 👋 Soy el BOT IA comercial de Turnero Pro. Te ayudo a elegir plan full o modular (WhatsApp + CRM + Agenda).',
       timestamp: new Date(),
       options: [
-        { label: '📅 Reservar Turno', value: 'Quiero reservar un turno' },
-        { label: '❓ Consultar Precios', value: '¿Cuáles son los precios?' }
+        { label: '🏥 Tengo una clínica', value: 'Tengo una clínica y quiero automatizar turnos' },
+        { label: '🧠 Soy psicóloga/o', value: 'Soy psicologa y quiero agenda con whatsapp' },
+        { label: '🧩 Quiero plan modular', value: 'No quiero la plataforma completa, solo whatsapp crm agenda' },
+        { label: '🚀 Quiero plataforma completa', value: 'Quiero la plataforma completa con todo' }
       ]
     }
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [anonId] = useState(() => {
+    if (typeof window === "undefined") return `anon-${Date.now()}`;
+    const existing = window.localStorage.getItem("turnero_sales_anon_id");
+    if (existing) return existing;
+    const created = `anon-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    window.localStorage.setItem("turnero_sales_anon_id", created);
+    return created;
+  });
+  const [sellerUrl, setSellerUrl] = useState(() => {
+    const fallback = "5492613168608";
+    const configured = process.env.NEXT_PUBLIC_SALES_WHATSAPP_E164 || fallback;
+    const digits = configured.replace(/\D/g, "");
+    return `https://wa.me/${digits}?text=${encodeURIComponent("Hola Marce, quiero avanzar con Turnero Pro.")}`;
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -40,6 +56,11 @@ export function WhatsAppDemo({ onBooking }: { onBooking?: (data: any) => void })
 
   const handleSend = async (text: string, value?: string) => {
     if (!text.trim()) return;
+
+    if (value === "contact_seller") {
+      window.open(sellerUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
 
     // Add User Message
     const userMsg: Message = {
@@ -60,13 +81,16 @@ export function WhatsAppDemo({ onBooking }: { onBooking?: (data: any) => void })
       }));
 
       // Call AI API
-      const response = await fetch('/api/demo/chat', {
+      const response = await fetch('/api/public/sales-bot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: value || text, history }),
+        body: JSON.stringify({ message: value || text, history, anonId }),
       });
 
       const data = await response.json();
+      if (data?.seller?.url) {
+        setSellerUrl(data.seller.url);
+      }
 
       const botMsg: Message = {
         id: (Date.now() + 1).toString(),
@@ -126,7 +150,7 @@ export function WhatsAppDemo({ onBooking }: { onBooking?: (data: any) => void })
              <MessageCircle className="w-6 h-6" />
            </div>
            <div>
-             <h3 className="font-bold text-sm">Turnero AI Bot</h3>
+             <h3 className="font-bold text-sm">Turnero Sales AI</h3>
              <div className="flex items-center gap-1">
                 <span className={`w-2 h-2 rounded-full ${isLoading ? 'bg-yellow-400 animate-pulse' : 'bg-green-400'}`}></span>
                 <p className="text-xs text-green-100">{isLoading ? 'Escribiendo...' : 'En línea'}</p>
@@ -168,6 +192,17 @@ export function WhatsAppDemo({ onBooking }: { onBooking?: (data: any) => void })
            <div ref={messagesEndRef} />
         </div>
 
+        <div className="px-3 pt-2">
+          <a
+            href={sellerUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="w-full inline-flex items-center justify-center rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2"
+          >
+            💬 Contactar directo al vendedor (Marce)
+          </a>
+        </div>
+
         {/* Input Area */}
         <div className="p-3 bg-[#f0f0f0] dark:bg-slate-800 flex gap-2">
           <input
@@ -175,7 +210,7 @@ export function WhatsAppDemo({ onBooking }: { onBooking?: (data: any) => void })
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend(input)}
-            placeholder="Escribe un mensaje..."
+            placeholder="Contame tu rubro o qué querés implementar..."
             disabled={isLoading}
             className="flex-1 px-4 py-2 rounded-full border border-slate-300 dark:border-slate-600 focus:outline-none focus:border-[#075E54] text-sm dark:bg-slate-700 dark:text-white disabled:opacity-50"
           />

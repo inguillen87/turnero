@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Calendar, Users, Settings, LogOut, CheckCircle2, Menu, X, User } from 'lucide-react';
+import { Home, Calendar, Users, Settings, LogOut, CheckCircle2, Menu, X, User, Ticket } from 'lucide-react';
 import { useState } from 'react';
 
 export default function TenantLayoutClient({
@@ -53,6 +53,7 @@ export default function TenantLayoutClient({
           <NavItem href={`/t/${slug}/dashboard`} icon={<Home className="w-5 h-5" />} label="Inicio" active={pathname === `/t/${slug}/dashboard`} onClick={() => setIsMobileMenuOpen(false)} />
           <NavItem href={`/t/${slug}/calendar`} icon={<Calendar className="w-5 h-5" />} label="Agenda" active={pathname === `/t/${slug}/calendar`} onClick={() => setIsMobileMenuOpen(false)} />
           <NavItem href={`/t/${slug}/clients`} icon={<Users className="w-5 h-5" />} label="Pacientes" active={pathname === `/t/${slug}/clients`} onClick={() => setIsMobileMenuOpen(false)} />
+          <NavItem href={`/t/${slug}/leads`} icon={<Ticket className="w-5 h-5" />} label="Tickets Leads" active={pathname === `/t/${slug}/leads`} onClick={() => setIsMobileMenuOpen(false)} />
 
           <div className="pt-6 pb-2">
              <p className="px-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Sistema</p>

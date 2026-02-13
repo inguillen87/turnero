@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/db";
+import { extractLeadTickets } from "@/lib/leads";
+import { SALES_TENANT_SLUG } from "@/lib/sales-leads";
 import { Users, Building, Activity, DollarSign, TrendingUp, Calendar } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +19,45 @@ export default async function SuperAdminDashboard() {
     include: { _count: { select: { users: true } } }
   });
 
+  const contactsWithMeta = await prisma.contact.findMany({
+    where: { meta: { not: null } },
+    include: { tenant: { select: { slug: true, name: true } } },
+    take: 120,
+    orderBy: { lastSeen: "desc" },
+  });
+
+  const leadPool = contactsWithMeta.flatMap((contact) => {
+    const meta = (() => {
+      try {
+        return contact.meta ? JSON.parse(contact.meta) : {};
+      } catch {
+        return {} as any;
+      }
+    })();
+
+    return extractLeadTickets(contact.meta).map((lead) => ({
+      ...lead,
+      tenantName: contact.tenant.name,
+      tenantSlug: contact.tenant.slug,
+      phone: contact.phoneE164,
+      contactName: contact.name || "Prospecto",
+      offerType: meta.offerType || "unknown",
+    }));
+  });
+
+  const salesOwnerLeads = leadPool.filter((l) => l.tenantSlug === SALES_TENANT_SLUG);
+  const tenantOperationalLeads = leadPool.filter((l) => l.tenantSlug !== SALES_TENANT_SLUG);
+
+  const totalLeads = tenantOperationalLeads.length;
+  const hotLeads = tenantOperationalLeads.filter((l) => l.priority === "hot").length;
+
+  const ownerFullSuite = salesOwnerLeads.filter((l) => l.offerType === "full_suite").length;
+  const ownerModular = salesOwnerLeads.filter((l) => ["whatsapp_crm_agenda", "whatsapp_only", "crm_agenda"].includes(l.offerType)).length;
+
+  const sellerWhatsapp = (process.env.SALES_WHATSAPP_E164 || "+5492613168608").replace(/\D/g, "");
+  const sellerName = process.env.SALES_SELLER_NAME || "Marce";
+  const sellerLink = `https://wa.me/${sellerWhatsapp}?text=${encodeURIComponent("Hola Marce, quiero cerrar una demo de Turnero Pro")}`;
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -25,6 +66,9 @@ export default async function SuperAdminDashboard() {
             <button className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">
                Export Report
             </button>
+            <a href={sellerLink} target="_blank" rel="noreferrer" className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors shadow-sm shadow-emerald-200">
+               💬 Contactar a {sellerName}
+            </a>
             <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200">
                + New Tenant
             </button>
@@ -60,6 +104,34 @@ export default async function SuperAdminDashboard() {
           change="+15% vs last month"
           icon={<DollarSign className="w-6 h-6 text-amber-600" />}
           color="amber"
+        />
+        <MetricCard
+          title="Leads Clientes (Tenants)"
+          value={totalLeads.toString()}
+          change="pipeline operativo"
+          icon={<Users className="w-6 h-6 text-fuchsia-600" />}
+          color="fuchsia"
+        />
+        <MetricCard
+          title="Leads Hot (Tenants)"
+          value={hotLeads.toString()}
+          change="oportunidades calientes"
+          icon={<TrendingUp className="w-6 h-6 text-rose-600" />}
+          color="rose"
+        />
+        <MetricCard
+          title="Prospectos Dueño Full Suite"
+          value={ownerFullSuite.toString()}
+          change="bot comercial"
+          icon={<Building className="w-6 h-6 text-cyan-600" />}
+          color="cyan"
+        />
+        <MetricCard
+          title="Prospectos Dueño Modular"
+          value={ownerModular.toString()}
+          change="WhatsApp/CRM/Agenda"
+          icon={<Activity className="w-6 h-6 text-violet-600" />}
+          color="violet"
         />
       </div>
 
@@ -118,7 +190,65 @@ export default async function SuperAdminDashboard() {
           </tbody>
         </table>
       </div>
-    </div>
+    
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+        <div className="p-6 border-b border-slate-100">
+          <h3 className="font-semibold text-slate-800">Lead Tickets Operativos (Tenants clientes)</h3>
+        </div>
+        <table className="w-full text-left text-sm text-slate-600">
+          <thead className="bg-slate-50 text-xs uppercase font-semibold text-slate-500">
+            <tr>
+              <th className="px-6 py-4">Tenant</th>
+              <th className="px-6 py-4">Prospecto</th>
+              <th className="px-6 py-4">Rubro</th>
+              <th className="px-6 py-4">Score</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {tenantOperationalLeads.slice(0, 8).map((lead) => (
+              <tr key={`${lead.id}-${lead.tenantSlug}`}>
+                <td className="px-6 py-4">{lead.tenantName}</td>
+                <td className="px-6 py-4">{lead.contactName} <span className="text-xs text-slate-400">{lead.phone}</span></td>
+                <td className="px-6 py-4 capitalize">{lead.rubro}</td>
+                <td className="px-6 py-4">{lead.score}</td>
+              </tr>
+            ))}
+            {tenantOperationalLeads.length === 0 && (
+              <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-400">Sin leads cargados aún.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+        <div className="p-6 border-b border-slate-100">
+          <h3 className="font-semibold text-slate-800">Prospectos Comerciales del Dueño (Bot IA)</h3>
+        </div>
+        <table className="w-full text-left text-sm text-slate-600">
+          <thead className="bg-slate-50 text-xs uppercase font-semibold text-slate-500">
+            <tr>
+              <th className="px-6 py-4">Prospecto</th>
+              <th className="px-6 py-4">Rubro</th>
+              <th className="px-6 py-4">Interés</th>
+              <th className="px-6 py-4">Score</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {salesOwnerLeads.slice(0, 8).map((lead) => (
+              <tr key={`${lead.id}-owner`}>
+                <td className="px-6 py-4">{lead.contactName} <span className="text-xs text-slate-400">{lead.phone}</span></td>
+                <td className="px-6 py-4 capitalize">{lead.rubro}</td>
+                <td className="px-6 py-4 capitalize">{String(lead.offerType).replaceAll('_', ' ')}</td>
+                <td className="px-6 py-4">{lead.score}</td>
+              </tr>
+            ))}
+            {salesOwnerLeads.length === 0 && (
+              <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-400">Sin prospectos del bot comercial aún.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+</div>
   );
 }
 
