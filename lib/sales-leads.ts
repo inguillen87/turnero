@@ -25,6 +25,24 @@ function inferOfferType(message: string): "full_suite" | "whatsapp_crm_agenda" |
   return "unknown";
 }
 
+
+function extractPhone(message: string): string | undefined {
+  const m = message.match(/(\+?\d[\d\s\-()]{7,}\d)/);
+  if (!m) return undefined;
+  const normalized = m[1].replace(/[^\d+]/g, "");
+  return normalized.length >= 8 ? normalized : undefined;
+}
+
+function extractName(message: string): string | undefined {
+  const m = message.match(/(?:soy|me llamo|mi nombre es)\s+([A-Za-zÁÉÍÓÚÑáéíóúñ\s]{2,40})/i);
+  return m?.[1]?.trim();
+}
+
+function extractCompany(message: string): string | undefined {
+  const m = message.match(/(?:empresa|negocio|cl[ií]nica|estudio|gimnasio)\s*[:\-]?\s*([A-Za-z0-9ÁÉÍÓÚÑáéíóúñ\s]{2,60})/i);
+  return m?.[1]?.trim();
+}
+
 async function ensureSalesTenant() {
   return prisma.tenant.upsert({
     where: { slug: SALES_TENANT_SLUG },
@@ -43,10 +61,14 @@ export async function registerSalesLead(params: {
   message: string;
   anonId?: string;
   source?: "widget" | "web";
+  rubro?: string;
 }) {
   const salesTenant = await ensureSalesTenant();
   const message = normalizeMessage(params.message);
   const email = extractEmail(message);
+  const phone = extractPhone(message);
+  const detectedName = extractName(message);
+  const detectedCompany = extractCompany(message);
   const contactKey = `web:${params.anonId || randomId()}`;
 
   const contact = await prisma.contact.upsert({
@@ -54,12 +76,13 @@ export async function registerSalesLead(params: {
     update: {
       lastSeen: new Date(),
       email: email || undefined,
+      name: detectedName || undefined,
     },
     create: {
       tenantId: salesTenant.id,
-      phoneE164: contactKey,
+      phoneE164: phone || contactKey,
       email: email || undefined,
-      name: "Prospecto Web",
+      name: detectedName || "Prospecto Web",
       lastSeen: new Date(),
     },
   });
@@ -89,7 +112,7 @@ export async function registerSalesLead(params: {
     message,
     source: params.source || "widget",
     channel: "WIDGET",
-    tenantRubros: ["clinica", "psicologia", "pyme", "profesional"],
+    tenantRubros: ["clinica", "psicologia", "odontologia", "estetica", "gimnasio", "veterinaria", "educacion", "legal", "inmobiliaria", "general"],
   });
 
   const offerType = inferOfferType(message);
@@ -101,11 +124,34 @@ export async function registerSalesLead(params: {
     }
   })();
 
-  const finalMeta = JSON.stringify({ ...parsedMeta, offerType });
+  const finalMeta = JSON.stringify({
+    ...parsedMeta,
+    offerType,
+    rubro: params.rubro || parsedMeta?.rubro || "general",
+    leadProfile: {
+      name: detectedName || contact.name,
+      email: email || contact.email,
+      phone: phone || contact.phoneE164,
+      company: detectedCompany || parsedMeta?.leadProfile?.company,
+      source: params.source || "widget",
+    },
+  });
 
   await prisma.contact.update({
     where: { id: contact.id },
     data: { meta: finalMeta },
+  });
+
+
+  await prisma.message.create({
+    data: {
+      tenantId: salesTenant.id,
+      conversationId: conversation.id,
+      contactId: contact.id,
+      direction: "OUT",
+      body: `FOLLOWUP | Rubro: ${params.rubro || "general"} | Oferta: ${offerType} | Email: ${email || "n/d"} | Tel: ${phone || "n/d"}`,
+      status: "queued",
+    },
   });
 
   return { contactId: contact.id, offerType, ticket: enriched.leadTicket };
