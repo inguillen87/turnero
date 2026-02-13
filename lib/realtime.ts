@@ -1,7 +1,7 @@
 import { EventEmitter } from "events";
 
 export type TenantRealtimeEvent = {
-  type: "appointment.created" | "payment.received" | "whatsapp.message";
+  type: "appointment.created" | "appointment.cancelled" | "delay.alert" | "payment.received" | "whatsapp.message";
   title: string;
   body: string;
   createdAt: string;
