@@ -108,6 +108,35 @@ export default function CalendarClient({ tenantSlug }: { tenantSlug: string }) {
     });
   };
 
+  const hasAppointmentAtHour = (day: Date, hour: number) => {
+    return dayAppointments(day).some((a) => new Date(a.startAt).getHours() === hour);
+  };
+
+  const suggestedSlots = useMemo(() => {
+    const now = new Date();
+    const slots: { iso: string; label: string }[] = [];
+
+    for (const d of days) {
+      for (const hour of HOURS) {
+        if (slots.length >= 8) break;
+        const slotStart = new Date(d);
+        slotStart.setHours(hour, 0, 0, 0);
+
+        if (slotStart <= now) continue;
+        if (isHourBlocked(d, hour)) continue;
+        if (hasAppointmentAtHour(d, hour)) continue;
+
+        slots.push({
+          iso: slotStart.toISOString(),
+          label: `${format(slotStart, "EEE d/MM", { locale: es })} · ${format(slotStart, "HH:mm")}`,
+        });
+      }
+      if (slots.length >= 8) break;
+    }
+
+    return slots;
+  }, [days, blockedRanges, filteredAppointments]);
+
   const saveBlockedRanges = async (nextRanges: BlockedRange[]) => {
     setSaving(true);
     setMessage("");
@@ -227,6 +256,51 @@ export default function CalendarClient({ tenantSlug }: { tenantSlug: string }) {
       await reloadCalendarData();
     } catch {
       setMessage("Error creando turno.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const bookSuggestedSlot = async (iso: string) => {
+    setNewAppointment((prev) => ({ ...prev, startAt: iso.slice(0, 16) }));
+    if (!newAppointment.clientName.trim()) {
+      setMessage("Cargá nombre del paciente y luego confirmá el turno sugerido.");
+      return;
+    }
+
+    const start = new Date(iso);
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
+    const collidesWithBlock = blockedRanges.some((b) => {
+      const bs = new Date(b.startAt).getTime();
+      const be = new Date(b.endAt).getTime();
+      return start.getTime() < be && end.getTime() > bs;
+    });
+
+    if (collidesWithBlock) {
+      setMessage("Ese horario sugerido quedó bloqueado. Elegí otro.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/t/${tenantSlug}/appointments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientName: newAppointment.clientName,
+          serviceName: newAppointment.serviceName,
+          startAt: start.toISOString(),
+        }),
+      });
+      if (!res.ok) {
+        setMessage("No se pudo crear el turno sugerido.");
+        return;
+      }
+      setMessage("Turno sugerido confirmado correctamente.");
+      setNewAppointment({ clientName: "", serviceName: "Consulta", startAt: "" });
+      await reloadCalendarData();
+    } catch {
+      setMessage("Error confirmando turno sugerido.");
     } finally {
       setSaving(false);
     }
@@ -399,6 +473,26 @@ export default function CalendarClient({ tenantSlug }: { tenantSlug: string }) {
             >
               Crear turno
             </button>
+
+            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">Sugerencias inteligentes (huecos libres)</p>
+              {suggestedSlots.length === 0 ? (
+                <p className="text-xs text-slate-500">No hay huecos libres en esta semana.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {suggestedSlots.map((slot) => (
+                    <button
+                      key={slot.iso}
+                      onClick={() => bookSuggestedSlot(slot.iso)}
+                      disabled={saving}
+                      className="text-xs px-2 py-1 rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    >
+                      {slot.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">

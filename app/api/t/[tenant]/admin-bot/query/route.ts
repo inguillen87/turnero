@@ -21,10 +21,17 @@ function startOfMonth(date = new Date()) {
 
 function detectIntent(question: string) {
   const q = question.toLowerCase();
+  if (q.includes("libre") || q.includes("vacaciones") || q.includes("comer") || q.includes("familiar") || q.includes("mujer")) return "availability_planning";
   if (q.includes("ganamos") || q.includes("factur") || q.includes("ingreso")) return "revenue_today";
   if (q.includes("pacientes") && q.includes("semana")) return "patients_week";
   if (q.includes("tratamiento") || q.includes("cirugia") || q.includes("consult")) return "services_month";
   return "summary";
+}
+
+function endOfDay(date = new Date()) {
+  const d = new Date(date);
+  d.setHours(23, 59, 59, 999);
+  return d;
 }
 
 export async function POST(
@@ -59,8 +66,10 @@ export async function POST(
   const sinceDay = startOfDay();
   const sinceWeek = startOfWeek();
   const sinceMonth = startOfMonth();
+  const next3DaysEnd = endOfDay(new Date(Date.now() + 3 * 24 * 60 * 60 * 1000));
+  const next14DaysEnd = endOfDay(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000));
 
-  const [revenueTodayRows, patientsWeek, servicesMonthRows] = await Promise.all([
+  const [revenueTodayRows, patientsWeek, servicesMonthRows, upcoming3DaysRows, upcoming14DaysRows] = await Promise.all([
     prisma.appointment.findMany({
       where: {
         tenantId: tenant.id,
@@ -80,6 +89,29 @@ export async function POST(
       where: { tenantId: tenant.id, startAt: { gte: sinceMonth } },
       select: { service: { select: { name: true } } },
     }),
+    prisma.appointment.findMany({
+      where: {
+        tenantId: tenant.id,
+        startAt: { gte: sinceDay, lte: next3DaysEnd },
+        status: { in: ["CONFIRMED", "DONE", "PENDING"] },
+      },
+      orderBy: { startAt: "asc" },
+      select: {
+        startAt: true,
+        endAt: true,
+        contact: { select: { name: true } },
+        service: { select: { name: true } },
+      },
+    }),
+    prisma.appointment.findMany({
+      where: {
+        tenantId: tenant.id,
+        startAt: { gte: sinceDay, lte: next14DaysEnd },
+        status: { in: ["CONFIRMED", "DONE", "PENDING"] },
+      },
+      orderBy: { startAt: "asc" },
+      select: { startAt: true, endAt: true },
+    }),
   ]);
 
   const revenueToday = revenueTodayRows.reduce((acc, row) => acc + (row.price || 0), 0);
@@ -95,7 +127,38 @@ export async function POST(
     .slice(0, 5)
     .map(([name, total]) => ({ name, total }));
 
+  const dayLoadMap = new Map<string, number>();
+  for (const row of upcoming14DaysRows) {
+    const key = row.startAt.toISOString().slice(0, 10);
+    dayLoadMap.set(key, (dayLoadMap.get(key) || 0) + 1);
+  }
+
+  let bestDay: { date: string; count: number } | null = null;
+  for (let i = 0; i < 14; i += 1) {
+    const d = new Date(Date.now() + i * 24 * 60 * 60 * 1000);
+    const key = d.toISOString().slice(0, 10);
+    const count = dayLoadMap.get(key) || 0;
+    if (!bestDay || count < bestDay.count) {
+      bestDay = { date: key, count };
+    }
+  }
+
+  const upcoming3Summary = upcoming3DaysRows
+    .slice(0, 6)
+    .map((row) => {
+      const when = row.startAt.toLocaleString();
+      const who = row.contact?.name || "Paciente";
+      const service = row.service?.name || "Servicio";
+      return `${when} · ${who} (${service})`;
+    })
+    .join(" | ");
+
+  const availabilityAnswer = bestDay
+    ? `Para organizarte: el día más liviano en próximos 14 días es ${bestDay.date} (${bestDay.count} turnos). Próximos 3 días tenés ${upcoming3DaysRows.length} compromisos${upcoming3Summary ? `. Agenda cercana: ${upcoming3Summary}.` : "."} Si querés mini-vacaciones, te conviene bloquear ventanas ese día y reprogramar desde calendario.`
+    : "No encontré agenda para próximos días. Podés tomarte el día libre y abrir slots luego.";
+
   const responseByIntent: Record<string, string> = {
+    availability_planning: availabilityAnswer,
     revenue_today: `Facturación de hoy: ${revenueToday} ${tenant.currency}.`,
     patients_week: `Pacientes/turnos esta semana: ${patientsWeek}.`,
     services_month: `Top tratamientos del mes: ${topServices.map((s) => `${s.name} (${s.total})`).join(", ") || "sin datos"}.`,
@@ -109,6 +172,10 @@ export async function POST(
       revenueToday,
       patientsWeek,
       topServices,
+      planning: {
+        bestDay,
+        upcoming3DaysCount: upcoming3DaysRows.length,
+      },
     },
   });
 }
