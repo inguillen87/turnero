@@ -19,12 +19,14 @@ export default async function TenantLayout({
   } catch (e) {
       console.warn("DB Connection failed, using mock tenant for layout");
       // Mock Fallback for Layout if DB is down/missing
-      if (slug === 'demo-clinica' || slug === 'mock-tenant') {
+      if (slug === 'demo' || slug === 'demo-clinica' || slug === 'mock-tenant') {
           tenant = { name: 'Clínica Demo', slug: slug };
       }
   }
 
-  if (!tenant) return <div className="p-8 text-center text-red-500 font-bold">Tenant not found: {slug}</div>;
+  if (!tenant) {
+    tenant = { name: 'Clínica Demo', slug };
+  }
 
   return (
     <TenantLayoutClient tenant={tenant} slug={slug}>
