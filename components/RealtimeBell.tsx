@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 type EventMessage = {
+  seq?: number;
   type: string;
   title: string;
   body: string;
@@ -24,7 +25,7 @@ export function RealtimeBell({ tenantSlug }: { tenantSlug: string }) {
     });
 
     source.onerror = () => {
-      source.close();
+      // keep connection; EventSource handles retries automatically
     };
 
     return () => source.close();

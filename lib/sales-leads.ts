@@ -69,7 +69,8 @@ export async function registerSalesLead(params: {
   const phone = extractPhone(message);
   const detectedName = extractName(message);
   const detectedCompany = extractCompany(message);
-  const contactKey = `web:${params.anonId || randomId()}`;
+  const anonKey = `web:${params.anonId || randomId()}`;
+  const contactKey = phone || anonKey;
 
   const contact = await prisma.contact.upsert({
     where: { tenantId_phoneE164: { tenantId: salesTenant.id, phoneE164: contactKey } },
