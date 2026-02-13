@@ -344,6 +344,9 @@ function IntegrationsSettings({ integrations, slug }: any) {
     whatsapp: { mode: "twilio_shared", twilioFrom: "", webhookUrl: "" },
     notifications: { newPayment: true, newAppointment: true, cancellation: true, delay: true },
   });
+  const [campaign, setCampaign] = useState({ message: "", flyerUrl: "", limit: 100 });
+  const [campaignState, setCampaignState] = useState<"idle" | "sending" | "ok" | "error">("idle");
+  const [campaignResult, setCampaignResult] = useState<{ sent?: number; failed?: number; message?: string }>({});
 
   useEffect(() => {
     fetch(`/api/t/${slug}/settings/runtime`)
@@ -370,6 +373,30 @@ function IntegrationsSettings({ integrations, slug }: any) {
       setSaved("error");
     } finally {
       setSaving(false);
+    }
+  };
+
+
+  const sendCampaign = async () => {
+    setCampaignState("sending");
+    setCampaignResult({});
+    try {
+      const res = await fetch(`/api/t/${slug}/campaigns/whatsapp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(campaign),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCampaignState("ok");
+        setCampaignResult({ sent: data?.sent, failed: data?.failed });
+      } else {
+        setCampaignState("error");
+        setCampaignResult({ message: data?.message || "No se pudo enviar la campaña" });
+      }
+    } catch {
+      setCampaignState("error");
+      setCampaignResult({ message: "Error de conexión enviando campaña" });
     }
   };
 
@@ -436,6 +463,46 @@ function IntegrationsSettings({ integrations, slug }: any) {
             <ToggleRow label="Nuevo turno" checked={config.notifications.newAppointment} onChange={(v) => setConfig((prev: any) => ({ ...prev, notifications: { ...prev.notifications, newAppointment: v } }))} />
             <ToggleRow label="Cancelación" checked={config.notifications.cancellation} onChange={(v) => setConfig((prev: any) => ({ ...prev, notifications: { ...prev.notifications, cancellation: v } }))} />
             <ToggleRow label="Aviso de retraso" checked={config.notifications.delay} onChange={(v) => setConfig((prev: any) => ({ ...prev, notifications: { ...prev.notifications, delay: v } }))} />
+          </div>
+
+
+          <div className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-4">
+            <h4 className="font-bold text-slate-900 dark:text-white">Campañas WhatsApp (Marketing)</h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Enviá mensaje + flyer a contactos de tu CRM (sin polling, disparo backend).</p>
+            <textarea
+              value={campaign.message}
+              onChange={(e) => setCampaign((prev) => ({ ...prev, message: e.target.value }))}
+              placeholder="Mensaje de campaña..."
+              className="w-full min-h-[90px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            />
+            <input
+              value={campaign.flyerUrl}
+              onChange={(e) => setCampaign((prev) => ({ ...prev, flyerUrl: e.target.value }))}
+              placeholder="URL pública del flyer (opcional)"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            />
+            <input
+              type="number"
+              min={1}
+              max={500}
+              value={campaign.limit}
+              onChange={(e) => setCampaign((prev) => ({ ...prev, limit: Number(e.target.value || 100) }))}
+              placeholder="Cantidad máxima de contactos"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            />
+            <button
+              onClick={sendCampaign}
+              disabled={campaignState === "sending" || !campaign.message.trim()}
+              className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-60"
+            >
+              {campaignState === "sending" ? "Enviando campaña..." : "Enviar campaña"}
+            </button>
+            {campaignState === "ok" && (
+              <p className="text-xs text-emerald-600">Campaña enviada. Éxitos: {campaignResult.sent || 0}. Fallos: {campaignResult.failed || 0}.</p>
+            )}
+            {campaignState === "error" && (
+              <p className="text-xs text-red-600">{campaignResult.message || "No se pudo enviar la campaña"}</p>
+            )}
           </div>
 
           <div className="flex items-center justify-between gap-4">
