@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { parseCampaignStorage } from "@/lib/marketing-campaigns";
 
+const CAMPAIGN_MANAGER_ROLES = new Set(["OWNER", "ADMIN", "TENANT_ADMIN"]);
+
 async function resolveTenant(slug: string) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return { error: NextResponse.json({ message: "Unauthorized" }, { status: 401 }) };
@@ -13,7 +15,9 @@ async function resolveTenant(slug: string) {
 
   const userId = (session.user as any).id;
   const role = (session.user as any).role;
-  const hasAccess = role === "SUPER_ADMIN" || (await prisma.tenantUser.findFirst({ where: { tenantId: tenant.id, userId } }));
+  const membership = await prisma.tenantUser.findFirst({ where: { tenantId: tenant.id, userId } });
+  const isCampaignManager = membership ? CAMPAIGN_MANAGER_ROLES.has(membership.role) : false;
+  const hasAccess = role === "SUPER_ADMIN" || Boolean(isCampaignManager);
   if (!hasAccess) return { error: NextResponse.json({ message: "Forbidden" }, { status: 403 }) };
 
   return { tenant };
