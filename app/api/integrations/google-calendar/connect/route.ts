@@ -43,6 +43,8 @@ export async function GET(req: NextRequest) {
   const secret = process.env.NEXTAUTH_SECRET || "development-secret-fallback";
   const state = await encode({
       token: {
+          id: (session.user as any).id,
+          role: (session.user as any).role ?? (session.user as any).globalRole ?? "USER",
           tenantId: tenant.id,
           userId: (session.user as any).id
       },
