@@ -4,6 +4,7 @@ import twilio from "twilio";
 import { Redis } from "@upstash/redis";
 import { Session, handleMessage } from "@/lib/bot/stateMachine";
 import { prisma } from "@/lib/db";
+import { enrichMetaWithLeadTicket } from "@/lib/leads";
 import { NextRequest } from "next/server";
 
 // --- ENV & UTILS ---
@@ -163,11 +164,66 @@ export async function POST(
 
     console.log(`[WA ${tenantSlug}]`, { from, body: bodyRaw, state: session.state });
 
+    // Persist CRM entities + lead ticket in a best-effort manner
+    const tenantRubros = await prisma.tenantRubro.findMany({ where: { tenantId: tenant.id }, select: { slug: true } });
+
+    const contact = await prisma.contact.upsert({
+      where: { tenantId_phoneE164: { tenantId: tenant.id, phoneE164: from } },
+      update: { lastSeen: new Date() },
+      create: { tenantId: tenant.id, phoneE164: from, lastSeen: new Date() },
+    });
+
+    const conversation = await prisma.conversation.create({
+      data: {
+        tenantId: tenant.id,
+        contactId: contact.id,
+        channel: "WHATSAPP",
+        state: JSON.stringify({ state: session.state }),
+      },
+    });
+
+    await prisma.message.create({
+      data: {
+        tenantId: tenant.id,
+        conversationId: conversation.id,
+        contactId: contact.id,
+        direction: "IN",
+        body: bodyRaw,
+        status: "received",
+      },
+    });
+
+    const leadMeta = enrichMetaWithLeadTicket({
+      meta: contact.meta,
+      message: bodyRaw,
+      source: "whatsapp",
+      channel: "WHATSAPP",
+      tenantRubros: tenantRubros.map((r) => r.slug),
+    });
+
+    if (leadMeta.leadTicket) {
+      await prisma.contact.update({
+        where: { id: contact.id },
+        data: { meta: leadMeta.meta },
+      });
+    }
+
     // Handle Logic
     const { reply, session: nextSession } = await handleMessage(body, session, {
         tenantName: tenant.name,
         services: tenant.services.length > 0 ? tenant.services : undefined,
         botSettings
+    });
+
+    await prisma.message.create({
+      data: {
+        tenantId: tenant.id,
+        conversationId: conversation.id,
+        contactId: contact.id,
+        direction: "OUT",
+        body: reply,
+        status: "sent",
+      },
     });
 
     // Save Session
