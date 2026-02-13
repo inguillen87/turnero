@@ -7,6 +7,7 @@ import { prisma } from "@/lib/db";
 import { enrichMetaWithLeadTicket } from "@/lib/leads";
 import { NextRequest } from "next/server";
 import { publishTenantEvent } from "@/lib/realtime";
+import { isOptOutMessage, normalizePhone, parseCampaignStorage } from "@/lib/marketing-campaigns";
 
 // --- ENV & UTILS ---
 const redis =
@@ -199,6 +200,54 @@ export async function POST(
       title: "Nuevo mensaje de WhatsApp",
       body: `${from}: ${bodyRaw.slice(0, 80)}`,
     });
+
+    const optOutRequested = isOptOutMessage(bodyRaw);
+    if (optOutRequested) {
+      const existingMarketing = tenant.integrations.find(i => i.provider === "marketing_whatsapp_campaigns");
+      const storage = parseCampaignStorage(existingMarketing?.config);
+      const phone = normalizePhone(from.replace("whatsapp:", ""));
+      if (phone && !storage.optOutPhones.includes(phone)) {
+        storage.optOutPhones = [phone, ...storage.optOutPhones].slice(0, 5000);
+      }
+
+      if (existingMarketing) {
+        await prisma.integration.update({
+          where: { id: existingMarketing.id },
+          data: { config: JSON.stringify(storage), status: "active" },
+        });
+      } else {
+        await prisma.integration.create({
+          data: {
+            tenantId: tenant.id,
+            provider: "marketing_whatsapp_campaigns",
+            status: "active",
+            config: JSON.stringify(storage),
+          },
+        });
+      }
+
+      await prisma.message.create({
+        data: {
+          tenantId: tenant.id,
+          conversationId: conversation.id,
+          contactId: contact.id,
+          direction: "OUT",
+          body: "Listo, ya te dimos de baja de campañas promocionales. Seguís recibiendo mensajes operativos de tus turnos.",
+          status: "sent",
+        },
+      });
+
+      publishTenantEvent(tenantSlug, {
+        type: "whatsapp.message",
+        title: "Opt-out de campañas",
+        body: `${from} se dio de baja de marketing.`,
+      });
+
+      return new Response(
+        twiml("✅ Te dimos de baja de campañas promocionales. Podés escribir ALTA cuando quieras volver."),
+        { status: 200, headers: { "Content-Type": "text/xml" } }
+      );
+    }
 
     const leadMeta = enrichMetaWithLeadTicket({
       meta: contact.meta,

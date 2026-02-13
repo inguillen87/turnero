@@ -344,9 +344,11 @@ function IntegrationsSettings({ integrations, slug }: any) {
     whatsapp: { mode: "twilio_shared", twilioFrom: "", webhookUrl: "" },
     notifications: { newPayment: true, newAppointment: true, cancellation: true, delay: true },
   });
-  const [campaign, setCampaign] = useState({ message: "", flyerUrl: "", limit: 100 });
+  const [campaign, setCampaign] = useState({ message: "", flyerUrl: "", limit: 100, segmentation: { rubro: "", tag: "", lastSeenDays: 30 }, scheduledAt: "" });
   const [campaignState, setCampaignState] = useState<"idle" | "sending" | "ok" | "error">("idle");
   const [campaignResult, setCampaignResult] = useState<{ sent?: number; failed?: number; message?: string }>({});
+  const [templateName, setTemplateName] = useState("");
+  const [campaignData, setCampaignData] = useState<any>({ templates: [], scheduled: [], metrics: { sent: 0, failed: 0, campaigns: 0, deliveryRate: 0 } });
 
   useEffect(() => {
     fetch(`/api/t/${slug}/settings/runtime`)
@@ -356,6 +358,13 @@ function IntegrationsSettings({ integrations, slug }: any) {
       })
       .catch(() => {
         // keep defaults
+      });
+
+    fetch(`/api/t/${slug}/campaigns/whatsapp`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("campaigns"))))
+      .then((data) => setCampaignData(data))
+      .catch(() => {
+        // ignore
       });
   }, [slug]);
 
@@ -377,22 +386,30 @@ function IntegrationsSettings({ integrations, slug }: any) {
   };
 
 
-  const sendCampaign = async () => {
+  const refreshCampaignData = async () => {
+    const res = await fetch(`/api/t/${slug}/campaigns/whatsapp`);
+    if (res.ok) setCampaignData(await res.json());
+  };
+
+  const sendCampaign = async (action: "send_now" | "schedule" | "save_template" | "dispatch_scheduled" = "send_now") => {
     setCampaignState("sending");
     setCampaignResult({});
     try {
+      const payload: any = { action, ...campaign };
+      if (action === "save_template") payload.name = templateName;
       const res = await fetch(`/api/t/${slug}/campaigns/whatsapp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(campaign),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (res.ok) {
         setCampaignState("ok");
-        setCampaignResult({ sent: data?.sent, failed: data?.failed });
+        setCampaignResult({ sent: data?.sent, failed: data?.failed, message: data?.message });
+        await refreshCampaignData();
       } else {
         setCampaignState("error");
-        setCampaignResult({ message: data?.message || "No se pudo enviar la campaña" });
+        setCampaignResult({ message: data?.message || "No se pudo ejecutar la acción" });
       }
     } catch {
       setCampaignState("error");
@@ -490,13 +507,74 @@ function IntegrationsSettings({ integrations, slug }: any) {
               placeholder="Cantidad máxima de contactos"
               className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
             />
-            <button
-              onClick={sendCampaign}
-              disabled={campaignState === "sending" || !campaign.message.trim()}
-              className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-60"
-            >
-              {campaignState === "sending" ? "Enviando campaña..." : "Enviar campaña"}
-            </button>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              <input
+                value={campaign.segmentation.rubro}
+                onChange={(e) => setCampaign((prev) => ({ ...prev, segmentation: { ...prev.segmentation, rubro: e.target.value } }))}
+                placeholder="Filtro rubro (ej: dentista)"
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+              />
+              <input
+                value={campaign.segmentation.tag}
+                onChange={(e) => setCampaign((prev) => ({ ...prev, segmentation: { ...prev.segmentation, tag: e.target.value } }))}
+                placeholder="Filtro tag (ej: vip)"
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+              />
+              <input
+                type="number"
+                min={1}
+                max={3650}
+                value={campaign.segmentation.lastSeenDays}
+                onChange={(e) => setCampaign((prev) => ({ ...prev, segmentation: { ...prev.segmentation, lastSeenDays: Number(e.target.value || 30) } }))}
+                placeholder="Últimos N días"
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+              />
+            </div>
+            <input
+              type="datetime-local"
+              value={campaign.scheduledAt}
+              onChange={(e) => setCampaign((prev) => ({ ...prev, scheduledAt: e.target.value }))}
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            />
+            <input
+              value={templateName}
+              onChange={(e) => setTemplateName(e.target.value)}
+              placeholder="Nombre de plantilla (opcional)"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            />
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => sendCampaign("send_now")}
+                disabled={campaignState === "sending" || !campaign.message.trim()}
+                className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-60"
+              >
+                {campaignState === "sending" ? "Enviando..." : "Enviar ahora"}
+              </button>
+              <button
+                onClick={() => sendCampaign("schedule")}
+                disabled={campaignState === "sending" || !campaign.message.trim() || !campaign.scheduledAt}
+                className="px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-semibold hover:bg-amber-700 disabled:opacity-60"
+              >
+                Programar
+              </button>
+              <button
+                onClick={() => sendCampaign("save_template")}
+                disabled={campaignState === "sending" || !campaign.message.trim() || !templateName.trim()}
+                className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 disabled:opacity-60"
+              >
+                Guardar plantilla
+              </button>
+              <button
+                onClick={() => sendCampaign("dispatch_scheduled")}
+                disabled={campaignState === "sending"}
+                className="px-4 py-2 rounded-lg bg-slate-700 text-white text-sm font-semibold hover:bg-slate-800 disabled:opacity-60"
+              >
+                Ejecutar programadas
+              </button>
+            </div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">
+              Métricas: {campaignData?.metrics?.campaigns || 0} campañas • enviados {campaignData?.metrics?.sent || 0} • fallidos {campaignData?.metrics?.failed || 0} • delivery {campaignData?.metrics?.deliveryRate || 0}%
+            </div>
             {campaignState === "ok" && (
               <p className="text-xs text-emerald-600">Campaña enviada. Éxitos: {campaignResult.sent || 0}. Fallos: {campaignResult.failed || 0}.</p>
             )}
