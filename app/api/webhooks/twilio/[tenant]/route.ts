@@ -6,6 +6,7 @@ import { Session, handleMessage } from "@/lib/bot/stateMachine";
 import { prisma } from "@/lib/db";
 import { enrichMetaWithLeadTicket } from "@/lib/leads";
 import { NextRequest } from "next/server";
+import { publishTenantEvent } from "@/lib/realtime";
 
 // --- ENV & UTILS ---
 const redis =
@@ -191,6 +192,12 @@ export async function POST(
         body: bodyRaw,
         status: "received",
       },
+    });
+
+    publishTenantEvent(tenantSlug, {
+      type: "whatsapp.message",
+      title: "Nuevo mensaje de WhatsApp",
+      body: `${from}: ${bodyRaw.slice(0, 80)}`,
     });
 
     const leadMeta = enrichMetaWithLeadTicket({
