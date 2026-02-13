@@ -196,6 +196,49 @@ export default function CalendarClient({ tenantSlug }: { tenantSlug: string }) {
     }, 0);
   }, [filteredAppointments]);
 
+  const weeklyCapacityHours = HOURS.length * days.length;
+  const occupancyRate = Math.round((weeklyBusyHours / Math.max(1, weeklyCapacityHours - weeklyBlockedHours)) * 100);
+
+  const busiestDay = useMemo(() => {
+    const byDay = days.map((day) => ({
+      day,
+      count: dayAppointments(day).length,
+    }));
+    byDay.sort((a, b) => b.count - a.count);
+    return byDay[0];
+  }, [days, filteredAppointments]);
+
+  const busiestHour = useMemo(() => {
+    const map: Record<number, number> = {};
+    for (const h of HOURS) map[h] = 0;
+    filteredAppointments.forEach((a) => {
+      const hour = new Date(a.startAt).getHours();
+      map[hour] = (map[hour] || 0) + 1;
+    });
+    const sorted = Object.entries(map).sort((a, b) => b[1] - a[1]);
+    return { hour: Number(sorted[0]?.[0] || 0), count: Number(sorted[0]?.[1] || 0) };
+  }, [filteredAppointments]);
+
+  const operationalTips = useMemo(() => {
+    const tips: string[] = [];
+    if (occupancyRate >= 85) {
+      tips.push("Demanda alta: activá lista de espera y abrí slots extra en horas valle.");
+    }
+    if (conflicts > 0) {
+      tips.push(`Hay ${conflicts} turnos afectados por bloqueos: priorizá reprogramación automática.`);
+    }
+    if (weeklyBlockedHours > 24) {
+      tips.push("Semana con muchas horas bloqueadas: sugerido habilitar atención parcial o staff rotativo.");
+    }
+    if (busiestHour.count >= 3) {
+      tips.push(`Hora pico detectada (${String(busiestHour.hour).padStart(2, "0")}:00): ofrecé recordatorios + prepago para reducir no-shows.`);
+    }
+    if (tips.length === 0) {
+      tips.push("Operación estable: mantené confirmaciones automáticas y seguimiento post-turno.");
+    }
+    return tips;
+  }, [occupancyRate, conflicts, weeklyBlockedHours, busiestHour]);
+
   const copyWhatsappStatus = async () => {
       const text = `Hola 👋 Te avisamos cambios de agenda. Esta semana tenemos ${blockedRanges.length} bloqueos operativos, ${conflicts} turnos afectados y ya estamos reprogramando. Si querés, respondé este mensaje y te ofrecemos nuevos horarios.`;
     try {
@@ -274,8 +317,20 @@ export default function CalendarClient({ tenantSlug }: { tenantSlug: string }) {
           <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-2">
             <p className="text-sm font-semibold flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-amber-500" /> Conflictos detectados: {conflicts}</p>
             <p className="text-xs text-slate-500">Horas ocupadas semanales: {weeklyBusyHours} · Horas bloqueadas: {weeklyBlockedHours}</p>
+            <p className="text-xs text-slate-500">Capacidad usable: {Math.max(1, weeklyCapacityHours - weeklyBlockedHours)}h · Ocupación: {occupancyRate}%</p>
+            <p className="text-xs text-slate-500">Día más cargado: {busiestDay ? format(busiestDay.day, "EEEE d/MM", { locale: es }) : "-"} ({busiestDay?.count || 0} turnos)</p>
+            <p className="text-xs text-slate-500">Hora pico: {String(busiestHour.hour).padStart(2, "0")}:00 ({busiestHour.count} turnos)</p>
             <button onClick={blockFullCurrentWeek} className="w-full rounded-lg border px-3 py-2 text-sm">Cerrar semana completa</button>
             <button onClick={copyWhatsappStatus} className="w-full rounded-lg border px-3 py-2 text-sm flex items-center justify-center gap-2"><Copy className="w-4 h-4" /> Copiar estado para WhatsApp</button>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-2">
+            <p className="text-sm font-semibold">Asistente Operativo (sin APIs externas)</p>
+            <ul className="text-xs text-slate-600 dark:text-slate-300 list-disc pl-4 space-y-1">
+              {operationalTips.map((tip, idx) => (
+                <li key={`${idx}-${tip}`}>{tip}</li>
+              ))}
+            </ul>
           </div>
 
           <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-2 max-h-[280px] overflow-auto">
