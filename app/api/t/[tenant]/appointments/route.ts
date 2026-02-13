@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getServerSession } from "next-auth/next";
+import { publishTenantEvent } from '@/lib/realtime';
 
 export const runtime = "nodejs";
 
@@ -133,6 +134,13 @@ export async function POST(
             staff: true,
             contact: true,
         }
+      });
+
+
+      publishTenantEvent(slug, {
+        type: "appointment.created",
+        title: "Nuevo turno",
+        body: `${appt.contact.name || "Cliente"} - ${appt.service?.name || "Servicio"}`,
       });
 
       return NextResponse.json({

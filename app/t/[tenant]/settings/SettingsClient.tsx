@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Settings,
   Users,
@@ -337,64 +337,335 @@ function TeamSettings({ professionals }: any) {
 
 function IntegrationsSettings({ integrations, slug }: any) {
   const google = integrations?.find((i: any) => i.type === 'google_calendar');
-  const whatsapp = integrations?.find((i: any) => i.type === 'whatsapp') || { status: 'active' }; // Mock WA as active for demo
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState<null | "ok" | "error">(null);
+  const [config, setConfig] = useState<any>({
+    mercadopago: { accessToken: "", publicKey: "", autoGenerateLinks: true, defaultConcept: "consulta" },
+    whatsapp: { mode: "twilio_shared", twilioFrom: "", webhookUrl: "" },
+    notifications: { newPayment: true, newAppointment: true, cancellation: true, delay: true },
+  });
+  const [campaign, setCampaign] = useState({ message: "", flyerUrl: "", limit: 100, segmentation: { rubro: "", tag: "", lastSeenDays: 30 }, scheduledAt: "" });
+  const [campaignState, setCampaignState] = useState<"idle" | "sending" | "ok" | "error">("idle");
+  const [campaignResult, setCampaignResult] = useState<{ sent?: number; failed?: number; message?: string }>({});
+  const [templateName, setTemplateName] = useState("");
+  const [campaignData, setCampaignData] = useState<any>({ templates: [], scheduled: [], metrics: { sent: 0, failed: 0, campaigns: 0, deliveryRate: 0 } });
+  const [journeyInfo, setJourneyInfo] = useState<any>({ suggestions: { reactivationFromCancellations: 0, paymentReminderFromPending: 0 } });
+
+  useEffect(() => {
+    fetch(`/api/t/${slug}/settings/runtime`)
+      .then((r) => r.ok ? r.json() : Promise.reject(new Error("config")))
+      .then((data) => {
+        if (data?.config) setConfig(data.config);
+      })
+      .catch(() => {
+        // keep defaults
+      });
+
+    fetch(`/api/t/${slug}/campaigns/whatsapp`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("campaigns"))))
+      .then((data) => setCampaignData(data))
+      .catch(() => {
+        // ignore
+      });
+
+    fetch(`/api/t/${slug}/campaigns/journeys`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("journeys"))))
+      .then((data) => setJourneyInfo(data))
+      .catch(() => {
+        // ignore
+      });
+  }, [slug]);
+
+  const saveConfig = async () => {
+    setSaving(true);
+    setSaved(null);
+    try {
+      const res = await fetch(`/api/t/${slug}/settings/runtime`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(config),
+      });
+      setSaved(res.ok ? "ok" : "error");
+    } catch {
+      setSaved("error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+
+  const refreshCampaignData = async () => {
+    const res = await fetch(`/api/t/${slug}/campaigns/whatsapp`);
+    if (res.ok) setCampaignData(await res.json());
+  };
+
+  const runJourneys = async (action: "plan" | "enqueue") => {
+    setCampaignState("sending");
+    setCampaignResult({});
+    try {
+      const res = await fetch(`/api/t/${slug}/campaigns/journeys`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCampaignState("ok");
+        setCampaignResult({ message: action === "enqueue" ? `Journeys encolados: ${data?.enqueued || 0}` : `Journeys sugeridos: ${data?.planned || 0}` });
+        await refreshCampaignData();
+      } else {
+        setCampaignState("error");
+        setCampaignResult({ message: data?.message || "No se pudo ejecutar journeys" });
+      }
+    } catch {
+      setCampaignState("error");
+      setCampaignResult({ message: "Error de conexión en journeys" });
+    }
+  };
+
+  const sendCampaign = async (action: "send_now" | "schedule" | "save_template" | "dispatch_scheduled" = "send_now") => {
+    setCampaignState("sending");
+    setCampaignResult({});
+    try {
+      const payload: any = { action, ...campaign };
+      if (action === "save_template") payload.name = templateName;
+      const res = await fetch(`/api/t/${slug}/campaigns/whatsapp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCampaignState("ok");
+        setCampaignResult({ sent: data?.sent, failed: data?.failed, message: data?.message });
+        await refreshCampaignData();
+      } else {
+        setCampaignState("error");
+        setCampaignResult({ message: data?.message || "No se pudo ejecutar la acción" });
+      }
+    } catch {
+      setCampaignState("error");
+      setCampaignResult({ message: "Error de conexión enviando campaña" });
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
-       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
-          <div className="flex items-center gap-4 mb-6">
-             <div className="w-12 h-12 bg-green-50 dark:bg-green-900/20 rounded-xl flex items-center justify-center text-green-600 dark:text-green-400 ring-4 ring-green-50/50 dark:ring-green-900/10">
-                <Globe className="w-6 h-6" />
-             </div>
-             <div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Integraciones</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Conecta herramientas externas.</p>
-             </div>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-12 h-12 bg-green-50 dark:bg-green-900/20 rounded-xl flex items-center justify-center text-green-600 dark:text-green-400 ring-4 ring-green-50/50 dark:ring-green-900/10">
+            <Globe className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Integraciones</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Autogestión de WhatsApp, Mercado Pago y alertas en tiempo real.</p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-4">
+            <h4 className="font-bold text-slate-900 dark:text-white">WhatsApp</h4>
+            <select
+              value={config.whatsapp.mode}
+              onChange={(e) => setConfig((prev: any) => ({ ...prev, whatsapp: { ...prev.whatsapp, mode: e.target.value } }))}
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            >
+              <option value="twilio_shared">Número Twilio compartido</option>
+              <option value="twilio_dedicated">Número Twilio dedicado</option>
+              <option value="bring_your_own">Traer mi propia línea</option>
+            </select>
+            <input
+              value={config.whatsapp.twilioFrom}
+              onChange={(e) => setConfig((prev: any) => ({ ...prev, whatsapp: { ...prev.whatsapp, twilioFrom: e.target.value } }))}
+              placeholder="Número WhatsApp (E164), ej: +54911..."
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            />
           </div>
 
-          <div className="space-y-4">
-             {/* WhatsApp */}
-             <div className="flex items-start justify-between p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
-                <div className="flex gap-4">
-                   <div className="w-10 h-10 rounded-lg bg-[#25D366]/10 flex items-center justify-center text-[#25D366]">
-                      <MessageCircle className="w-6 h-6" />
-                   </div>
-                   <div>
-                      <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                         WhatsApp Business
-                         {whatsapp ? <span className="px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[10px] uppercase">Conectado</span> : null}
-                      </h4>
-                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-md">El bot responde automáticamente mensajes y gestiona turnos 24/7.</p>
-                   </div>
-                </div>
-                <button className="px-4 py-2 text-sm font-medium rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 transition-all">Configurar</button>
-             </div>
-
-             {/* Google Calendar */}
-             <div className="flex items-start justify-between p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
-                <div className="flex gap-4">
-                   <div className="w-10 h-10 rounded-lg bg-blue-100/50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600">
-                      <Calendar className="w-6 h-6" />
-                   </div>
-                   <div>
-                      <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                         Google Calendar
-                         {google ? <span className="px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[10px] uppercase">Sincronizado</span> :
-                         <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-[10px] uppercase">Desconectado</span>}
-                      </h4>
-                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-md">Sincroniza tus turnos con tu calendario personal para evitar conflictos.</p>
-                   </div>
-                </div>
-                {google ? (
-                   <button className="px-4 py-2 text-sm font-medium rounded-lg bg-red-50 text-red-600 hover:bg-red-100 border border-red-100 transition-all">Desconectar</button>
-                ) : (
-                   <a href={`/api/integrations/google-calendar/connect?slug=${slug}`} className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-500/20 transition-all">Conectar</a>
-                )}
-             </div>
+          <div className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-4">
+            <h4 className="font-bold text-slate-900 dark:text-white">Mercado Pago</h4>
+            <input
+              value={config.mercadopago.publicKey}
+              onChange={(e) => setConfig((prev: any) => ({ ...prev, mercadopago: { ...prev.mercadopago, publicKey: e.target.value } }))}
+              placeholder="Public Key"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            />
+            <input
+              value={config.mercadopago.accessToken}
+              onChange={(e) => setConfig((prev: any) => ({ ...prev, mercadopago: { ...prev.mercadopago, accessToken: e.target.value } }))}
+              placeholder="Access Token"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            />
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={config.mercadopago.autoGenerateLinks}
+                onChange={(e) => setConfig((prev: any) => ({ ...prev, mercadopago: { ...prev.mercadopago, autoGenerateLinks: e.target.checked } }))}
+              />
+              Generar links automáticos en chat para seña/consulta/mensualidad
+            </label>
           </div>
-       </div>
+
+          <div className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-3">
+            <h4 className="font-bold text-slate-900 dark:text-white">Campanita en vivo</h4>
+            <ToggleRow label="Nuevo pago" checked={config.notifications.newPayment} onChange={(v) => setConfig((prev: any) => ({ ...prev, notifications: { ...prev.notifications, newPayment: v } }))} />
+            <ToggleRow label="Nuevo turno" checked={config.notifications.newAppointment} onChange={(v) => setConfig((prev: any) => ({ ...prev, notifications: { ...prev.notifications, newAppointment: v } }))} />
+            <ToggleRow label="Cancelación" checked={config.notifications.cancellation} onChange={(v) => setConfig((prev: any) => ({ ...prev, notifications: { ...prev.notifications, cancellation: v } }))} />
+            <ToggleRow label="Aviso de retraso" checked={config.notifications.delay} onChange={(v) => setConfig((prev: any) => ({ ...prev, notifications: { ...prev.notifications, delay: v } }))} />
+          </div>
+
+
+          <div className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-4">
+            <h4 className="font-bold text-slate-900 dark:text-white">Campañas WhatsApp (Marketing)</h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Enviá mensaje + flyer a contactos de tu CRM (sin polling, disparo backend).</p>
+            <textarea
+              value={campaign.message}
+              onChange={(e) => setCampaign((prev) => ({ ...prev, message: e.target.value }))}
+              placeholder="Mensaje de campaña..."
+              className="w-full min-h-[90px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            />
+            <input
+              value={campaign.flyerUrl}
+              onChange={(e) => setCampaign((prev) => ({ ...prev, flyerUrl: e.target.value }))}
+              placeholder="URL pública del flyer (opcional)"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            />
+            <input
+              type="number"
+              min={1}
+              max={500}
+              value={campaign.limit}
+              onChange={(e) => setCampaign((prev) => ({ ...prev, limit: Number(e.target.value || 100) }))}
+              placeholder="Cantidad máxima de contactos"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              <input
+                value={campaign.segmentation.rubro}
+                onChange={(e) => setCampaign((prev) => ({ ...prev, segmentation: { ...prev.segmentation, rubro: e.target.value } }))}
+                placeholder="Filtro rubro (ej: dentista)"
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+              />
+              <input
+                value={campaign.segmentation.tag}
+                onChange={(e) => setCampaign((prev) => ({ ...prev, segmentation: { ...prev.segmentation, tag: e.target.value } }))}
+                placeholder="Filtro tag (ej: vip)"
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+              />
+              <input
+                type="number"
+                min={1}
+                max={3650}
+                value={campaign.segmentation.lastSeenDays}
+                onChange={(e) => setCampaign((prev) => ({ ...prev, segmentation: { ...prev.segmentation, lastSeenDays: Number(e.target.value || 30) } }))}
+                placeholder="Últimos N días"
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+              />
+            </div>
+            <input
+              type="datetime-local"
+              value={campaign.scheduledAt}
+              onChange={(e) => setCampaign((prev) => ({ ...prev, scheduledAt: e.target.value }))}
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            />
+            <input
+              value={templateName}
+              onChange={(e) => setTemplateName(e.target.value)}
+              placeholder="Nombre de plantilla (opcional)"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            />
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => sendCampaign("send_now")}
+                disabled={campaignState === "sending" || !campaign.message.trim()}
+                className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-60"
+              >
+                {campaignState === "sending" ? "Enviando..." : "Enviar ahora"}
+              </button>
+              <button
+                onClick={() => sendCampaign("schedule")}
+                disabled={campaignState === "sending" || !campaign.message.trim() || !campaign.scheduledAt}
+                className="px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-semibold hover:bg-amber-700 disabled:opacity-60"
+              >
+                Programar
+              </button>
+              <button
+                onClick={() => sendCampaign("save_template")}
+                disabled={campaignState === "sending" || !campaign.message.trim() || !templateName.trim()}
+                className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 disabled:opacity-60"
+              >
+                Guardar plantilla
+              </button>
+              <button
+                onClick={() => sendCampaign("dispatch_scheduled")}
+                disabled={campaignState === "sending"}
+                className="px-4 py-2 rounded-lg bg-slate-700 text-white text-sm font-semibold hover:bg-slate-800 disabled:opacity-60"
+              >
+                Ejecutar programadas
+              </button>
+            </div>
+
+            <div className="rounded-lg border border-dashed border-slate-300 dark:border-slate-700 p-3 space-y-2">
+              <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">Journeys automáticos sugeridos</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Reactivación por cancelación: {journeyInfo?.suggestions?.reactivationFromCancellations || 0} • Reminder de pago pendiente: {journeyInfo?.suggestions?.paymentReminderFromPending || 0}</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => runJourneys("plan")}
+                  className="px-3 py-1.5 rounded bg-violet-600 text-white text-xs font-semibold hover:bg-violet-700"
+                >
+                  Simular journeys
+                </button>
+                <button
+                  onClick={() => runJourneys("enqueue")}
+                  className="px-3 py-1.5 rounded bg-fuchsia-600 text-white text-xs font-semibold hover:bg-fuchsia-700"
+                >
+                  Encolar journeys
+                </button>
+              </div>
+            </div>
+
+            <div className="text-xs text-slate-500 dark:text-slate-400">
+              Métricas: {campaignData?.metrics?.campaigns || 0} campañas • enviados {campaignData?.metrics?.sent || 0} • fallidos {campaignData?.metrics?.failed || 0} • delivery {campaignData?.metrics?.deliveryRate || 0}%
+            </div>
+            {campaignState === "ok" && (
+              <p className="text-xs text-emerald-600">Campaña enviada. Éxitos: {campaignResult.sent || 0}. Fallos: {campaignResult.failed || 0}.</p>
+            )}
+            {campaignState === "error" && (
+              <p className="text-xs text-red-600">{campaignResult.message || "No se pudo enviar la campaña"}</p>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            {google ? (
+              <button className="px-4 py-2 text-sm font-medium rounded-lg bg-red-50 text-red-600 hover:bg-red-100 border border-red-100 transition-all">Desconectar Google</button>
+            ) : (
+              <a href={`/api/integrations/google-calendar/connect?slug=${slug}`} className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-500/20 transition-all">Conectar Google Calendar</a>
+            )}
+
+            <button
+              onClick={saveConfig}
+              disabled={saving}
+              className="px-5 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 disabled:opacity-60"
+            >
+              {saving ? "Guardando..." : "Guardar configuración"}
+            </button>
+          </div>
+
+          {saved === "ok" && <p className="text-sm text-green-600">Configuración guardada correctamente.</p>}
+          {saved === "error" && <p className="text-sm text-red-600">No se pudo guardar la configuración.</p>}
+        </div>
+      </div>
     </div>
-  )
+  );
+}
+
+function ToggleRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="flex items-center justify-between text-sm text-slate-700 dark:text-slate-300">
+      <span>{label}</span>
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+    </label>
+  );
 }
 
 function BillingSettings({ tenant }: any) {
