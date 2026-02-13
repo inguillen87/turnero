@@ -12,7 +12,8 @@ import {
   ArrowUpRight,
   Zap,
   MoreVertical,
-  Activity
+  Activity,
+  Bot
 } from "lucide-react";
 import Link from "next/link";
 
@@ -20,6 +21,9 @@ export default function TenantDashboard() {
   const { tenant } = useParams();
   const [appointments, setAppointments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [adminQuestion, setAdminQuestion] = useState("¿Cuánto ganamos hoy?");
+  const [adminAnswer, setAdminAnswer] = useState("Preguntame sobre facturación, pacientes o tratamientos.");
+  const [adminLoading, setAdminLoading] = useState(false);
 
   // Mock data for demo/fallback purposes
   const mockAppointments = [
@@ -45,6 +49,24 @@ export default function TenantDashboard() {
       status: "CONFIRMED"
     }
   ];
+
+
+  const askAdminBot = async () => {
+    setAdminLoading(true);
+    try {
+      const res = await fetch(`/api/t/${tenant}/admin-bot/query`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: adminQuestion }),
+      });
+      const data = await res.json();
+      setAdminAnswer(data?.answer || "No pude obtener una respuesta en este momento.");
+    } catch {
+      setAdminAnswer("Error consultando Admin Bot.");
+    } finally {
+      setAdminLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetch(`/api/t/${tenant}/appointments`)
@@ -194,6 +216,22 @@ export default function TenantDashboard() {
                       <span className="text-white/90 font-medium">En línea</span>
                    </div>
                </div>
+            </div>
+
+
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+               <h3 className="font-bold text-slate-800 dark:text-white mb-3 flex items-center gap-2 text-sm uppercase tracking-wide opacity-80">
+                   <Bot className="w-4 h-4" /> Admin Bot
+               </h3>
+               <textarea
+                 value={adminQuestion}
+                 onChange={(e) => setAdminQuestion(e.target.value)}
+                 className="w-full min-h-[80px] rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3 text-sm"
+               />
+               <button onClick={askAdminBot} disabled={adminLoading} className="mt-3 w-full rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60">
+                 {adminLoading ? "Consultando..." : "Preguntar"}
+               </button>
+               <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">{adminAnswer}</p>
             </div>
 
             {/* Quick Actions */}
