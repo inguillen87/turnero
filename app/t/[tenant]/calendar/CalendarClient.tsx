@@ -31,6 +31,7 @@ export default function CalendarClient({ tenantSlug }: { tenantSlug: string }) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [newBlock, setNewBlock] = useState({ startAt: "", endAt: "", reason: "Vacaciones" });
+  const [newAppointment, setNewAppointment] = useState({ clientName: "", serviceName: "Consulta", startAt: "" });
 
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(currentWeek, { weekStartsOn: 1 });
@@ -61,6 +62,24 @@ export default function CalendarClient({ tenantSlug }: { tenantSlug: string }) {
     };
     load();
   }, [tenantSlug]);
+
+  const reloadCalendarData = async () => {
+    const [appointmentsRes, runtimeRes] = await Promise.all([
+      fetch(`/api/t/${tenantSlug}/appointments`),
+      fetch(`/api/t/${tenantSlug}/settings/runtime`),
+    ]);
+
+    if (appointmentsRes.ok) {
+      const apptData = await appointmentsRes.json();
+      setAppointments(Array.isArray(apptData) ? apptData : []);
+    }
+
+    if (runtimeRes.ok) {
+      const runtimeData = await runtimeRes.json();
+      const ranges = runtimeData?.config?.calendar?.blockedRanges;
+      setBlockedRanges(Array.isArray(ranges) ? ranges : []);
+    }
+  };
 
   const filteredAppointments = useMemo(
     () => appointments.filter((a) => {
@@ -143,6 +162,7 @@ export default function CalendarClient({ tenantSlug }: { tenantSlug: string }) {
 
     await saveBlockedRanges([...blockedRanges, range]);
     setNewBlock({ startAt: "", endAt: "", reason: "Vacaciones" });
+    await reloadCalendarData();
   };
 
   const blockFullCurrentWeek = async () => {
@@ -163,6 +183,53 @@ export default function CalendarClient({ tenantSlug }: { tenantSlug: string }) {
 
   const removeBlockedRange = async (id: string) => {
     await saveBlockedRanges(blockedRanges.filter((r) => r.id !== id));
+    await reloadCalendarData();
+  };
+
+  const createAppointment = async () => {
+    if (!newAppointment.clientName.trim() || !newAppointment.startAt) {
+      setMessage("Completá paciente y fecha/hora para crear el turno.");
+      return;
+    }
+
+    const start = new Date(newAppointment.startAt);
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
+    const collidesWithBlock = blockedRanges.some((b) => {
+      const bs = new Date(b.startAt).getTime();
+      const be = new Date(b.endAt).getTime();
+      return start.getTime() < be && end.getTime() > bs;
+    });
+
+    if (collidesWithBlock) {
+      setMessage("Ese horario está bloqueado. Elegí otro o quitá el bloqueo.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/t/${tenantSlug}/appointments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientName: newAppointment.clientName,
+          serviceName: newAppointment.serviceName,
+          startAt: start.toISOString(),
+        }),
+      });
+
+      if (!res.ok) {
+        setMessage("No se pudo crear el turno.");
+        return;
+      }
+
+      setMessage("Turno creado correctamente.");
+      setNewAppointment({ clientName: "", serviceName: "Consulta", startAt: "" });
+      await reloadCalendarData();
+    } catch {
+      setMessage("Error creando turno.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const conflicts = useMemo(() => {
@@ -305,6 +372,35 @@ export default function CalendarClient({ tenantSlug }: { tenantSlug: string }) {
         </div>
 
         <div className="space-y-4">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
+            <h3 className="font-semibold">Nuevo turno rápido</h3>
+            <input
+              value={newAppointment.clientName}
+              onChange={(e) => setNewAppointment((p) => ({ ...p, clientName: e.target.value }))}
+              placeholder="Nombre del paciente"
+              className="w-full rounded-lg border px-3 py-2 text-sm"
+            />
+            <input
+              value={newAppointment.serviceName}
+              onChange={(e) => setNewAppointment((p) => ({ ...p, serviceName: e.target.value }))}
+              placeholder="Servicio"
+              className="w-full rounded-lg border px-3 py-2 text-sm"
+            />
+            <input
+              type="datetime-local"
+              value={newAppointment.startAt}
+              onChange={(e) => setNewAppointment((p) => ({ ...p, startAt: e.target.value }))}
+              className="w-full rounded-lg border px-3 py-2 text-sm"
+            />
+            <button
+              onClick={createAppointment}
+              disabled={saving}
+              className="w-full rounded-lg bg-emerald-600 text-white text-sm px-3 py-2 disabled:opacity-60"
+            >
+              Crear turno
+            </button>
+          </div>
+
           <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
             <h3 className="font-semibold flex items-center gap-2"><CalendarDays className="w-4 h-4" /> Bloquear ventana</h3>
             <input type="datetime-local" value={newBlock.startAt} onChange={(e) => setNewBlock((p) => ({ ...p, startAt: e.target.value }))} className="w-full rounded-lg border px-3 py-2 text-sm" />
