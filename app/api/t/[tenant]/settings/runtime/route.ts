@@ -4,6 +4,41 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 
 const PROVIDER = "tenant_runtime_config";
+const ALLOWED_LOCALES = ["es-AR", "en-US", "pt-BR"] as const;
+
+function sanitizeCountries(input: unknown): string[] {
+  if (!Array.isArray(input)) return [];
+
+  const unique = new Set<string>();
+  for (const value of input) {
+    const normalized = String(value || "")
+      .trim()
+      .toUpperCase();
+
+    if (/^[A-Z]{2}$/.test(normalized)) {
+      unique.add(normalized);
+    }
+
+    if (unique.size >= 20) break;
+  }
+
+  return Array.from(unique);
+}
+
+function sanitizeLocales(input: unknown): string[] {
+  if (!Array.isArray(input)) return [...ALLOWED_LOCALES];
+
+  const unique = new Set<string>();
+  for (const value of input) {
+    const normalized = String(value || "").trim();
+    if (ALLOWED_LOCALES.includes(normalized as (typeof ALLOWED_LOCALES)[number])) {
+      unique.add(normalized);
+    }
+    if (unique.size >= ALLOWED_LOCALES.length) break;
+  }
+
+  return unique.size > 0 ? Array.from(unique) : [...ALLOWED_LOCALES];
+}
 
 async function resolveTenantAndAccess(slug: string) {
   const session = await getServerSession(authOptions);
@@ -74,6 +109,36 @@ export async function POST(
       newAppointment: payload?.notifications?.newAppointment ?? true,
       cancellation: payload?.notifications?.cancellation ?? true,
       delay: payload?.notifications?.delay ?? true,
+    },
+    calendar: {
+      provider: payload?.calendar?.provider || "google",
+      googleCalendarId: payload?.calendar?.googleCalendarId || "primary",
+      calendlyUrl: payload?.calendar?.calendlyUrl || "",
+      icalUrl: payload?.calendar?.icalUrl || "",
+      blockedRanges: Array.isArray(payload?.calendar?.blockedRanges)
+        ? payload.calendar.blockedRanges
+            .map((item: any) => ({
+              id: String(item?.id || `block-${Date.now()}`),
+              startAt: String(item?.startAt || ""),
+              endAt: String(item?.endAt || ""),
+              reason: String(item?.reason || "Bloqueo operativo"),
+            }))
+            .filter((item: any) => item.startAt && item.endAt)
+        : [],
+    },
+    googleSheets: {
+      enabled: payload?.googleSheets?.enabled ?? false,
+      spreadsheetId: payload?.googleSheets?.spreadsheetId || "",
+      worksheetName: payload?.googleSheets?.worksheetName || "Turnos",
+      autoSyncAppointments: payload?.googleSheets?.autoSyncAppointments ?? true,
+    },
+    franchise: {
+      whiteLabelEnabled: payload?.franchise?.whiteLabelEnabled ?? false,
+      brandName: payload?.franchise?.brandName || "",
+      supportEmail: payload?.franchise?.supportEmail || "",
+      resellerCode: payload?.franchise?.resellerCode || "",
+      countries: sanitizeCountries(payload?.franchise?.countries),
+      locales: sanitizeLocales(payload?.franchise?.locales),
     },
   };
 
