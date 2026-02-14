@@ -2,13 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import {
-  sanitizeCountries,
-  sanitizeEmail,
-  sanitizeLocales,
-  sanitizeText as sanitizeRuntimeText,
-  sanitizeBlockedRanges,
-} from "@/lib/settings/runtimeSanitizers";
+import * as runtimeSanitizers from "@/lib/settings/runtimeSanitizers";
 
 const PROVIDER = "tenant_runtime_config";
 const ALLOWED_LOCALES = ["es-AR", "en-US", "pt-BR"] as const;
@@ -143,7 +137,7 @@ export async function POST(
       googleCalendarId: payload?.calendar?.googleCalendarId || "primary",
       calendlyUrl: payload?.calendar?.calendlyUrl || "",
       icalUrl: payload?.calendar?.icalUrl || "",
-      blockedRanges: sanitizeBlockedRanges(payload?.calendar?.blockedRanges),
+      blockedRanges: runtimeSanitizers.sanitizeBlockedRanges(payload?.calendar?.blockedRanges),
     },
     googleSheets: {
       enabled: payload?.googleSheets?.enabled ?? false,
@@ -153,11 +147,11 @@ export async function POST(
     },
     franchise: {
       whiteLabelEnabled: payload?.franchise?.whiteLabelEnabled ?? false,
-      brandName: sanitizeRuntimeText(payload?.franchise?.brandName, 80),
-      supportEmail: sanitizeEmail(payload?.franchise?.supportEmail),
-      resellerCode: sanitizeRuntimeText(payload?.franchise?.resellerCode, 40),
-      countries: sanitizeCountries(payload?.franchise?.countries),
-      locales: sanitizeLocales(payload?.franchise?.locales),
+      brandName: runtimeSanitizers.sanitizeText(payload?.franchise?.brandName, 80),
+      supportEmail: runtimeSanitizers.sanitizeEmail(payload?.franchise?.supportEmail),
+      resellerCode: runtimeSanitizers.sanitizeText(payload?.franchise?.resellerCode, 40),
+      countries: runtimeSanitizers.sanitizeCountries(payload?.franchise?.countries),
+      locales: runtimeSanitizers.sanitizeLocales(payload?.franchise?.locales),
     },
   };
 

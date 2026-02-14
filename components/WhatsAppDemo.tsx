@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, Check, Sparkles, Bot, PhoneCall } from "lucide-react";
+import { MessageCircle, X, Send, Check, Sparkles, Bot, PhoneCall, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 
 interface Message {
@@ -12,24 +12,57 @@ interface Message {
   options?: { label: string; value: string }[];
 }
 
-const STARTER_OPTIONS = [
-  { label: "🦷 Odontología", value: "Somos una clínica odontológica y queremos automatizar agenda + recordatorios" },
-  { label: "🧠 Psicología", value: "Somos un consultorio psicológico y necesitamos agenda y ausentismo bajo" },
-  { label: "💅 Estética", value: "Somos centro de estética y buscamos whatsapp + CRM + campañas" },
-  { label: "🏋️ Gimnasio", value: "Somos un gimnasio y queremos planes, renovaciones y gestión de clases" },
-  { label: "⚖️ Estudio jurídico", value: "Tenemos un estudio jurídico y queremos ordenar turnos y seguimiento" },
-  { label: "🏨 Hotelería", value: "Manejamos hotelería y buscamos automatizar reservas y conversaciones" },
-  { label: "🧩 Quiero plan modular", value: "No quiero la plataforma completa, solo whatsapp crm agenda" },
-  { label: "🚀 Quiero full plataforma", value: "Quiero la plataforma completa con todo" },
+type StarterGroup = {
+  id: string;
+  title: string;
+  options: { label: string; value: string }[];
+};
+
+const STARTER_GROUPS: StarterGroup[] = [
+  {
+    id: "salud",
+    title: "Salud y bienestar",
+    options: [
+      { label: "🦷 Odontología", value: "Somos una clínica odontológica y queremos automatizar agenda + recordatorios" },
+      { label: "🧠 Psicología", value: "Somos un consultorio psicológico y necesitamos agenda y ausentismo bajo" },
+      { label: "🥗 Nutrición", value: "Somos nutricionistas y queremos turnos, recordatorios y seguimiento" },
+      { label: "🧑‍⚕️ Kinesiología", value: "Tenemos un centro de kinesiología y queremos automatizar agenda y CRM" },
+    ],
+  },
+  {
+    id: "servicios",
+    title: "Servicios profesionales",
+    options: [
+      { label: "💅 Estética", value: "Somos centro de estética y buscamos whatsapp + CRM + campañas" },
+      { label: "✂️ Barbería", value: "Tenemos barbería y queremos agenda inteligente con recordatorios" },
+      { label: "⚖️ Estudio jurídico", value: "Tenemos un estudio jurídico y queremos ordenar turnos y seguimiento" },
+      { label: "🏨 Hotelería", value: "Manejamos hotelería y buscamos automatizar reservas y conversaciones" },
+    ],
+  },
+  {
+    id: "modelo",
+    title: "Modelo de implementación",
+    options: [
+      { label: "🧩 Quiero plan modular", value: "No quiero la plataforma completa, solo whatsapp crm agenda" },
+      { label: "🚀 Quiero full plataforma", value: "Quiero la plataforma completa con todo" },
+    ],
+  },
 ];
+
+const STARTER_OPTIONS = STARTER_GROUPS.flatMap((g) => g.options);
 
 export function WhatsAppDemo({ onBooking }: { onBooking?: (data: any) => void }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
+    salud: true,
+    servicios: false,
+    modelo: false,
+  });
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
       sender: "bot",
-      text: "¡Hola! 👋 Soy el asesor IA de Turnero Pro. Te ayudo a elegir setup por rubro (agenda + bot + CRM + automatizaciones).",
+      text: "¡Hola! 👋 Soy el asesor IA de Turnero Pro. Elegí tu rubro y te propongo el mejor setup (agenda + bot + CRM + automatizaciones).",
       timestamp: new Date(),
       options: STARTER_OPTIONS,
     },
@@ -87,9 +120,7 @@ export function WhatsAppDemo({ onBooking }: { onBooking?: (data: any) => void })
       });
 
       const data = await response.json();
-      if (data?.seller?.url) {
-        setSellerUrl(data.seller.url);
-      }
+      if (data?.seller?.url) setSellerUrl(data.seller.url);
 
       const botMsg: Message = {
         id: (Date.now() + 1).toString(),
@@ -137,9 +168,7 @@ export function WhatsAppDemo({ onBooking }: { onBooking?: (data: any) => void })
             : "bg-gradient-to-br from-indigo-600 to-violet-600 text-white border-indigo-400/30"
         }`}
       >
-        <span className="absolute -top-2 -right-2 rounded-full bg-emerald-400 text-[10px] font-black text-emerald-950 px-1.5 py-0.5">
-          AI
-        </span>
+        <span className="absolute -top-2 -right-2 rounded-full bg-emerald-400 text-[10px] font-black text-emerald-950 px-1.5 py-0.5">AI</span>
         {isOpen ? <X className="w-7 h-7" /> : <MessageCircle className="w-7 h-7" />}
       </button>
 
@@ -167,42 +196,79 @@ export function WhatsAppDemo({ onBooking }: { onBooking?: (data: any) => void })
         </div>
 
         <div className="h-96 overflow-y-auto p-4 space-y-4 bg-[radial-gradient(circle_at_top,_rgba(99,102,241,0.08),transparent_50%)]">
-          {messages.map((msg) => (
-            <div key={msg.id} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
-              <div
-                className={`max-w-[88%] p-3.5 rounded-2xl text-sm shadow-sm relative border ${
-                  msg.sender === "user"
-                    ? "bg-indigo-600 text-white border-indigo-500 rounded-br-md"
-                    : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border-slate-200/70 dark:border-slate-700 rounded-bl-md"
-                }`}
-              >
-                <p className="whitespace-pre-wrap leading-relaxed">{msg.text}</p>
-                <span
-                  className={`text-[10px] block text-right mt-1 ${
-                    msg.sender === "user" ? "text-indigo-100" : "text-slate-400"
+          {messages.map((msg) => {
+            const isStarter = msg.id === "1" && msg.sender === "bot";
+            return (
+              <div key={msg.id} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
+                <div
+                  className={`max-w-[90%] p-3.5 rounded-2xl text-sm shadow-sm relative border ${
+                    msg.sender === "user"
+                      ? "bg-indigo-600 text-white border-indigo-500 rounded-br-md"
+                      : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border-slate-200/70 dark:border-slate-700 rounded-bl-md"
                   }`}
                 >
-                  {format(msg.timestamp, "HH:mm")}
-                  {msg.sender === "user" && <Check className="w-3 h-3 inline ml-1 text-cyan-200" />}
-                </span>
+                  <p className="whitespace-pre-wrap leading-relaxed">{msg.text}</p>
+                  <span
+                    className={`text-[10px] block text-right mt-1 ${
+                      msg.sender === "user" ? "text-indigo-100" : "text-slate-400"
+                    }`}
+                  >
+                    {format(msg.timestamp, "HH:mm")}
+                    {msg.sender === "user" && <Check className="w-3 h-3 inline ml-1 text-cyan-200" />}
+                  </span>
 
-                {msg.options && msg.options.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {msg.options.map((opt, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => handleSend(opt.label, opt.value)}
-                        disabled={isLoading}
-                        className="bg-indigo-50 dark:bg-slate-900 border border-indigo-200 dark:border-slate-700 text-indigo-700 dark:text-indigo-300 text-xs font-semibold px-3 py-1.5 rounded-full hover:bg-indigo-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                  {isStarter ? (
+                    <div className="mt-3 space-y-2">
+                      {STARTER_GROUPS.map((group) => {
+                        const open = expandedGroups[group.id];
+                        return (
+                          <div key={group.id} className="rounded-xl border border-indigo-100 dark:border-slate-700 bg-indigo-50/50 dark:bg-slate-900/70 overflow-hidden">
+                            <button
+                              type="button"
+                              onClick={() => setExpandedGroups((prev) => ({ ...prev, [group.id]: !prev[group.id] }))}
+                              className="w-full px-3 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-indigo-700 dark:text-indigo-300 flex items-center justify-between"
+                            >
+                              {group.title}
+                              <ChevronDown className={`w-4 h-4 transition-transform ${open ? "rotate-180" : "rotate-0"}`} />
+                            </button>
+                            {open && (
+                              <div className="px-2 pb-2 grid grid-cols-1 gap-1.5">
+                                {group.options.map((opt) => (
+                                  <button
+                                    key={opt.value}
+                                    onClick={() => handleSend(opt.label, opt.value)}
+                                    disabled={isLoading}
+                                    className="w-full text-left bg-white dark:bg-slate-800 border border-indigo-200/70 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium px-3 py-2 rounded-lg hover:bg-indigo-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                                  >
+                                    {opt.label}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    msg.options && msg.options.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {msg.options.map((opt, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => handleSend(opt.label, opt.value)}
+                            disabled={isLoading}
+                            className="bg-indigo-50 dark:bg-slate-900 border border-indigo-200 dark:border-slate-700 text-indigo-700 dark:text-indigo-300 text-xs font-semibold px-3 py-1.5 rounded-full hover:bg-indigo-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    )
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           <div ref={messagesEndRef} />
         </div>
 
