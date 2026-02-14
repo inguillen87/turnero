@@ -11,6 +11,54 @@ import {
 } from "@/lib/settings/runtimeSanitizers";
 
 const PROVIDER = "tenant_runtime_config";
+const ALLOWED_LOCALES = ["es-AR", "en-US", "pt-BR"] as const;
+
+function sanitizeText(input: unknown, maxLength: number): string {
+  return String(input || "").trim().slice(0, maxLength);
+}
+
+function sanitizeEmail(input: unknown): string {
+  const normalized = sanitizeText(input, 120).toLowerCase();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized) ? normalized : "";
+}
+
+function sanitizeCountries(input: unknown): string[] {
+  const values = Array.isArray(input)
+    ? input
+    : typeof input === "string"
+      ? input.split(",")
+      : [];
+
+  const unique = new Set<string>();
+  for (const value of values) {
+    const normalized = String(value || "")
+      .trim()
+      .toUpperCase();
+
+    if (/^[A-Z]{2}$/.test(normalized)) {
+      unique.add(normalized);
+    }
+
+    if (unique.size >= 20) break;
+  }
+
+  return Array.from(unique);
+}
+
+function sanitizeLocales(input: unknown): string[] {
+  if (!Array.isArray(input)) return [...ALLOWED_LOCALES];
+
+  const unique = new Set<string>();
+  for (const value of input) {
+    const normalized = String(value || "").trim();
+    if (ALLOWED_LOCALES.includes(normalized as (typeof ALLOWED_LOCALES)[number])) {
+      unique.add(normalized);
+    }
+    if (unique.size >= ALLOWED_LOCALES.length) break;
+  }
+
+  return unique.size > 0 ? Array.from(unique) : [...ALLOWED_LOCALES];
+}
 
 async function resolveTenantAndAccess(slug: string) {
   const session = await getServerSession(authOptions);
