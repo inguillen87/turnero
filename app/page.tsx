@@ -4,7 +4,7 @@ import { WhatsAppDemo } from '@/components/WhatsAppDemo';
 
 export const dynamic = 'force-static';
 import { Logo } from '@/components/Logo';
-import { ArrowRight, Calendar, Users, BarChart3, Clock, CheckCircle2, Star, MessageSquare, Briefcase, Zap, Bot, PanelTop } from 'lucide-react';
+import { ArrowRight, Calendar, Users, BarChart3, Clock, CheckCircle2, Star, MessageSquare, Briefcase, Zap, Bot, PanelTop, ShieldCheck } from 'lucide-react';
 
 export default function LandingPage() {
   return (
@@ -133,6 +133,62 @@ export default function LandingPage() {
               <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4 bg-slate-50 dark:bg-slate-800/40">
                 <p className="font-bold text-indigo-600 dark:text-indigo-300">Innovación aplicada</p>
                 <p className="text-slate-600 dark:text-slate-400 mt-1">No copiamos features: las evolucionamos para LATAM y global.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-20 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
+          <div className="container mx-auto px-4">
+            <div className="text-center max-w-3xl mx-auto mb-12">
+              <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-slate-900 dark:text-white mb-4">
+                Mirá lo que podés probar en la demo enterprise
+              </h2>
+              <p className="text-lg text-slate-600 dark:text-slate-400">
+                Te mostramos con imágenes explicativas nuestras herramientas propias: Admin Bot, agenda operativa y automatizaciones.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6 mb-10">
+              <ShowcaseCard
+                title="Admin Bot Inteligente"
+                subtitle="Consultas rápidas para organizar tu semana"
+                bullets={[
+                  "¿Qué día me conviene tomarme libre?",
+                  "Si cierro al mediodía, ¿cuántos turnos impacto?",
+                  "¿Cómo armo mini vacaciones sin romper agenda?",
+                ]}
+                tone="indigo"
+              />
+              <ShowcaseCard
+                title="Agenda Operativa Nativa"
+                subtitle="Bloqueos, conflictos y huecos sugeridos"
+                bullets={[
+                  "Bloqueos por vacaciones/remodelación",
+                  "Sugerencias automáticas de horarios libres",
+                  "Turno rápido en 1 click desde calendario",
+                ]}
+                tone="emerald"
+              />
+              <ShowcaseCard
+                title="Marketing + CRM"
+                subtitle="Campañas y journeys con control total"
+                bullets={[
+                  "Plantillas y envíos programados",
+                  "Journeys de reactivación / pago pendiente",
+                  "Exportes PDF y Excel para operación",
+                ]}
+                tone="violet"
+              />
+            </div>
+
+            <div className="rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50/60 dark:bg-amber-900/10 p-5 flex items-start gap-3">
+              <ShieldCheck className="w-5 h-5 text-amber-600 mt-0.5" />
+              <div>
+                <p className="font-semibold text-amber-900 dark:text-amber-200">Demo abierta, con límites inteligentes</p>
+                <p className="text-sm text-amber-800 dark:text-amber-300 mt-1">
+                  Mostramos experiencia enterprise completa para enganchar clientes, pero protegemos costos y seguridad con permisos, rate-limits y restricciones de uso en funciones IA.
+                </p>
               </div>
             </div>
           </div>
@@ -277,4 +333,42 @@ function PricingItem({ text }: { text: string }) {
             <span className="font-medium">{text}</span>
         </li>
     )
+}
+
+function ShowcaseCard({
+  title,
+  subtitle,
+  bullets,
+  tone,
+}: {
+  title: string;
+  subtitle: string;
+  bullets: string[];
+  tone: "indigo" | "emerald" | "violet";
+}) {
+  const toneClass = {
+    indigo: "from-indigo-500/15 to-indigo-100/70 dark:from-indigo-900/30 dark:to-indigo-800/10 border-indigo-200/80 dark:border-indigo-800",
+    emerald: "from-emerald-500/15 to-emerald-100/70 dark:from-emerald-900/30 dark:to-emerald-800/10 border-emerald-200/80 dark:border-emerald-800",
+    violet: "from-violet-500/15 to-violet-100/70 dark:from-violet-900/30 dark:to-violet-800/10 border-violet-200/80 dark:border-violet-800",
+  }[tone];
+
+  return (
+    <div className={`rounded-2xl border bg-gradient-to-br ${toneClass} p-5 shadow-sm`}>
+      <div className="rounded-xl border border-white/70 dark:border-slate-700 bg-white/90 dark:bg-slate-900/70 p-3 mb-4 text-xs text-slate-500">
+        <p className="font-semibold">Vista previa del panel</p>
+        <div className="mt-2 space-y-1">
+          <div className="h-2 rounded bg-slate-200 dark:bg-slate-700" />
+          <div className="h-2 rounded bg-slate-200 dark:bg-slate-700 w-4/5" />
+          <div className="h-2 rounded bg-slate-200 dark:bg-slate-700 w-3/5" />
+        </div>
+      </div>
+      <h3 className="text-lg font-bold text-slate-900 dark:text-white">{title}</h3>
+      <p className="text-sm text-slate-600 dark:text-slate-300 mb-3">{subtitle}</p>
+      <ul className="space-y-1 text-sm text-slate-700 dark:text-slate-300">
+        {bullets.map((b) => (
+          <li key={b}>• {b}</li>
+        ))}
+      </ul>
+    </div>
+  );
 }
