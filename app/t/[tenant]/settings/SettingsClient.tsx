@@ -343,6 +343,8 @@ function IntegrationsSettings({ integrations, slug }: any) {
     mercadopago: { accessToken: "", publicKey: "", autoGenerateLinks: true, defaultConcept: "consulta" },
     whatsapp: { mode: "twilio_shared", twilioFrom: "", webhookUrl: "" },
     notifications: { newPayment: true, newAppointment: true, cancellation: true, delay: true },
+    calendar: { provider: "google", googleCalendarId: "primary", calendlyUrl: "", icalUrl: "" },
+    googleSheets: { enabled: false, spreadsheetId: "", worksheetName: "Turnos", autoSyncAppointments: true },
   });
   const [campaign, setCampaign] = useState({ message: "", flyerUrl: "", limit: 100, segmentation: { rubro: "", tag: "", lastSeenDays: 30 }, scheduledAt: "" });
   const [campaignState, setCampaignState] = useState<"idle" | "sending" | "ok" | "error">("idle");
@@ -350,6 +352,30 @@ function IntegrationsSettings({ integrations, slug }: any) {
   const [templateName, setTemplateName] = useState("");
   const [campaignData, setCampaignData] = useState<any>({ templates: [], scheduled: [], metrics: { sent: 0, failed: 0, campaigns: 0, deliveryRate: 0 } });
   const [journeyInfo, setJourneyInfo] = useState<any>({ suggestions: { reactivationFromCancellations: 0, paymentReminderFromPending: 0 } });
+
+  const applyPreset = (preset: "health" | "beauty" | "legal") => {
+    const presetMap: Record<string, any> = {
+      health: {
+        calendar: { provider: "google", googleCalendarId: "primary", calendlyUrl: "", icalUrl: "" },
+        googleSheets: { enabled: true, spreadsheetId: "", worksheetName: "Turnos", autoSyncAppointments: true },
+      },
+      beauty: {
+        calendar: { provider: "calendly", googleCalendarId: "primary", calendlyUrl: "", icalUrl: "" },
+        googleSheets: { enabled: true, spreadsheetId: "", worksheetName: "Reservas", autoSyncAppointments: true },
+      },
+      legal: {
+        calendar: { provider: "ical", googleCalendarId: "primary", calendlyUrl: "", icalUrl: "" },
+        googleSheets: { enabled: false, spreadsheetId: "", worksheetName: "Consultas", autoSyncAppointments: false },
+      },
+    };
+
+    setConfig((prev: any) => ({
+      ...prev,
+      calendar: { ...prev.calendar, ...presetMap[preset].calendar },
+      googleSheets: { ...prev.googleSheets, ...presetMap[preset].googleSheets },
+    }));
+    setSaved(null);
+  };
 
   useEffect(() => {
     fetch(`/api/t/${slug}/settings/runtime`)
@@ -463,6 +489,16 @@ function IntegrationsSettings({ integrations, slug }: any) {
         </div>
 
         <div className="space-y-4">
+          <div className="p-5 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/60 dark:bg-indigo-900/10 space-y-3">
+            <h4 className="font-bold text-slate-900 dark:text-white">Modo llave en mano (presets)</h4>
+            <p className="text-xs text-slate-600 dark:text-slate-300">Aplica una configuración inicial recomendada para empezar sin fricción técnica.</p>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={() => applyPreset("health")} className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold">Clínica / Salud</button>
+              <button onClick={() => applyPreset("beauty")} className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold">Estética / Belleza</button>
+              <button onClick={() => applyPreset("legal")} className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold">Legal / Consultoría</button>
+            </div>
+          </div>
+
           <div className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-4">
             <h4 className="font-bold text-slate-900 dark:text-white">WhatsApp</h4>
             <select
@@ -512,6 +548,63 @@ function IntegrationsSettings({ integrations, slug }: any) {
             <ToggleRow label="Nuevo turno" checked={config.notifications.newAppointment} onChange={(v) => setConfig((prev: any) => ({ ...prev, notifications: { ...prev.notifications, newAppointment: v } }))} />
             <ToggleRow label="Cancelación" checked={config.notifications.cancellation} onChange={(v) => setConfig((prev: any) => ({ ...prev, notifications: { ...prev.notifications, cancellation: v } }))} />
             <ToggleRow label="Aviso de retraso" checked={config.notifications.delay} onChange={(v) => setConfig((prev: any) => ({ ...prev, notifications: { ...prev.notifications, delay: v } }))} />
+          </div>
+
+          <div className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-4">
+            <h4 className="font-bold text-slate-900 dark:text-white">Calendario multicanal (Google / Calendly / iCal)</h4>
+            <select
+              value={config.calendar.provider}
+              onChange={(e) => setConfig((prev: any) => ({ ...prev, calendar: { ...prev.calendar, provider: e.target.value } }))}
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            >
+              <option value="google">Google Calendar</option>
+              <option value="calendly">Calendly</option>
+              <option value="ical">iCal / URL externa</option>
+            </select>
+            <input
+              value={config.calendar.googleCalendarId}
+              onChange={(e) => setConfig((prev: any) => ({ ...prev, calendar: { ...prev.calendar, googleCalendarId: e.target.value } }))}
+              placeholder="ID de calendario Google (ej: primary)"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            />
+            <input
+              value={config.calendar.calendlyUrl}
+              onChange={(e) => setConfig((prev: any) => ({ ...prev, calendar: { ...prev.calendar, calendlyUrl: e.target.value } }))}
+              placeholder="URL de Calendly"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            />
+            <input
+              value={config.calendar.icalUrl}
+              onChange={(e) => setConfig((prev: any) => ({ ...prev, calendar: { ...prev.calendar, icalUrl: e.target.value } }))}
+              placeholder="URL iCal (.ics)"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-4">
+            <h4 className="font-bold text-slate-900 dark:text-white">Google Sheets (BI liviano)</h4>
+            <ToggleRow
+              label="Activar sincronización con Google Sheets"
+              checked={config.googleSheets.enabled}
+              onChange={(v) => setConfig((prev: any) => ({ ...prev, googleSheets: { ...prev.googleSheets, enabled: v } }))}
+            />
+            <input
+              value={config.googleSheets.spreadsheetId}
+              onChange={(e) => setConfig((prev: any) => ({ ...prev, googleSheets: { ...prev.googleSheets, spreadsheetId: e.target.value } }))}
+              placeholder="Spreadsheet ID"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            />
+            <input
+              value={config.googleSheets.worksheetName}
+              onChange={(e) => setConfig((prev: any) => ({ ...prev, googleSheets: { ...prev.googleSheets, worksheetName: e.target.value } }))}
+              placeholder="Nombre de pestaña (ej: Turnos)"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            />
+            <ToggleRow
+              label="Sincronizar turnos automáticamente"
+              checked={config.googleSheets.autoSyncAppointments}
+              onChange={(v) => setConfig((prev: any) => ({ ...prev, googleSheets: { ...prev.googleSheets, autoSyncAppointments: v } }))}
+            />
           </div>
 
 
