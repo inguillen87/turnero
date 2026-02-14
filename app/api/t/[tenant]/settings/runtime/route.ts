@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import {
+  sanitizeCountries,
+  sanitizeEmail,
+  sanitizeLocales,
+  sanitizeText,
+} from "@/lib/settings/runtimeSanitizers";
 
 const PROVIDER = "tenant_runtime_config";
 
@@ -43,7 +49,15 @@ export async function GET(
   if ("error" in resolved) return resolved.error;
 
   const configIntegration = resolved.tenant.integrations.find((i) => i.provider === PROVIDER);
-  const config = configIntegration?.config ? JSON.parse(configIntegration.config) : {};
+
+  let config = {};
+  if (configIntegration?.config) {
+    try {
+      config = JSON.parse(configIntegration.config);
+    } catch {
+      config = {};
+    }
+  }
 
   return NextResponse.json({ config });
 }
@@ -74,6 +88,36 @@ export async function POST(
       newAppointment: payload?.notifications?.newAppointment ?? true,
       cancellation: payload?.notifications?.cancellation ?? true,
       delay: payload?.notifications?.delay ?? true,
+    },
+    calendar: {
+      provider: payload?.calendar?.provider || "google",
+      googleCalendarId: payload?.calendar?.googleCalendarId || "primary",
+      calendlyUrl: payload?.calendar?.calendlyUrl || "",
+      icalUrl: payload?.calendar?.icalUrl || "",
+      blockedRanges: Array.isArray(payload?.calendar?.blockedRanges)
+        ? payload.calendar.blockedRanges
+            .map((item: any) => ({
+              id: String(item?.id || `block-${Date.now()}`),
+              startAt: String(item?.startAt || ""),
+              endAt: String(item?.endAt || ""),
+              reason: String(item?.reason || "Bloqueo operativo"),
+            }))
+            .filter((item: any) => item.startAt && item.endAt)
+        : [],
+    },
+    googleSheets: {
+      enabled: payload?.googleSheets?.enabled ?? false,
+      spreadsheetId: payload?.googleSheets?.spreadsheetId || "",
+      worksheetName: payload?.googleSheets?.worksheetName || "Turnos",
+      autoSyncAppointments: payload?.googleSheets?.autoSyncAppointments ?? true,
+    },
+    franchise: {
+      whiteLabelEnabled: payload?.franchise?.whiteLabelEnabled ?? false,
+      brandName: sanitizeText(payload?.franchise?.brandName, 80),
+      supportEmail: sanitizeEmail(payload?.franchise?.supportEmail),
+      resellerCode: sanitizeText(payload?.franchise?.resellerCode, 40),
+      countries: sanitizeCountries(payload?.franchise?.countries),
+      locales: sanitizeLocales(payload?.franchise?.locales),
     },
   };
 

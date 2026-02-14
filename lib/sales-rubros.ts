@@ -127,6 +127,58 @@ export const SALES_RUBROS: SalesRubroPlaybook[] = [
     ],
   },
   {
+    slug: "nutricion",
+    name: "Nutrición",
+    target: "Nutricionistas, consultorios y programas alimentarios",
+    pains: ["seguimiento manual", "baja adherencia", "cancelaciones"],
+    valueProps: ["agenda de controles", "recordatorios automáticos", "seguimiento por objetivos", "campañas de reactivación"],
+    discoveryQuestions: ["¿Manejan planes mensuales o por consulta?", "¿Qué porcentaje de pacientes abandona seguimiento?", "¿Trabajan presencial, online o mixto?"],
+    faq: [
+      { q: "¿Sirve para control periódico?", a: "Sí, agenda recurrente de controles y alertas automáticas." },
+      { q: "¿Puede enviar recordatorios de hábitos?", a: "Sí, por WhatsApp con plantillas personalizadas." },
+      { q: "¿Se integra con cobros?", a: "Sí, con links de pago para planes y consultas." },
+    ],
+  },
+  {
+    slug: "preparacion_fisica",
+    name: "Preparación Física",
+    target: "Preparadores físicos, coaches y centros de rendimiento",
+    pains: ["agenda desordenada", "ausentismo", "falta de seguimiento"],
+    valueProps: ["agenda por atleta", "slots inteligentes", "recordatorios", "cobro de planes"],
+    discoveryQuestions: ["¿Cuántos atletas/clients atienden por semana?", "¿Sesiones 1:1 o grupales?", "¿Cobran por paquete o mensualidad?"],
+    faq: [
+      { q: "¿Maneja clases personalizadas?", a: "Sí, por duración, coach y tipo de sesión." },
+      { q: "¿Puede reducir no-shows?", a: "Sí, con confirmaciones y recordatorios automáticos." },
+      { q: "¿Sirve para alto rendimiento?", a: "Sí, con agenda intensiva y reasignación rápida." },
+    ],
+  },
+  {
+    slug: "escribania",
+    name: "Escribanías",
+    target: "Escribanías y oficinas notariales",
+    pains: ["coordinación de firmas", "faltantes de documentación", "tiempos muertos"],
+    valueProps: ["agenda de reuniones y firmas", "captura de trámite", "recordatorio documental", "CRM de casos"],
+    discoveryQuestions: ["¿Qué tipo de trámites atienden más?", "¿Cuántas firmas coordinan por semana?", "¿Necesitan filtro por urgencia?"],
+    faq: [
+      { q: "¿Sirve para reuniones notariales?", a: "Sí, con slots por tipo de trámite y duración." },
+      { q: "¿Puede pedir documentación previa?", a: "Sí, con recordatorio automático en WhatsApp." },
+      { q: "¿Maneja múltiples escribanos?", a: "Sí, agenda por profesional y disponibilidad." },
+    ],
+  },
+  {
+    slug: "contable",
+    name: "Estudios Contables",
+    target: "Contadores, estudios impositivos y asesorías financieras",
+    pains: ["consultas dispersas", "temporadas pico", "seguimiento manual"],
+    valueProps: ["agenda consultiva", "CRM por cliente", "recordatorios de vencimientos", "automatización de comunicaciones"],
+    discoveryQuestions: ["¿Cuántas consultas por mes reciben?", "¿Trabajan empresas o personas físicas?", "¿Necesitan campañas de recordatorio fiscal?"],
+    faq: [
+      { q: "¿Sirve para temporada de impuestos?", a: "Sí, con segmentación y envíos masivos controlados." },
+      { q: "¿Puede priorizar clientes urgentes?", a: "Sí, con etiquetas y tickets de prioridad." },
+      { q: "¿Ayuda a reducir tareas repetitivas?", a: "Sí, con bot, recordatorios y workflows." },
+    ],
+  },
+  {
     slug: "general",
     name: "Servicios Profesionales",
     target: "Pymes de servicios",
@@ -156,6 +208,10 @@ export function detectSalesRubro(text: string, fallback = "general") {
     educacion: ["academia", "curso", "instituto", "alumno"],
     legal: ["abogado", "legal", "estudio jurídico", "juridico"],
     inmobiliaria: ["inmobiliaria", "propiedad", "alquiler", "venta"],
+    nutricion: ["nutrici", "aliment", "plan aliment", "dieta"],
+    preparacion_fisica: ["preparador", "coach", "rendimiento", "entrenamiento"],
+    escribania: ["escriban", "notarial", "escritura", "firma"],
+    contable: ["contable", "contador", "impositivo", "fiscal", "balance"],
   };
 
   for (const [slug, words] of Object.entries(hints)) {
