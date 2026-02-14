@@ -6,11 +6,24 @@ import { authOptions } from "@/lib/auth";
 const PROVIDER = "tenant_runtime_config";
 const ALLOWED_LOCALES = ["es-AR", "en-US", "pt-BR"] as const;
 
+function sanitizeText(input: unknown, maxLength: number): string {
+  return String(input || "").trim().slice(0, maxLength);
+}
+
+function sanitizeEmail(input: unknown): string {
+  const normalized = sanitizeText(input, 120).toLowerCase();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized) ? normalized : "";
+}
+
 function sanitizeCountries(input: unknown): string[] {
-  if (!Array.isArray(input)) return [];
+  const values = Array.isArray(input)
+    ? input
+    : typeof input === "string"
+      ? input.split(",")
+      : [];
 
   const unique = new Set<string>();
-  for (const value of input) {
+  for (const value of values) {
     const normalized = String(value || "")
       .trim()
       .toUpperCase();
@@ -78,7 +91,15 @@ export async function GET(
   if ("error" in resolved) return resolved.error;
 
   const configIntegration = resolved.tenant.integrations.find((i) => i.provider === PROVIDER);
-  const config = configIntegration?.config ? JSON.parse(configIntegration.config) : {};
+
+  let config = {};
+  if (configIntegration?.config) {
+    try {
+      config = JSON.parse(configIntegration.config);
+    } catch {
+      config = {};
+    }
+  }
 
   return NextResponse.json({ config });
 }
@@ -134,9 +155,9 @@ export async function POST(
     },
     franchise: {
       whiteLabelEnabled: payload?.franchise?.whiteLabelEnabled ?? false,
-      brandName: payload?.franchise?.brandName || "",
-      supportEmail: payload?.franchise?.supportEmail || "",
-      resellerCode: payload?.franchise?.resellerCode || "",
+      brandName: sanitizeText(payload?.franchise?.brandName, 80),
+      supportEmail: sanitizeEmail(payload?.franchise?.supportEmail),
+      resellerCode: sanitizeText(payload?.franchise?.resellerCode, 40),
       countries: sanitizeCountries(payload?.franchise?.countries),
       locales: sanitizeLocales(payload?.franchise?.locales),
     },
