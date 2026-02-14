@@ -1,32 +1,71 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, Check } from "lucide-react";
+import { MessageCircle, X, Send, Check, Sparkles, Bot, PhoneCall, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 
 interface Message {
   id: string;
-  sender: 'bot' | 'user';
+  sender: "bot" | "user";
   text: string;
   timestamp: Date;
-  options?: { label: string, value: string }[];
+  options?: { label: string; value: string }[];
 }
+
+type StarterGroup = {
+  id: string;
+  title: string;
+  options: { label: string; value: string }[];
+};
+
+const STARTER_GROUPS: StarterGroup[] = [
+  {
+    id: "salud",
+    title: "Salud y bienestar",
+    options: [
+      { label: "🦷 Odontología", value: "Somos una clínica odontológica y queremos automatizar agenda + recordatorios" },
+      { label: "🧠 Psicología", value: "Somos un consultorio psicológico y necesitamos agenda y ausentismo bajo" },
+      { label: "🥗 Nutrición", value: "Somos nutricionistas y queremos turnos, recordatorios y seguimiento" },
+      { label: "🧑‍⚕️ Kinesiología", value: "Tenemos un centro de kinesiología y queremos automatizar agenda y CRM" },
+    ],
+  },
+  {
+    id: "servicios",
+    title: "Servicios profesionales",
+    options: [
+      { label: "💅 Estética", value: "Somos centro de estética y buscamos whatsapp + CRM + campañas" },
+      { label: "✂️ Barbería", value: "Tenemos barbería y queremos agenda inteligente con recordatorios" },
+      { label: "⚖️ Estudio jurídico", value: "Tenemos un estudio jurídico y queremos ordenar turnos y seguimiento" },
+      { label: "🏨 Hotelería", value: "Manejamos hotelería y buscamos automatizar reservas y conversaciones" },
+    ],
+  },
+  {
+    id: "modelo",
+    title: "Modelo de implementación",
+    options: [
+      { label: "🧩 Quiero plan modular", value: "No quiero la plataforma completa, solo whatsapp crm agenda" },
+      { label: "🚀 Quiero full plataforma", value: "Quiero la plataforma completa con todo" },
+    ],
+  },
+];
+
+const STARTER_OPTIONS = STARTER_GROUPS.flatMap((g) => g.options);
 
 export function WhatsAppDemo({ onBooking }: { onBooking?: (data: any) => void }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
+    salud: true,
+    servicios: false,
+    modelo: false,
+  });
   const [messages, setMessages] = useState<Message[]>([
     {
-      id: '1',
-      sender: 'bot',
-      text: '¡Hola! 👋 Soy el BOT IA comercial de Turnero Pro. Te ayudo a elegir plan full o modular (WhatsApp + CRM + Agenda).',
+      id: "1",
+      sender: "bot",
+      text: "¡Hola! 👋 Soy el asesor IA de Turnero Pro. Elegí tu rubro y te propongo el mejor setup (agenda + bot + CRM + automatizaciones).",
       timestamp: new Date(),
-      options: [
-        { label: '🏥 Tengo una clínica', value: 'Tengo una clínica y quiero automatizar turnos' },
-        { label: '🧠 Soy psicóloga/o', value: 'Soy psicologa y quiero agenda con whatsapp' },
-        { label: '🧩 Quiero plan modular', value: 'No quiero la plataforma completa, solo whatsapp crm agenda' },
-        { label: '🚀 Quiero plataforma completa', value: 'Quiero la plataforma completa con todo' }
-      ]
-    }
+      options: STARTER_OPTIONS,
+    },
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -46,12 +85,8 @@ export function WhatsAppDemo({ onBooking }: { onBooking?: (data: any) => void })
   });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isOpen]);
 
   const handleSend = async (text: string, value?: string) => {
@@ -62,70 +97,62 @@ export function WhatsAppDemo({ onBooking }: { onBooking?: (data: any) => void })
       return;
     }
 
-    // Add User Message
     const userMsg: Message = {
       id: Date.now().toString(),
-      sender: 'user',
-      text: text,
-      timestamp: new Date()
+      sender: "user",
+      text,
+      timestamp: new Date(),
     };
-    setMessages(prev => [...prev, userMsg]);
+    setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setIsLoading(true);
 
     try {
-      // Build history for API
-      const history = messages.map(m => ({
-        role: m.sender === 'user' ? 'user' : 'assistant',
-        content: m.text
+      const history = messages.map((m) => ({
+        role: m.sender === "user" ? "user" : "assistant",
+        content: m.text,
       }));
 
-      // Call AI API
-      const response = await fetch('/api/public/sales-bot', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/public/sales-bot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: value || text, history, anonId }),
       });
 
       const data = await response.json();
-      if (data?.seller?.url) {
-        setSellerUrl(data.seller.url);
-      }
+      if (data?.seller?.url) setSellerUrl(data.seller.url);
 
       const botMsg: Message = {
         id: (Date.now() + 1).toString(),
-        sender: 'bot',
+        sender: "bot",
         text: data.message || "Lo siento, no entendí.",
         timestamp: new Date(),
-        options: data.options || []
+        options: data.options || [],
       };
 
-      setMessages(prev => [...prev, botMsg]);
+      setMessages((prev) => [...prev, botMsg]);
 
-      // If booking confirmed (check intent or specific entities), we could call onBooking
-      if (data.intent === 'confirmation' || data.intent === 'booking_confirmed') {
-         if (onBooking) {
-            onBooking({
-                status: 'confirmed',
-                clientName: 'Demo User',
-                startAt: new Date().toISOString(),
-                ...data.entities
-            });
-         }
-         // Optional: Fire a real "save" to the demo backend if needed
-         // await fetch('/api/t/demo/appointments', ...);
+      if (data.intent === "confirmation" || data.intent === "booking_confirmed") {
+        onBooking?.({
+          status: "confirmed",
+          clientName: "Demo User",
+          startAt: new Date().toISOString(),
+          ...data.entities,
+        });
       }
-
     } catch (error) {
       console.error("Chat Error:", error);
       const errorMsg: Message = {
         id: (Date.now() + 1).toString(),
-        sender: 'bot',
-        text: "Lo siento, tuve un problema de conexión. Intenta de nuevo.",
+        sender: "bot",
+        text: "Tuve un problema de conexión. Si querés, podés hablar directo con el equipo.",
         timestamp: new Date(),
-        options: [{ label: "Reintentar", value: text }]
+        options: [
+          { label: "Reintentar", value: text },
+          { label: "Hablar con ventas", value: "contact_seller" },
+        ],
       };
-      setMessages(prev => [...prev, errorMsg]);
+      setMessages((prev) => [...prev, errorMsg]);
     } finally {
       setIsLoading(false);
     }
@@ -133,63 +160,116 @@ export function WhatsAppDemo({ onBooking }: { onBooking?: (data: any) => void })
 
   return (
     <>
-      {/* Toggle Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`fixed bottom-6 right-6 z-50 p-4 rounded-full shadow-2xl transition-all duration-300 transform hover:scale-110 ${isOpen ? 'bg-slate-800 text-white rotate-90' : 'bg-[#25D366] text-white hover:bg-[#128C7E]'}`}
+        className={`fixed bottom-6 right-6 z-50 rounded-2xl p-3.5 shadow-2xl transition-all duration-300 hover:scale-105 border ${
+          isOpen
+            ? "bg-slate-900 text-white border-slate-700"
+            : "bg-gradient-to-br from-indigo-600 to-violet-600 text-white border-indigo-400/30"
+        }`}
       >
-        {isOpen ? <X className="w-8 h-8" /> : <MessageCircle className="w-8 h-8" />}
+        <span className="absolute -top-2 -right-2 rounded-full bg-emerald-400 text-[10px] font-black text-emerald-950 px-1.5 py-0.5">AI</span>
+        {isOpen ? <X className="w-7 h-7" /> : <MessageCircle className="w-7 h-7" />}
       </button>
 
-      {/* Chat Window */}
-      <div className={`fixed bottom-24 right-6 z-50 w-80 md:w-96 bg-[#ece5dd] dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden transition-all duration-300 origin-bottom-right ${isOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0 pointer-events-none'}`}>
-
-        {/* Header */}
-        <div className="bg-[#075E54] p-4 text-white flex items-center gap-3">
-           <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-             <MessageCircle className="w-6 h-6" />
-           </div>
-           <div>
-             <h3 className="font-bold text-sm">Turnero Sales AI</h3>
-             <div className="flex items-center gap-1">
-                <span className={`w-2 h-2 rounded-full ${isLoading ? 'bg-yellow-400 animate-pulse' : 'bg-green-400'}`}></span>
-                <p className="text-xs text-green-100">{isLoading ? 'Escribiendo...' : 'En línea'}</p>
-             </div>
-           </div>
+      <div
+        className={`fixed bottom-24 right-6 z-50 w-[22rem] md:w-[25rem] rounded-3xl shadow-2xl border border-indigo-200/70 dark:border-slate-700/80 overflow-hidden transition-all duration-300 origin-bottom-right bg-white/95 dark:bg-slate-900/95 backdrop-blur ${
+          isOpen ? "scale-100 opacity-100" : "scale-95 opacity-0 pointer-events-none"
+        }`}
+      >
+        <div className="p-4 text-white bg-gradient-to-r from-indigo-600 via-violet-600 to-sky-600">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center">
+                <Bot className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm leading-tight">Turnero Sales Copilot</h3>
+                <div className="flex items-center gap-1.5 text-xs text-indigo-100">
+                  <span className={`w-2 h-2 rounded-full ${isLoading ? "bg-amber-300 animate-pulse" : "bg-emerald-300"}`} />
+                  {isLoading ? "Pensando propuesta..." : "Online · responde por rubro"}
+                </div>
+              </div>
+            </div>
+            <Sparkles className="w-4 h-4 text-indigo-100" />
+          </div>
         </div>
 
-        {/* Messages Area */}
-        <div className="h-80 overflow-y-auto p-4 space-y-4 custom-scroll relative" style={{ backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")', backgroundBlendMode: 'soft-light' }}>
-           {/* Loading Indicator Overlay (Optional, but subtle is better) */}
+        <div className="h-96 overflow-y-auto p-4 space-y-4 bg-[radial-gradient(circle_at_top,_rgba(99,102,241,0.08),transparent_50%)]">
+          {messages.map((msg) => {
+            const isStarter = msg.id === "1" && msg.sender === "bot";
+            return (
+              <div key={msg.id} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
+                <div
+                  className={`max-w-[90%] p-3.5 rounded-2xl text-sm shadow-sm relative border ${
+                    msg.sender === "user"
+                      ? "bg-indigo-600 text-white border-indigo-500 rounded-br-md"
+                      : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border-slate-200/70 dark:border-slate-700 rounded-bl-md"
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap leading-relaxed">{msg.text}</p>
+                  <span
+                    className={`text-[10px] block text-right mt-1 ${
+                      msg.sender === "user" ? "text-indigo-100" : "text-slate-400"
+                    }`}
+                  >
+                    {format(msg.timestamp, "HH:mm")}
+                    {msg.sender === "user" && <Check className="w-3 h-3 inline ml-1 text-cyan-200" />}
+                  </span>
 
-           {messages.map((msg) => (
-             <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-               <div className={`max-w-[85%] p-3 rounded-lg text-sm shadow-sm relative ${msg.sender === 'user' ? 'bg-[#dcf8c6] text-slate-900 rounded-tr-none' : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-tl-none'}`}>
-                 <p className="whitespace-pre-wrap">{msg.text}</p>
-                 <span className="text-[10px] text-slate-400 block text-right mt-1">
-                   {format(msg.timestamp, 'HH:mm')}
-                   {msg.sender === 'user' && <Check className="w-3 h-3 inline ml-1 text-blue-500" />}
-                 </span>
-
-                 {/* Options Chips */}
-                 {msg.options && msg.options.length > 0 && (
-                   <div className="mt-3 flex flex-wrap gap-2">
-                     {msg.options.map((opt, idx) => (
-                       <button
-                         key={idx}
-                         onClick={() => handleSend(opt.label, opt.value)} // Send label as text, value as hidden payload/context? Actually simple chat just sends text usually.
-                         disabled={isLoading}
-                         className="bg-white border border-slate-200 text-indigo-600 text-xs font-bold px-3 py-2 rounded-full shadow-sm hover:bg-slate-50 transition-colors disabled:opacity-50"
-                       >
-                         {opt.label}
-                       </button>
-                     ))}
-                   </div>
-                 )}
-               </div>
-             </div>
-           ))}
-           <div ref={messagesEndRef} />
+                  {isStarter ? (
+                    <div className="mt-3 space-y-2">
+                      {STARTER_GROUPS.map((group) => {
+                        const open = expandedGroups[group.id];
+                        return (
+                          <div key={group.id} className="rounded-xl border border-indigo-100 dark:border-slate-700 bg-indigo-50/50 dark:bg-slate-900/70 overflow-hidden">
+                            <button
+                              type="button"
+                              onClick={() => setExpandedGroups((prev) => ({ ...prev, [group.id]: !prev[group.id] }))}
+                              className="w-full px-3 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-indigo-700 dark:text-indigo-300 flex items-center justify-between"
+                            >
+                              {group.title}
+                              <ChevronDown className={`w-4 h-4 transition-transform ${open ? "rotate-180" : "rotate-0"}`} />
+                            </button>
+                            {open && (
+                              <div className="px-2 pb-2 grid grid-cols-1 gap-1.5">
+                                {group.options.map((opt) => (
+                                  <button
+                                    key={opt.value}
+                                    onClick={() => handleSend(opt.label, opt.value)}
+                                    disabled={isLoading}
+                                    className="w-full text-left bg-white dark:bg-slate-800 border border-indigo-200/70 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium px-3 py-2 rounded-lg hover:bg-indigo-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                                  >
+                                    {opt.label}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    msg.options && msg.options.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {msg.options.map((opt, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => handleSend(opt.label, opt.value)}
+                            disabled={isLoading}
+                            className="bg-indigo-50 dark:bg-slate-900 border border-indigo-200 dark:border-slate-700 text-indigo-700 dark:text-indigo-300 text-xs font-semibold px-3 py-1.5 rounded-full hover:bg-indigo-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          <div ref={messagesEndRef} />
         </div>
 
         <div className="px-3 pt-2">
@@ -197,27 +277,26 @@ export function WhatsAppDemo({ onBooking }: { onBooking?: (data: any) => void })
             href={sellerUrl}
             target="_blank"
             rel="noreferrer"
-            className="w-full inline-flex items-center justify-center rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5"
           >
-            💬 Contactar directo al vendedor (Marce)
+            <PhoneCall className="w-4 h-4" /> Hablar con ventas ahora
           </a>
         </div>
 
-        {/* Input Area */}
-        <div className="p-3 bg-[#f0f0f0] dark:bg-slate-800 flex gap-2">
+        <div className="p-3 bg-slate-50 dark:bg-slate-900/60 border-t border-slate-200 dark:border-slate-800 flex gap-2">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend(input)}
-            placeholder="Contame tu rubro o qué querés implementar..."
+            onKeyDown={(e) => e.key === "Enter" && handleSend(input)}
+            placeholder="Contame tu rubro, cantidad de turnos y objetivo..."
             disabled={isLoading}
-            className="flex-1 px-4 py-2 rounded-full border border-slate-300 dark:border-slate-600 focus:outline-none focus:border-[#075E54] text-sm dark:bg-slate-700 dark:text-white disabled:opacity-50"
+            className="flex-1 px-4 py-2.5 rounded-full border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-indigo-500 text-sm dark:bg-slate-800 dark:text-white disabled:opacity-50"
           />
           <button
             onClick={() => handleSend(input)}
             disabled={isLoading || !input.trim()}
-            className="p-2 bg-[#075E54] text-white rounded-full hover:bg-[#128C7E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-2.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send className="w-5 h-5" />
           </button>
