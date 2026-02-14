@@ -345,6 +345,7 @@ function IntegrationsSettings({ integrations, slug }: any) {
     notifications: { newPayment: true, newAppointment: true, cancellation: true, delay: true },
     calendar: { provider: "google", googleCalendarId: "primary", calendlyUrl: "", icalUrl: "" },
     googleSheets: { enabled: false, spreadsheetId: "", worksheetName: "Turnos", autoSyncAppointments: true },
+    franchise: { whiteLabelEnabled: false, brandName: "", supportEmail: "", resellerCode: "", countries: [], locales: ["es-AR", "en-US", "pt-BR"] },
   });
   const [campaign, setCampaign] = useState({ message: "", flyerUrl: "", limit: 100, segmentation: { rubro: "", tag: "", lastSeenDays: 30 }, scheduledAt: "" });
   const [campaignState, setCampaignState] = useState<"idle" | "sending" | "ok" | "error">("idle");
@@ -605,6 +606,62 @@ function IntegrationsSettings({ integrations, slug }: any) {
               checked={config.googleSheets.autoSyncAppointments}
               onChange={(v) => setConfig((prev: any) => ({ ...prev, googleSheets: { ...prev.googleSheets, autoSyncAppointments: v } }))}
             />
+          </div>
+
+          <div className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-4">
+            <h4 className="font-bold text-slate-900 dark:text-white">Franquicia / White-label (Global)</h4>
+            <ToggleRow
+              label="Activar modo white-label"
+              checked={config.franchise.whiteLabelEnabled}
+              onChange={(v) => setConfig((prev: any) => ({ ...prev, franchise: { ...prev.franchise, whiteLabelEnabled: v } }))}
+            />
+            <input
+              value={config.franchise.brandName}
+              onChange={(e) => setConfig((prev: any) => ({ ...prev, franchise: { ...prev.franchise, brandName: e.target.value } }))}
+              placeholder="Nombre de marca reseller"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            />
+            <input
+              value={config.franchise.supportEmail}
+              onChange={(e) => setConfig((prev: any) => ({ ...prev, franchise: { ...prev.franchise, supportEmail: e.target.value } }))}
+              placeholder="Email soporte regional"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            />
+            <input
+              value={config.franchise.resellerCode}
+              onChange={(e) => setConfig((prev: any) => ({ ...prev, franchise: { ...prev.franchise, resellerCode: e.target.value } }))}
+              placeholder="Código reseller / partner"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            />
+            <input
+              value={(config.franchise.countries || []).join(",")}
+              onChange={(e) => setConfig((prev: any) => ({ ...prev, franchise: { ...prev.franchise, countries: e.target.value.split(",").map((x) => x.trim()).filter(Boolean) } }))}
+              placeholder="Países objetivo (ej: Argentina,Brasil,USA)"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            />
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              {[
+                ["es-AR", "Español"],
+                ["en-US", "English"],
+                ["pt-BR", "Português"],
+              ].map(([code, label]) => (
+                <label key={code} className="flex items-center gap-2 p-2 rounded border border-slate-200 dark:border-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={(config.franchise.locales || []).includes(code)}
+                    onChange={(e) => {
+                      setConfig((prev: any) => {
+                        const next = new Set(prev.franchise.locales || []);
+                        if (e.target.checked) next.add(code);
+                        else next.delete(code);
+                        return { ...prev, franchise: { ...prev.franchise, locales: Array.from(next) } };
+                      });
+                    }}
+                  />
+                  <span>{label}</span>
+                </label>
+              ))}
+            </div>
           </div>
 
 

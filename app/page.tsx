@@ -175,6 +175,11 @@ export default function LandingPage() {
               Turnerosa ya está preparada para operar en <strong>Español, English y Português</strong>, con demo enterprise completa para SuperAdmin + tenant.
               Ideal para partners que quieran revender white-label en nuevos mercados.
             </p>
+            <div className="mt-6 flex flex-wrap justify-center gap-2 text-xs">
+              <span className="px-3 py-1 rounded-full bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800">Franquicias por país</span>
+              <span className="px-3 py-1 rounded-full bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800">Asociaciones con grupos grandes</span>
+              <span className="px-3 py-1 rounded-full bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800">Operación multi-idioma nativa</span>
+            </div>
           </div>
         </section>
 
