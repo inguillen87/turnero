@@ -6,7 +6,7 @@ import {
   sanitizeCountries,
   sanitizeEmail,
   sanitizeLocales,
-  sanitizeText,
+  sanitizeText as sanitizeRuntimeText,
   sanitizeBlockedRanges,
 } from "@/lib/settings/runtimeSanitizers";
 
@@ -153,9 +153,9 @@ export async function POST(
     },
     franchise: {
       whiteLabelEnabled: payload?.franchise?.whiteLabelEnabled ?? false,
-      brandName: sanitizeText(payload?.franchise?.brandName, 80),
+      brandName: sanitizeRuntimeText(payload?.franchise?.brandName, 80),
       supportEmail: sanitizeEmail(payload?.franchise?.supportEmail),
-      resellerCode: sanitizeText(payload?.franchise?.resellerCode, 40),
+      resellerCode: sanitizeRuntimeText(payload?.franchise?.resellerCode, 40),
       countries: sanitizeCountries(payload?.franchise?.countries),
       locales: sanitizeLocales(payload?.franchise?.locales),
     },
