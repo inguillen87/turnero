@@ -40,7 +40,7 @@ export default function LandingPage() {
 
           <div className="container mx-auto px-4 text-center">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 text-xs font-bold uppercase tracking-wider mb-8 border border-indigo-100 dark:border-indigo-800 animate-fade-in shadow-sm">
-              <Star className="w-3 h-3 fill-current" /> La Solución Definitiva B2B
+              <Star className="w-3 h-3 fill-current" /> Software propio. Innovación continua.
             </div>
 
             <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-8 bg-clip-text text-transparent bg-gradient-to-b from-slate-900 via-slate-700 to-slate-500 dark:from-white dark:via-slate-200 dark:to-slate-400 drop-shadow-sm animate-fade-in leading-tight">
@@ -107,6 +107,32 @@ export default function LandingPage() {
                   <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-2"><p className="font-bold text-lg">1</p><p>Día más liviano</p></div>
                   <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-2"><p className="font-bold text-lg">14d</p><p>Horizonte IA</p></div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-20 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+          <div className="container mx-auto px-4 text-center max-w-4xl">
+            <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-slate-900 dark:text-white mb-6">
+              No somos una integradora de apps de terceros.
+            </h2>
+            <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 leading-relaxed">
+              En Turnero desarrollamos producto real: diseñamos, construimos y mejoramos nuestras herramientas internas todos los meses.
+              Innovar es nuestro motor y por eso cada release trae mejoras concretas en agenda, bot admin, automatizaciones y operación diaria.
+            </p>
+            <div className="mt-8 grid md:grid-cols-3 gap-3 text-sm">
+              <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4 bg-slate-50 dark:bg-slate-800/40">
+                <p className="font-bold text-indigo-600 dark:text-indigo-300">Producto first-party</p>
+                <p className="text-slate-600 dark:text-slate-400 mt-1">Control total de UX, performance y roadmap.</p>
+              </div>
+              <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4 bg-slate-50 dark:bg-slate-800/40">
+                <p className="font-bold text-indigo-600 dark:text-indigo-300">Mejora continua</p>
+                <p className="text-slate-600 dark:text-slate-400 mt-1">Iteración semanal con foco en valor operativo real.</p>
+              </div>
+              <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4 bg-slate-50 dark:bg-slate-800/40">
+                <p className="font-bold text-indigo-600 dark:text-indigo-300">Innovación aplicada</p>
+                <p className="text-slate-600 dark:text-slate-400 mt-1">No copiamos features: las evolucionamos para LATAM y global.</p>
               </div>
             </div>
           </div>
