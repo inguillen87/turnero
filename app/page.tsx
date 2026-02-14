@@ -4,7 +4,7 @@ import { WhatsAppDemo } from '@/components/WhatsAppDemo';
 
 export const dynamic = 'force-static';
 import { Logo } from '@/components/Logo';
-import { ArrowRight, Calendar, Users, BarChart3, Clock, CheckCircle2, Star, MessageSquare, Briefcase, Zap } from 'lucide-react';
+import { ArrowRight, Calendar, Users, BarChart3, Clock, CheckCircle2, Star, MessageSquare, Briefcase, Zap, Bot, PanelTop } from 'lucide-react';
 
 export default function LandingPage() {
   return (
@@ -47,8 +47,9 @@ export default function LandingPage() {
               Escala tu negocio con<br className="hidden md:block"/> <span className="text-indigo-600 dark:text-indigo-500">tecnología de clase mundial.</span>
             </h1>
 
-            <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto mb-12 leading-relaxed animate-fade-in delay-100 font-medium">
-              Olvida las limitaciones. Obtén un CRM completo, agenda inteligente y automatización por WhatsApp en una sola plataforma robusta.
+            <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-400 max-w-4xl mx-auto mb-12 leading-relaxed animate-fade-in delay-100 font-medium">
+              Construimos nuestras propias herramientas enterprise: agenda operativa, bot admin inteligente, CRM y automatización por WhatsApp en una sola plataforma.
+              Sin depender de integraciones externas para el core de tu negocio.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in delay-200">
@@ -64,6 +65,49 @@ export default function LandingPage() {
               >
                 Explorar Features
               </Link>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-20 bg-slate-50 dark:bg-slate-950 border-y border-slate-200/70 dark:border-slate-800">
+          <div className="container mx-auto px-4 grid lg:grid-cols-2 gap-10 items-center">
+            <div className="space-y-5">
+              <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wide bg-emerald-100/70 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 px-3 py-1 rounded-full">
+                <Zap className="w-3 h-3" /> Hecho por Turnero (first-party)
+              </div>
+              <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-slate-900 dark:text-white">No dependas de terceros para operar.</h2>
+              <p className="text-slate-600 dark:text-slate-400 text-lg">
+                Tu clínica puede funcionar con nuestro stack nativo: calendario propio, planificación de bloqueos y bot admin que responde consultas reales como
+                “¿qué día me conviene tomarme libre?” o “si cierro mañana al mediodía, ¿cuántos turnos impacto?”.
+              </p>
+              <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
+                <li>✅ Calendario operativo con bloqueos, conflictos y sugerencias inteligentes.</li>
+                <li>✅ Bot interno que analiza próximos 3 días y te propone el día más liviano.</li>
+                <li>✅ Simulación de impacto si cerrás por almuerzo, familiar o mini vacaciones.</li>
+              </ul>
+            </div>
+
+            <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 text-xs font-semibold text-slate-500">
+                <PanelTop className="w-4 h-4" /> Admin Panel + Bot Interno
+              </div>
+              <div className="p-5 space-y-4">
+                <div className="rounded-xl bg-slate-100 dark:bg-slate-800 p-3 text-sm text-slate-700 dark:text-slate-200">
+                  <p className="font-semibold mb-1 flex items-center gap-2"><Bot className="w-4 h-4 text-indigo-500" /> Consulta rápida</p>
+                  <p>“Boti, si cierro mañana al mediodía para ir a comer con mi familia, ¿qué impacto tengo?”</p>
+                </div>
+                <div className="rounded-xl bg-indigo-50 dark:bg-indigo-900/30 p-3 text-sm text-indigo-900 dark:text-indigo-100 border border-indigo-100 dark:border-indigo-800">
+                  <p className="font-semibold mb-1">Respuesta sugerida por Turnero AI</p>
+                  <p>
+                    “Impactarías 3 turnos entre 12:00 y 15:00. El día más liviano de las próximas 2 semanas es el jueves (1 turno). Te conviene bloquear esa ventana y reprogramar automáticamente por WhatsApp.”
+                  </p>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                  <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-2"><p className="font-bold text-lg">3</p><p>Turnos impactados</p></div>
+                  <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-2"><p className="font-bold text-lg">1</p><p>Día más liviano</p></div>
+                  <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-2"><p className="font-bold text-lg">14d</p><p>Horizonte IA</p></div>
+                </div>
+              </div>
             </div>
           </div>
         </section>

@@ -21,11 +21,48 @@ function startOfMonth(date = new Date()) {
 
 function detectIntent(question: string) {
   const q = question.toLowerCase();
+  if (q.includes("cierro") || q.includes("cerrar") || q.includes("mediod") || q.includes("almorz")) return "closure_impact";
   if (q.includes("libre") || q.includes("vacaciones") || q.includes("comer") || q.includes("familiar") || q.includes("mujer")) return "availability_planning";
   if (q.includes("ganamos") || q.includes("factur") || q.includes("ingreso")) return "revenue_today";
   if (q.includes("pacientes") && q.includes("semana")) return "patients_week";
   if (q.includes("tratamiento") || q.includes("cirugia") || q.includes("consult")) return "services_month";
   return "summary";
+}
+
+function parseClosureScenario(question: string) {
+  const q = question.toLowerCase();
+  const baseDate = new Date();
+
+  if (q.includes("pasado mañana")) {
+    baseDate.setDate(baseDate.getDate() + 2);
+  } else if (q.includes("mañana")) {
+    baseDate.setDate(baseDate.getDate() + 1);
+  }
+
+  let startHour = 12;
+  let endHour = 15;
+
+  if (q.includes("todo el día") || q.includes("todo el dia")) {
+    startHour = 0;
+    endHour = 24;
+  } else if (q.includes("noche")) {
+    startHour = 18;
+    endHour = 23;
+  } else if (q.includes("tarde")) {
+    startHour = 14;
+    endHour = 19;
+  } else if (q.includes("mañana ")) {
+    startHour = 8;
+    endHour = 13;
+  }
+
+  const startAt = new Date(baseDate);
+  startAt.setHours(startHour, 0, 0, 0);
+
+  const endAt = new Date(baseDate);
+  endAt.setHours(endHour, 0, 0, 0);
+
+  return { startAt, endAt };
 }
 
 function endOfDay(date = new Date()) {
@@ -69,7 +106,9 @@ export async function POST(
   const next3DaysEnd = endOfDay(new Date(Date.now() + 3 * 24 * 60 * 60 * 1000));
   const next14DaysEnd = endOfDay(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000));
 
-  const [revenueTodayRows, patientsWeek, servicesMonthRows, upcoming3DaysRows, upcoming14DaysRows] = await Promise.all([
+  const closureScenario = parseClosureScenario(question);
+
+  const [revenueTodayRows, patientsWeek, servicesMonthRows, upcoming3DaysRows, upcoming14DaysRows, closureWindowRows] = await Promise.all([
     prisma.appointment.findMany({
       where: {
         tenantId: tenant.id,
@@ -111,6 +150,21 @@ export async function POST(
       },
       orderBy: { startAt: "asc" },
       select: { startAt: true, endAt: true },
+    }),
+    prisma.appointment.findMany({
+      where: {
+        tenantId: tenant.id,
+        startAt: { lt: closureScenario.endAt },
+        endAt: { gt: closureScenario.startAt },
+        status: { in: ["CONFIRMED", "DONE", "PENDING"] },
+      },
+      orderBy: { startAt: "asc" },
+      select: {
+        startAt: true,
+        endAt: true,
+        contact: { select: { name: true } },
+        service: { select: { name: true } },
+      },
     }),
   ]);
 
@@ -157,7 +211,17 @@ export async function POST(
     ? `Para organizarte: el día más liviano en próximos 14 días es ${bestDay.date} (${bestDay.count} turnos). Próximos 3 días tenés ${upcoming3DaysRows.length} compromisos${upcoming3Summary ? `. Agenda cercana: ${upcoming3Summary}.` : "."} Si querés mini-vacaciones, te conviene bloquear ventanas ese día y reprogramar desde calendario.`
     : "No encontré agenda para próximos días. Podés tomarte el día libre y abrir slots luego.";
 
+  const closureImpacted = closureWindowRows.slice(0, 5).map((row) => {
+    const when = row.startAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const who = row.contact?.name || "Paciente";
+    const service = row.service?.name || "Servicio";
+    return `${when} ${who} (${service})`;
+  });
+
+  const closureImpactAnswer = `Si cerrás entre ${closureScenario.startAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} y ${closureScenario.endAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} del ${closureScenario.startAt.toLocaleDateString()}, impactarías ${closureWindowRows.length} turnos${closureImpacted.length ? `. Ejemplos: ${closureImpacted.join(" | ")}.` : "."} Te sugiero reprogramarlos con prioridad y enviar aviso por WhatsApp.`;
+
   const responseByIntent: Record<string, string> = {
+    closure_impact: closureImpactAnswer,
     availability_planning: availabilityAnswer,
     revenue_today: `Facturación de hoy: ${revenueToday} ${tenant.currency}.`,
     patients_week: `Pacientes/turnos esta semana: ${patientsWeek}.`,
@@ -175,6 +239,7 @@ export async function POST(
       planning: {
         bestDay,
         upcoming3DaysCount: upcoming3DaysRows.length,
+        closureImpactCount: closureWindowRows.length,
       },
     },
   });
