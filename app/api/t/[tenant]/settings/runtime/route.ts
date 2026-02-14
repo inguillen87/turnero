@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import {
+  sanitizeCountries,
+  sanitizeEmail,
+  sanitizeLocales,
+  sanitizeText,
+} from "@/lib/settings/runtimeSanitizers";
 
 const PROVIDER = "tenant_runtime_config";
 const ALLOWED_LOCALES = ["es-AR", "en-US", "pt-BR"] as const;
