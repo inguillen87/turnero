@@ -11,9 +11,31 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://turnero.pro"),
   title: "Turnero Pro - Gestiona tu negocio, no tu agenda",
   description: "El sistema de gestión de turnos definitivo para profesionales.",
   applicationName: "Turnero Pro",
+  openGraph: {
+    type: "website",
+    locale: "es_AR",
+    siteName: "Turnero Pro",
+    title: "Turnero Pro - Gestiona tu negocio, no tu agenda",
+    description: "El sistema de gestión de turnos definitivo para profesionales.",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "Turnero Pro - Gestiona tu negocio, no tu agenda",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Turnero Pro - Gestiona tu negocio, no tu agenda",
+    description: "El sistema de gestión de turnos definitivo para profesionales.",
+    images: ["/opengraph-image"],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
