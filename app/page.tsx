@@ -167,6 +167,17 @@ export default function LandingPage() {
           </div>
         </section>
 
+        <section className="py-12 bg-indigo-50/60 dark:bg-indigo-900/10 border-b border-indigo-100 dark:border-indigo-900/40">
+          <div className="container mx-auto px-4 text-center">
+            <p className="text-xs font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-300 mb-3">White-label ready • expansión global</p>
+            <h3 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-3">Listo para franquiciar y escalar por país/idioma</h3>
+            <p className="text-slate-600 dark:text-slate-300 max-w-3xl mx-auto">
+              Turnerosa ya está preparada para operar en <strong>Español, English y Português</strong>, con demo enterprise completa para SuperAdmin + tenant.
+              Ideal para partners que quieran revender white-label en nuevos mercados.
+            </p>
+          </div>
+        </section>
+
         <section className="py-20 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
           <div className="container mx-auto px-4">
             <div className="text-center max-w-3xl mx-auto mb-12">

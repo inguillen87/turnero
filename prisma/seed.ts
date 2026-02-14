@@ -27,6 +27,7 @@ async function main() {
         planActivatedAt: isEnterpriseDemo ? new Date() : null,
         planRenewsAt: isEnterpriseDemo ? renewDate : null,
         defaultLocale: "es-AR",
+        localesEnabled: JSON.stringify(["es-AR", "en-US", "pt-BR"]),
       },
       create: {
         slug: tenant.slug,
@@ -37,7 +38,8 @@ async function main() {
         planStatus: isEnterpriseDemo ? "active" : "DEMO",
         planActivatedAt: isEnterpriseDemo ? new Date() : null,
         planRenewsAt: isEnterpriseDemo ? renewDate : null,
-        defaultLocale: "es-AR"
+        defaultLocale: "es-AR",
+        localesEnabled: JSON.stringify(["es-AR", "en-US", "pt-BR"]),
       }
     });
 
