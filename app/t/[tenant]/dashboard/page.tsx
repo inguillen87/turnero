@@ -13,9 +13,14 @@ import {
   Zap,
   MoreVertical,
   Activity,
-  Bot
+  Bot,
+  FileDown,
+  Table
 } from "lucide-react";
 import Link from "next/link";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 
 export default function TenantDashboard() {
   const { tenant } = useParams();
@@ -24,6 +29,36 @@ export default function TenantDashboard() {
   const [adminQuestion, setAdminQuestion] = useState("¿Cuánto ganamos hoy?");
   const [adminAnswer, setAdminAnswer] = useState("Preguntame sobre facturación, pacientes o tratamientos.");
   const [adminLoading, setAdminLoading] = useState(false);
+
+  const exportAgendaPDF = () => {
+    const doc = new jsPDF();
+    doc.text("Agenda del día", 14, 10);
+    autoTable(doc, {
+      head: [["Paciente", "Servicio", "Hora", "Estado"]],
+      body: appointments.map((appt) => [
+        appt.clientName || "-",
+        appt.service?.name || "-",
+        appt.startAt ? format(new Date(appt.startAt), "HH:mm") : "-",
+        appt.status || "-",
+      ]),
+      startY: 20,
+    });
+    doc.save("agenda-dia.pdf");
+  };
+
+  const exportAgendaExcel = () => {
+    const ws = XLSX.utils.json_to_sheet(
+      appointments.map((appt) => ({
+        Paciente: appt.clientName || "-",
+        Servicio: appt.service?.name || "-",
+        Hora: appt.startAt ? format(new Date(appt.startAt), "HH:mm") : "-",
+        Estado: appt.status || "-",
+      }))
+    );
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Agenda");
+    XLSX.writeFile(wb, "agenda-dia.xlsx");
+  };
 
   // Mock data for demo/fallback purposes
   const mockAppointments = [
@@ -142,9 +177,17 @@ export default function TenantDashboard() {
                    <h3 className="font-bold text-slate-800 dark:text-white text-lg">Agenda del Día</h3>
                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Próximos turnos programados</p>
                </div>
-               <Link href={`/t/${tenant}/calendar`} className="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 transition-colors">
-                  Calendario <ArrowUpRight className="w-3 h-3" />
-               </Link>
+               <div className="flex items-center gap-2">
+                  <button onClick={exportAgendaPDF} className="text-xs px-2 py-1 rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                    <FileDown className="w-3 h-3" /> PDF
+                  </button>
+                  <button onClick={exportAgendaExcel} className="text-xs px-2 py-1 rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                    <Table className="w-3 h-3" /> Excel
+                  </button>
+                  <Link href={`/t/${tenant}/calendar`} className="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 transition-colors">
+                    Calendario <ArrowUpRight className="w-3 h-3" />
+                  </Link>
+               </div>
             </div>
             <div className="flex-1 p-0 min-h-[300px]">
                {loading ? (
