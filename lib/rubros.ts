@@ -135,6 +135,54 @@ export const RUBROS: RubroTemplate[] = [
       { nombre: "Suite Ejecutiva", duracion_min: 1440, precio: 85000 },
     ],
   },
+  {
+    slug: "nutricion",
+    name: "Nutrición",
+    menu: { booking: "Reservar Consulta", prices: "Planes", cancel: "Reprogramar", my_appointments: "Mis Consultas", human: "Hablar con Asistente", info: "Programas", policy: "Políticas" },
+    politicas: "Cancelaciones con 24hs. Incluye seguimiento por objetivos.",
+    datos_reserva: ["Nombre", "DNI", "Email", "Objetivo nutricional"],
+    services_default: [
+      { nombre: "Consulta Inicial", duracion_min: 60, precio: 24000 },
+      { nombre: "Control Nutricional", duracion_min: 40, precio: 18000 },
+      { nombre: "Plan Deportivo", duracion_min: 50, precio: 28000 },
+    ],
+  },
+  {
+    slug: "preparacion_fisica",
+    name: "Preparación Física",
+    menu: { booking: "Reservar Sesión", prices: "Planes", cancel: "Cancelar", my_appointments: "Mis Sesiones", human: "Hablar con Coach", info: "Programas", policy: "Reglamento" },
+    politicas: "Evaluación previa obligatoria. Reprogramación con 12hs.",
+    datos_reserva: ["Nombre", "DNI", "Apto físico", "Objetivo deportivo"],
+    services_default: [
+      { nombre: "Evaluación Inicial", duracion_min: 60, precio: 20000 },
+      { nombre: "Sesión Personalizada", duracion_min: 60, precio: 17000 },
+      { nombre: "Plan de Alto Rendimiento", duracion_min: 75, precio: 32000 },
+    ],
+  },
+  {
+    slug: "escribania",
+    name: "Escribanía",
+    menu: { booking: "Reservar Reunión", prices: "Honorarios", cancel: "Cancelar", my_appointments: "Mis Reuniones", human: "Hablar con Secretaría", info: "Trámites", policy: "Políticas" },
+    politicas: "Traer documentación completa para cada trámite. Turnos con confirmación previa.",
+    datos_reserva: ["Nombre", "DNI", "Email", "Tipo de trámite"],
+    services_default: [
+      { nombre: "Consulta Inicial", duracion_min: 40, precio: 26000 },
+      { nombre: "Firma de Escritura", duracion_min: 60, precio: 45000 },
+      { nombre: "Certificación de Firma", duracion_min: 20, precio: 15000 },
+    ],
+  },
+  {
+    slug: "contable",
+    name: "Estudio Contable",
+    menu: { booking: "Reservar Asesoría", prices: "Honorarios", cancel: "Reprogramar", my_appointments: "Mis Reuniones", human: "Hablar con Asistente", info: "Servicios", policy: "Políticas" },
+    politicas: "Enviar documentación con 24hs para optimizar la consulta.",
+    datos_reserva: ["Nombre", "CUIT/CUIL", "Email", "Tipo de consulta"],
+    services_default: [
+      { nombre: "Asesoría Impositiva", duracion_min: 45, precio: 28000 },
+      { nombre: "Planificación Fiscal", duracion_min: 60, precio: 38000 },
+      { nombre: "Reunión de Balance", duracion_min: 50, precio: 32000 },
+    ],
+  },
 ];
 
 export function getRubroBySlug(slug: string) {

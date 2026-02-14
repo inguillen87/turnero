@@ -138,6 +138,35 @@ export default function LandingPage() {
           </div>
         </section>
 
+        <section className="py-14 bg-white dark:bg-slate-900 border-b border-slate-200/70 dark:border-slate-800">
+          <div className="container mx-auto px-4">
+            <p className="text-center text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-5">
+              Rubros y nichos que ya estamos potenciando
+            </p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {[
+                "Odontología",
+                "Psicología",
+                "Estética",
+                "Gimnasio",
+                "Nutrición",
+                "Preparación Física",
+                "Estudio Jurídico",
+                "Escribanía",
+                "Contable",
+                "Inmobiliaria",
+                "Educación",
+                "Veterinaria",
+                "Hotelería",
+              ].map((tag) => (
+                <span key={tag} className="px-3 py-1 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-xs font-medium text-slate-600 dark:text-slate-300">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <section className="py-20 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
           <div className="container mx-auto px-4">
             <div className="text-center max-w-3xl mx-auto mb-12">

@@ -108,11 +108,11 @@ export default function LoginPage() {
       </div>
 
       {/* Demo Credentials Hint */}
-      <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800">
-         <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2 text-center">Credenciales Demo</p>
-         <div className="flex justify-between text-xs text-slate-600 dark:text-slate-300 font-mono">
-            <span>admin@demo.com</span>
-            <span>Demo123!</span>
+      <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800 space-y-3">
+         <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide text-center">Credenciales Demo</p>
+         <div className="text-xs text-slate-600 dark:text-slate-300 font-mono space-y-2">
+            <div className="flex justify-between gap-2"><span>SuperAdmin</span><span>admin@turnero.pro / SuperAdmin123!</span></div>
+            <div className="flex justify-between gap-2"><span>Tenant Enterprise</span><span>admin@demo-dentista.com / Demo123!</span></div>
          </div>
       </div>
     </div>

@@ -9,6 +9,9 @@ async function main() {
   // 1. Seed Demo Tenants
   for (const dt of DEMO_TENANTS) {
     const { tenant, rubros, staff, staff_hours, services, catalog_items, whatsapp_numbers } = dt;
+    const isEnterpriseDemo = tenant.slug === "demo-dentista";
+    const renewDate = new Date();
+    renewDate.setMonth(renewDate.getMonth() + 1);
 
     console.log(`Seeding Tenant: ${tenant.slug}`);
 
@@ -19,21 +22,26 @@ async function main() {
         name: tenant.name,
         timezone: tenant.timezone,
         currency: tenant.currency,
-        plan: "demo", // Using 'demo' string to map to PlanStatus.DEMO via default or explicit
-        defaultLocale: "es-AR"
+        plan: isEnterpriseDemo ? "enterprise" : "demo",
+        planStatus: isEnterpriseDemo ? "active" : "DEMO",
+        planActivatedAt: isEnterpriseDemo ? new Date() : null,
+        planRenewsAt: isEnterpriseDemo ? renewDate : null,
+        defaultLocale: "es-AR",
       },
       create: {
         slug: tenant.slug,
         name: tenant.name,
         timezone: tenant.timezone,
         currency: tenant.currency,
-        planStatus: "DEMO",
+        plan: isEnterpriseDemo ? "enterprise" : "demo",
+        planStatus: isEnterpriseDemo ? "active" : "DEMO",
+        planActivatedAt: isEnterpriseDemo ? new Date() : null,
+        planRenewsAt: isEnterpriseDemo ? renewDate : null,
         defaultLocale: "es-AR"
       }
     });
 
-    // Create Tenant Admin User (One for all demos or one per demo?)
-    // Let's create one admin per demo: admin@demo-dentista.com / Demo123!
+    // Create Tenant Admin User (one admin per demo)
     const email = `admin@${tenant.slug}.com`;
     const passwordHash = await bcrypt.hash("Demo123!", 10);
 
