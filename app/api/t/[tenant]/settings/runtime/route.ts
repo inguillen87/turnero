@@ -7,6 +7,7 @@ import {
   sanitizeEmail,
   sanitizeLocales,
   sanitizeText,
+  sanitizeBlockedRanges,
 } from "@/lib/settings/runtimeSanitizers";
 
 const PROVIDER = "tenant_runtime_config";
@@ -142,16 +143,7 @@ export async function POST(
       googleCalendarId: payload?.calendar?.googleCalendarId || "primary",
       calendlyUrl: payload?.calendar?.calendlyUrl || "",
       icalUrl: payload?.calendar?.icalUrl || "",
-      blockedRanges: Array.isArray(payload?.calendar?.blockedRanges)
-        ? payload.calendar.blockedRanges
-            .map((item: any) => ({
-              id: String(item?.id || `block-${Date.now()}`),
-              startAt: String(item?.startAt || ""),
-              endAt: String(item?.endAt || ""),
-              reason: String(item?.reason || "Bloqueo operativo"),
-            }))
-            .filter((item: any) => item.startAt && item.endAt)
-        : [],
+      blockedRanges: sanitizeBlockedRanges(payload?.calendar?.blockedRanges),
     },
     googleSheets: {
       enabled: payload?.googleSheets?.enabled ?? false,

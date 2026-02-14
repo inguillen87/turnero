@@ -2,6 +2,17 @@ const ALLOWED_LOCALES = ["es-AR", "en-US", "pt-BR"] as const;
 
 type AllowedLocale = (typeof ALLOWED_LOCALES)[number];
 
+export type SanitizedBlockedRange = {
+  id: string;
+  startAt: string;
+  endAt: string;
+  reason: string;
+};
+
+function isValidDate(value: string): boolean {
+  return !Number.isNaN(new Date(value).getTime());
+}
+
 export function sanitizeText(input: unknown, maxLength: number): string {
   return String(input || "").trim().slice(0, maxLength);
 }
@@ -47,4 +58,32 @@ export function sanitizeLocales(input: unknown): AllowedLocale[] {
   }
 
   return unique.size > 0 ? Array.from(unique) : [...ALLOWED_LOCALES];
+}
+
+export function sanitizeBlockedRanges(input: unknown): SanitizedBlockedRange[] {
+  if (!Array.isArray(input)) return [];
+
+  const sanitized: SanitizedBlockedRange[] = [];
+  for (const [index, item] of input.entries()) {
+    if (sanitized.length >= 200) break;
+
+    const startAt = String((item as any)?.startAt || "").trim();
+    const endAt = String((item as any)?.endAt || "").trim();
+
+    if (!isValidDate(startAt) || !isValidDate(endAt)) {
+      continue;
+    }
+
+    if (new Date(startAt).getTime() >= new Date(endAt).getTime()) {
+      continue;
+    }
+
+    const reason = sanitizeText((item as any)?.reason || "Bloqueo operativo", 120);
+    const rawId = sanitizeText((item as any)?.id, 80);
+    const id = rawId || `block-${index}-${startAt}-${endAt}`;
+
+    sanitized.push({ id, startAt, endAt, reason: reason || "Bloqueo operativo" });
+  }
+
+  return sanitized;
 }
