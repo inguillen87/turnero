@@ -21,11 +21,14 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
+        const normalizedEmail = credentials.email.trim().toLowerCase();
+        const normalizedPassword = credentials.password.trim();
+
         let user;
         try {
            // Ensure we connect to DB or handle error
            user = await prisma.user.findUnique({
-             where: { email: credentials.email },
+             where: { email: normalizedEmail },
            });
         } catch (e) {
            console.error("Auth DB Connection Error:", e);
@@ -39,10 +42,10 @@ export const authOptions: NextAuthOptions = {
 
         // Mock hash check for seed data 'hashed_secret' -> 'Demo123!'
         if (user.passwordHash === 'hashed_secret') {
-             isValid = credentials.password === 'Demo123!';
+             isValid = normalizedPassword === 'Demo123!';
         } else {
              try {
-                isValid = await bcrypt.compare(credentials.password, user.passwordHash);
+                isValid = await bcrypt.compare(normalizedPassword, user.passwordHash);
              } catch {
                 isValid = false;
              }
