@@ -49,7 +49,11 @@ async function main() {
 
     const user = await prisma.user.upsert({
       where: { email },
-      update: {},
+      update: {
+        name: `Admin ${tenant.name}`,
+        passwordHash,
+        globalRole: "USER",
+      },
       create: {
         email,
         name: `Admin ${tenant.name}`,
@@ -229,7 +233,11 @@ async function main() {
   const saPass = await bcrypt.hash("SuperAdmin123!", 10);
   await prisma.user.upsert({
       where: { email: saEmail },
-      update: { globalRole: "SUPER_ADMIN" },
+      update: {
+          name: "Super Admin",
+          passwordHash: saPass,
+          globalRole: "SUPER_ADMIN"
+      },
       create: {
           email: saEmail,
           name: "Super Admin",
