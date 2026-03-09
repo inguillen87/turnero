@@ -117,7 +117,7 @@ export async function analyzeMessage(
     if (apiKey === 'dummy-key') throw new Error("Missing API Key");
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-audio-1.5",
       messages: [
         { role: "system", content: systemPrompt },
         ...context.conversationHistory.map(h => ({ role: h.role, content: h.content } as OpenAI.Chat.ChatCompletionMessageParam)),
