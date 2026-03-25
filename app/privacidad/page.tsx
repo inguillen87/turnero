@@ -1,4 +1,10 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Privacidad | Turnero Pro',
+  description: 'Política de privacidad de Turnero Pro by Inmovar.',
+};
 
 export default function PrivacidadPage() {
   return (

@@ -30,9 +30,13 @@ export default function DemoPage() {
   const [appointmentsError, setAppointmentsError] = useState<string | null>(null);
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [lockedFeature, setLockedFeature] = useState("");
+  const [capabilities, setCapabilities] = useState({
+    canUseReports: false,
+    canUseFinance: false,
+  });
 
   const goToTab = (tab: string) => {
-    if (tab === "finance" || tab === "reports") {
+    if ((tab === "finance" && !capabilities.canUseFinance) || (tab === "reports" && !capabilities.canUseReports)) {
       setLockedFeature(tab === "finance" ? "Finanzas avanzadas" : "Reportes avanzados");
       setShowUpgradePrompt(true);
       return;
@@ -64,6 +68,20 @@ export default function DemoPage() {
       })
       .catch(() => setAppointmentsError("No pudimos cargar turnos demo. Reintentá en unos segundos."))
       .finally(() => setIsLoadingAppointments(false));
+
+    fetch('/api/t/demo-clinica/capabilities')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.capabilities) {
+          setCapabilities({
+            canUseReports: Boolean(data.capabilities.canUseReports),
+            canUseFinance: Boolean(data.capabilities.canUseFinance),
+          });
+        }
+      })
+      .catch(() => {
+        setCapabilities({ canUseReports: false, canUseFinance: false });
+      });
   }, []);
 
   useEffect(() => {

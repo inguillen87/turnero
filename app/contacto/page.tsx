@@ -1,4 +1,10 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Contacto | Turnero Pro',
+  description: 'Canales oficiales de contacto de Turnero Pro by Inmovar.',
+};
 
 export default function ContactoPage() {
   return (
@@ -11,6 +17,15 @@ export default function ContactoPage() {
           <p><span className="font-semibold">Email:</span> hola@inmov.ar</p>
           <p><span className="font-semibold">Sitio:</span> <a className="text-indigo-600 hover:underline" href="https://inmov.ar" target="_blank" rel="noreferrer">inmov.ar</a></p>
           <p><span className="font-semibold">Atención:</span> Lunes a Viernes, horario comercial (LATAM)</p>
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          <a href="mailto:hola@inmov.ar?subject=Consulta%20Turnero%20Pro" className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors">
+            Enviar email
+          </a>
+          <a href="https://inmov.ar" target="_blank" rel="noreferrer" className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+            Visitar inmov.ar
+          </a>
         </div>
 
         <Link href="/" className="inline-block text-indigo-600 font-semibold hover:underline">← Volver al inicio</Link>
