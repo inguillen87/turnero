@@ -425,7 +425,7 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <div className="fixed md:hidden bottom-4 left-4 right-4 z-50">
+      <div className="fixed md:hidden bottom-4 left-4 right-4 z-50 [padding-bottom:env(safe-area-inset-bottom)]">
         <Link
           href="/demo/clinica"
           className="w-full rounded-2xl bg-indigo-600 text-white font-bold py-3 px-4 shadow-2xl shadow-indigo-600/30 flex items-center justify-center gap-2"
