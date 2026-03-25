@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getServerSession } from "next-auth/next";
 import { publishTenantEvent } from '@/lib/realtime';
+import { resolveTenantAccess } from '@/lib/tenant-access';
 
 export const runtime = "nodejs";
 
@@ -12,14 +12,11 @@ export async function GET(
   const { tenant: slug } = await params;
 
   try {
-    const t = await prisma.tenant.findUnique({
-      where: { slug },
-    });
-
-    if (!t) return NextResponse.json({ error: 'Tenant not found' }, { status: 404 });
+    const access = await resolveTenantAccess({ slug, allowDemoRead: true });
+    if ('error' in access) return access.error;
 
     const appointments = await prisma.appointment.findMany({
-      where: { tenantId: t.id },
+      where: { tenantId: access.tenant.id },
       include: {
         contact: true,
         service: true,
@@ -83,18 +80,18 @@ export async function POST(
   const { tenant: slug } = await params;
 
   try {
-      const t = await prisma.tenant.findUnique({ where: { slug } });
-      if (!t) return NextResponse.json({ error: 'Tenant not found' }, { status: 404 });
+      const access = await resolveTenantAccess({ slug, requireWrite: true, allowDemoRead: true, allowDemoWrite: true });
+      if ('error' in access) return access.error;
 
       // Find or Create Contact
       let contact;
       if (body.clientName) {
-         const existing = await prisma.contact.findFirst({ where: { tenantId: t.id, name: body.clientName } });
+         const existing = await prisma.contact.findFirst({ where: { tenantId: access.tenant.id, name: body.clientName } });
          if (existing) contact = existing;
          else {
            contact = await prisma.contact.create({
              data: {
-               tenantId: t.id,
+               tenantId: access.tenant.id,
                name: body.clientName,
                phoneE164: body.clientPhone || "0000000000",
              }
@@ -106,12 +103,12 @@ export async function POST(
       const [service, staff] = await Promise.all([
         (async () => {
           let s = await prisma.service.findFirst({
-            where: { tenantId: t.id, name: { contains: body.serviceName || 'Consulta' } }
+            where: { tenantId: access.tenant.id, name: { contains: body.serviceName || 'Consulta' } }
           });
-          if (!s) s = await prisma.service.findFirst({ where: { tenantId: t.id } });
+          if (!s) s = await prisma.service.findFirst({ where: { tenantId: access.tenant.id } });
           return s;
         })(),
-        prisma.staff.findFirst({ where: { tenantId: t.id } })
+        prisma.staff.findFirst({ where: { tenantId: access.tenant.id } })
       ]);
 
       if (!contact || !service || !staff) {
@@ -120,7 +117,7 @@ export async function POST(
 
       const appt = await prisma.appointment.create({
         data: {
-          tenantId: t.id,
+          tenantId: access.tenant.id,
           contactId: contact.id,
           serviceId: service.id,
           staffId: staff.id,

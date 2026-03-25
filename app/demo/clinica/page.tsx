@@ -34,6 +34,7 @@ export default function DemoPage() {
     canUseReports: false,
     canUseFinance: false,
   });
+  const [searchQuery, setSearchQuery] = useState('');
 
   const goToTab = (tab: string) => {
     if ((tab === "finance" && !capabilities.canUseFinance) || (tab === "reports" && !capabilities.canUseReports)) {
@@ -92,6 +93,14 @@ export default function DemoPage() {
     localStorage.setItem("demo:showSimulator", showSimulator ? "1" : "0");
   }, [showSimulator]);
 
+  const filteredAppointments = appointments.filter((appt) => {
+    if (!searchQuery.trim()) return true;
+    const needle = searchQuery.toLowerCase();
+    return [appt.clientName, appt.service?.name, appt.professional?.name, appt.status]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(needle));
+  });
+
   const handleAction = (action: any) => {
     if (action?.type === 'APPOINTMENT_CREATED') {
        const newAppt = {
@@ -134,6 +143,8 @@ export default function DemoPage() {
             title={activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
             onOpenMenu={() => setShowMobileMenu(true)}
             onOpenSimulator={() => setShowSimulator(true)}
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
          />
 
          <div className="flex-1 overflow-y-auto custom-scroll p-3 sm:p-4 md:p-8 pb-28 md:pb-8">
@@ -153,9 +164,9 @@ export default function DemoPage() {
                 </button>
               </div>
             )}
-            {activeTab === 'dashboard' && <DemoDashboard appointments={appointments} />}
-            {activeTab === 'agenda' && <DemoAgenda appointments={appointments} />}
-            {activeTab === 'patients' && <DemoPatients />}
+            {activeTab === 'dashboard' && <DemoDashboard appointments={filteredAppointments} />}
+            {activeTab === 'agenda' && <DemoAgenda appointments={filteredAppointments} />}
+            {activeTab === 'patients' && <DemoPatients externalSearchTerm={searchQuery} />}
             {activeTab === 'marketing' && <DemoMarketing />}
             {activeTab === 'reports' && <DemoReports />}
             {activeTab === 'finance' && <DemoFinance />}
