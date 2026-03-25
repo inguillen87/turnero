@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Filter, MoreHorizontal, Phone, Plus, Search, ShieldCheck, X } from "lucide-react";
+import { AlertTriangle, Filter, MoreHorizontal, Phone, Plus, Search, ShieldCheck, SquarePen, Trash2, UserRoundSearch, MessageCircleWarning, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 type DemoPatient = {
@@ -17,9 +17,9 @@ type DemoPatient = {
 
 const FALLBACK_PATIENTS: DemoPatient[] = [
   {
-    id: "1",
+    id: "demo-p-1",
     name: "Juan Perez (Demo)",
-    phone: "+54 9 11 1234 5678",
+    phone: "+5491112345678",
     email: "juan@demo.com",
     status: "Active",
     riskLevel: "LOW",
@@ -28,9 +28,9 @@ const FALLBACK_PATIENTS: DemoPatient[] = [
     notes: "Paciente regular. Prefiere turnos por la tarde.",
   },
   {
-    id: "2",
+    id: "demo-p-2",
     name: "Maria Garcia (Demo)",
-    phone: "+54 9 11 8765 4321",
+    phone: "+5491187654321",
     email: "maria@demo.com",
     status: "Active",
     riskLevel: "LOW",
@@ -47,7 +47,7 @@ function mapApiPatient(row: any): DemoPatient {
   return {
     id: String(row?.id || crypto.randomUUID()),
     name: String(row?.name || "Sin nombre"),
-    phone: String(row?.phone || ""),
+    phone: String(row?.phone || row?.phoneE164 || ""),
     email: String(row?.email || ""),
     status: totalVisits > 0 ? "Active" : "New",
     riskLevel,
@@ -63,9 +63,11 @@ export function DemoPatients({ externalSearchTerm = "" }: { externalSearchTerm?:
   const [patients, setPatients] = useState<DemoPatient[]>(FALLBACK_PATIENTS);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", phoneE164: "", email: "" });
+  const [form, setForm] = useState({ id: "", name: "", phoneE164: "", email: "" });
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   useEffect(() => {
     setSearchTerm(externalSearchTerm);
@@ -114,14 +116,12 @@ export function DemoPatients({ externalSearchTerm = "" }: { externalSearchTerm?:
       const res = await fetch("/api/t/demo-clinica/patients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ name: form.name, phoneE164: form.phoneE164, email: form.email }),
       });
 
-      if (!res.ok) {
-        throw new Error("No se pudo crear el paciente");
-      }
-
+      if (!res.ok) throw new Error("No se pudo crear el paciente");
       const created = await res.json();
+
       const next: DemoPatient = {
         id: String(created.id || crypto.randomUUID()),
         name: String(created.name || form.name || "Paciente nuevo"),
@@ -136,12 +136,63 @@ export function DemoPatients({ externalSearchTerm = "" }: { externalSearchTerm?:
 
       setPatients((prev) => [next, ...prev]);
       setCreateOpen(false);
-      setForm({ name: "", phoneE164: "", email: "" });
+      setForm({ id: "", name: "", phoneE164: "", email: "" });
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : "No se pudo guardar");
     } finally {
       setSaving(false);
     }
+  };
+
+  const startEdit = (patient: DemoPatient) => {
+    setOpenMenuId(null);
+    setForm({ id: patient.id, name: patient.name, phoneE164: patient.phone, email: patient.email });
+    setSaveError(null);
+    setEditOpen(true);
+  };
+
+  const updatePatient = async () => {
+    if (!form.id) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const res = await fetch(`/api/t/demo-clinica/patients/${form.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: form.name, email: form.email }),
+      });
+
+      if (!res.ok) throw new Error("No se pudo actualizar el paciente");
+
+      setPatients((prev) => prev.map((p) => (p.id === form.id ? { ...p, name: form.name || p.name, email: form.email || p.email } : p)));
+      setEditOpen(false);
+      setForm({ id: "", name: "", phoneE164: "", email: "" });
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "No se pudo actualizar");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const removePatient = async (patientId: string) => {
+    setOpenMenuId(null);
+    const previous = patients;
+    setPatients((prev) => prev.filter((p) => p.id !== patientId));
+
+    try {
+      const res = await fetch(`/api/t/demo-clinica/patients/${patientId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("No se pudo eliminar");
+    } catch {
+      setPatients(previous);
+      setSaveError("No se pudo eliminar el paciente. Reintentá.");
+    }
+  };
+
+  const toggleRisk = (patientId: string) => {
+    setOpenMenuId(null);
+    setPatients((prev) =>
+      prev.map((p) => (p.id === patientId ? { ...p, riskLevel: p.riskLevel === "HIGH" ? "LOW" : "HIGH" } : p))
+    );
   };
 
   return (
@@ -153,7 +204,11 @@ export function DemoPatients({ externalSearchTerm = "" }: { externalSearchTerm?:
             <p className="text-slate-500 text-sm">Gestiona tu base de datos de clientes</p>
           </div>
           <button
-            onClick={() => setCreateOpen(true)}
+            onClick={() => {
+              setForm({ id: "", name: "", phoneE164: "", email: "" });
+              setSaveError(null);
+              setCreateOpen(true);
+            }}
             className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 inline-flex items-center gap-2"
           >
             <Plus className="w-4 h-4" /> Nuevo Paciente
@@ -178,6 +233,7 @@ export function DemoPatients({ externalSearchTerm = "" }: { externalSearchTerm?:
 
         <div className="flex-1 overflow-auto custom-scroll">
           {loading && <div className="p-4 text-sm text-slate-400">Cargando pacientes...</div>}
+          {saveError && <div className="px-4 py-2 text-xs text-red-600">{saveError}</div>}
           <table className="w-full text-left border-collapse">
             <thead className="sticky top-0 bg-white z-10 shadow-sm">
               <tr className="text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
@@ -226,10 +282,23 @@ export function DemoPatients({ externalSearchTerm = "" }: { externalSearchTerm?:
                       <span className="flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full border border-green-100 w-fit"><ShieldCheck className="w-3 h-3" /> Confiable</span>
                     )}
                   </td>
-                  <td className="py-4 text-right pr-6">
-                    <button className="text-slate-300 hover:text-indigo-600 transition-colors p-2 hover:bg-indigo-50 rounded-full">
+                  <td className="py-4 text-right pr-6 relative" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => setOpenMenuId((prev) => (prev === p.id ? null : p.id))}
+                      className="text-slate-300 hover:text-indigo-600 transition-colors p-2 hover:bg-indigo-50 rounded-full"
+                    >
                       <MoreHorizontal className="w-5 h-5" />
                     </button>
+
+                    {openMenuId === p.id && (
+                      <div className="absolute right-6 top-12 z-30 w-52 rounded-xl bg-white border border-slate-200 shadow-xl p-1 text-sm">
+                        <button onClick={() => { setSelectedPatient(p); setOpenMenuId(null); }} className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2"><UserRoundSearch className="w-4 h-4" /> Ver ficha</button>
+                        <button onClick={() => startEdit(p)} className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2"><SquarePen className="w-4 h-4" /> Editar datos</button>
+                        <button onClick={() => toggleRisk(p.id)} className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2"><MessageCircleWarning className="w-4 h-4" /> {p.riskLevel === 'HIGH' ? 'Marcar confiable' : 'Marcar alto riesgo'}</button>
+                        <button onClick={() => window.open(`https://wa.me/${p.phone.replace(/\D/g, '')}`, '_blank')} className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50">Enviar WhatsApp</button>
+                        <button onClick={() => removePatient(p.id)} className="w-full text-left px-3 py-2 rounded-lg hover:bg-red-50 text-red-600 flex items-center gap-2"><Trash2 className="w-4 h-4" /> Eliminar</button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -238,23 +307,23 @@ export function DemoPatients({ externalSearchTerm = "" }: { externalSearchTerm?:
         </div>
       </div>
 
-      {createOpen && (
+      {(createOpen || editOpen) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="w-full max-w-lg bg-white rounded-2xl border border-slate-200 shadow-2xl p-6 relative">
-            <button onClick={() => setCreateOpen(false)} className="absolute top-3 right-3 p-2 rounded-full hover:bg-slate-100">
+            <button onClick={() => { setCreateOpen(false); setEditOpen(false); }} className="absolute top-3 right-3 p-2 rounded-full hover:bg-slate-100">
               <X className="w-4 h-4" />
             </button>
-            <h3 className="text-lg font-bold text-slate-800 mb-4">Nuevo paciente</h3>
+            <h3 className="text-lg font-bold text-slate-800 mb-4">{editOpen ? 'Editar paciente' : 'Nuevo paciente'}</h3>
             <div className="space-y-3">
               <input className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="Nombre" value={form.name} onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))} />
-              <input className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="Teléfono (+549...)" value={form.phoneE164} onChange={(e) => setForm((s) => ({ ...s, phoneE164: e.target.value }))} />
+              <input disabled={editOpen} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm disabled:bg-slate-100" placeholder="Teléfono (+549...)" value={form.phoneE164} onChange={(e) => setForm((s) => ({ ...s, phoneE164: e.target.value }))} />
               <input className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="Email" value={form.email} onChange={(e) => setForm((s) => ({ ...s, email: e.target.value }))} />
               {saveError && <p className="text-xs text-red-600">{saveError}</p>}
             </div>
             <div className="mt-5 flex justify-end gap-2">
-              <button onClick={() => setCreateOpen(false)} className="px-4 py-2 rounded-lg border border-slate-200 text-sm">Cancelar</button>
-              <button onClick={createPatient} disabled={saving} className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold disabled:opacity-60">
-                {saving ? "Guardando..." : "Crear paciente"}
+              <button onClick={() => { setCreateOpen(false); setEditOpen(false); }} className="px-4 py-2 rounded-lg border border-slate-200 text-sm">Cancelar</button>
+              <button onClick={editOpen ? updatePatient : createPatient} disabled={saving} className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold disabled:opacity-60">
+                {saving ? "Guardando..." : editOpen ? 'Guardar cambios' : 'Crear paciente'}
               </button>
             </div>
           </div>
