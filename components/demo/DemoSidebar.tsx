@@ -12,9 +12,11 @@ import {
 interface DemoSidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  className?: string;
+  onItemSelect?: () => void;
 }
 
-export function DemoSidebar({ activeTab, setActiveTab }: DemoSidebarProps) {
+export function DemoSidebar({ activeTab, setActiveTab, className = "", onItemSelect }: DemoSidebarProps) {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'agenda', label: 'Agenda', icon: Calendar },
@@ -26,7 +28,7 @@ export function DemoSidebar({ activeTab, setActiveTab }: DemoSidebarProps) {
   ];
 
   return (
-    <div className="w-64 bg-slate-900 text-white flex flex-col h-full shadow-xl z-20">
+    <div className={`w-64 bg-slate-900 text-white flex flex-col h-full shadow-xl z-20 ${className}`}>
       {/* Brand */}
       <div className="h-16 flex items-center px-6 border-b border-slate-800">
         <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center mr-3 font-bold text-white shadow-lg shadow-indigo-500/20">
@@ -44,7 +46,10 @@ export function DemoSidebar({ activeTab, setActiveTab }: DemoSidebarProps) {
         {menuItems.slice(0, 3).map((item) => (
           <button
             key={item.id}
-            onClick={() => setActiveTab(item.id)}
+            onClick={() => {
+              setActiveTab(item.id);
+              onItemSelect?.();
+            }}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group ${
               activeTab === item.id
                 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-900/20'
@@ -60,7 +65,10 @@ export function DemoSidebar({ activeTab, setActiveTab }: DemoSidebarProps) {
         {menuItems.slice(3, 6).map((item) => (
           <button
             key={item.id}
-            onClick={() => setActiveTab(item.id)}
+            onClick={() => {
+              setActiveTab(item.id);
+              onItemSelect?.();
+            }}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group ${
               activeTab === item.id
                 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-900/20'
@@ -76,7 +84,10 @@ export function DemoSidebar({ activeTab, setActiveTab }: DemoSidebarProps) {
         {menuItems.slice(6).map((item) => (
           <button
             key={item.id}
-            onClick={() => setActiveTab(item.id)}
+            onClick={() => {
+              setActiveTab(item.id);
+              onItemSelect?.();
+            }}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group ${
               activeTab === item.id
                 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-900/20'
