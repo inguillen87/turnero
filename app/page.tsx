@@ -6,7 +6,7 @@ import { ShowcaseGallery } from '@/components/landing/ShowcaseGallery';
 
 export const dynamic = 'force-static';
 import { Logo } from '@/components/Logo';
-import { Calendar, Users, BarChart3, Star, MessageSquare, Briefcase, Zap, Bot, PanelTop, ShieldCheck, Smartphone, Sparkles, Workflow, Rocket, MonitorPlay, BellRing, HandCoins, Gauge, ClipboardCheck } from 'lucide-react';
+import { Calendar, Users, BarChart3, Star, MessageSquare, Briefcase, Zap, Bot, PanelTop, ShieldCheck, Smartphone, Sparkles, Workflow, Rocket, MonitorPlay, BellRing, HandCoins, Gauge, ClipboardCheck, Target, Clock3, LineChart } from 'lucide-react';
 
 export default function LandingPage() {
   return (
@@ -316,6 +316,55 @@ export default function LandingPage() {
           </div>
         </section>
 
+
+
+        <section className="py-20 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
+          <div className="container mx-auto px-4">
+            <div className="max-w-4xl mx-auto text-center mb-10">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600 dark:text-indigo-300 mb-2">Benchmark profesional</p>
+              <h3 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-4">Qué hacen los turneros líderes y cómo lo resolvemos</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-lg">
+                Analizamos productos líderes en agenda online de LATAM y global para reforzar estándares reales: recordatorios multicanal, pagos, reprogramación y métricas accionables.
+              </p>
+            </div>
+
+            <div className="grid lg:grid-cols-3 gap-4 mb-5">
+              <BenchmarkCard icon={<Clock3 className="w-5 h-5" />} title="Recordatorios automáticos" detail="WhatsApp + email con plantillas por estado: creado, confirmado, reprogramado y no-show." />
+              <BenchmarkCard icon={<Target className="w-5 h-5" />} title="Confirmación y cupos" detail="Ventanas de confirmación, lista de espera y relleno de huecos para maximizar ocupación." />
+              <BenchmarkCard icon={<LineChart className="w-5 h-5" />} title="Métricas operativas" detail="Panel con no-shows, anticipación promedio y tasa de reprogramación por profesional/sede." />
+            </div>
+
+            <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+              <table className="min-w-full text-sm">
+                <thead className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
+                  <tr>
+                    <th className="text-left px-4 py-3 font-semibold">Capacidad clave</th>
+                    <th className="text-left px-4 py-3 font-semibold">Estándar del mercado</th>
+                    <th className="text-left px-4 py-3 font-semibold">Turnero Pro</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-t border-slate-200 dark:border-slate-700">
+                    <td className="px-4 py-3">Recordatorios y confirmaciones</td>
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">Email/WhatsApp con mensajes configurables</td>
+                    <td className="px-4 py-3 font-medium text-emerald-700 dark:text-emerald-300">✅ Flujos automáticos con lógica por rubro</td>
+                  </tr>
+                  <tr className="border-t border-slate-200 dark:border-slate-700">
+                    <td className="px-4 py-3">Pagos y señas online</td>
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">Links de pago para reducir ausencias</td>
+                    <td className="px-4 py-3 font-medium text-emerald-700 dark:text-emerald-300">✅ Checkout conectado + seguimiento de deuda</td>
+                  </tr>
+                  <tr className="border-t border-slate-200 dark:border-slate-700">
+                    <td className="px-4 py-3">Inteligencia operativa</td>
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">Reportes de ocupación y no-show</td>
+                    <td className="px-4 py-3 font-medium text-emerald-700 dark:text-emerald-300">✅ Bot admin + sugerencias de capacidad</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
         {/* Features Grid */}
         <section id="features" className="py-24 bg-white dark:bg-slate-900/50 relative border-y border-slate-100 dark:border-slate-800">
           <div className="container mx-auto px-4">
@@ -420,6 +469,7 @@ export default function LandingPage() {
             <Link href="/privacidad" className="text-slate-500 hover:text-indigo-600 transition-colors">Privacidad</Link>
             <Link href="/faqs" className="text-slate-500 hover:text-indigo-600 transition-colors">FAQs</Link>
             <Link href="/contacto" className="text-slate-500 hover:text-indigo-600 transition-colors">Contacto</Link>
+            <Link href="/sugerencias" className="text-slate-500 hover:text-indigo-600 transition-colors">Sugerencias</Link>
           </div>
         </div>
       </footer>
@@ -463,6 +513,27 @@ function MetricOrb({ label, value }: { label: string; value: string }) {
     <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 text-center">
       <p className="text-sm font-bold text-indigo-600 dark:text-indigo-300">{value}</p>
       <p className="text-[10px] text-slate-500 dark:text-slate-400">{label}</p>
+    </div>
+  );
+}
+
+
+function BenchmarkCard({
+  icon,
+  title,
+  detail,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  detail: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+      <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 flex items-center justify-center mb-3">
+        {icon}
+      </div>
+      <p className="font-semibold text-slate-900 dark:text-white">{title}</p>
+      <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{detail}</p>
     </div>
   );
 }

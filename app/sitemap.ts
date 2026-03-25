@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = 'https://turnero.pro';
-  const routes = ['/', '/contacto', '/faqs', '/privacidad', '/terminos', '/demo/clinica'];
+  const routes = ['/', '/contacto', '/faqs', '/privacidad', '/terminos', '/sugerencias', '/demo/clinica'];
 
   return routes.map((route) => ({
     url: `${base}${route}`,
