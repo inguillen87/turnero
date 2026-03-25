@@ -12,6 +12,30 @@ export type ResolveOptions = {
   allowDemoWrite?: boolean;
 };
 
+type TenantLike = {
+  id: string;
+  slug: string;
+  status: string;
+  name?: string;
+  timezone?: string;
+  currency?: string;
+  plan?: string;
+  planStatus?: string;
+};
+
+function buildDemoFallbackTenant(slug: string): TenantLike {
+  return {
+    id: `demo-fallback:${slug}`,
+    slug,
+    status: 'DEMO',
+    name: 'Demo Tenant',
+    timezone: 'America/Argentina/Buenos_Aires',
+    currency: 'ARS',
+    plan: 'demo',
+    planStatus: 'DEMO',
+  };
+}
+
 export async function resolveTenantAccess({
   slug,
   requireWrite = false,
@@ -20,21 +44,34 @@ export async function resolveTenantAccess({
 }: ResolveOptions) {
   const session = await getServerSession(authOptions);
 
-  const tenant = await prisma.tenant.findUnique({ where: { slug } });
-  if (!tenant) {
-    return { error: NextResponse.json({ error: 'Tenant not found' }, { status: 404 }) };
+  const userId = (session?.user as any)?.id as string | undefined;
+  const globalRole = (session?.user as any)?.role as string | undefined;
+
+  let tenant: TenantLike | null = null;
+  let membership: { role?: string | null } | null = null;
+
+  try {
+    tenant = await prisma.tenant.findUnique({ where: { slug } });
+    if (!tenant) {
+      return { error: NextResponse.json({ error: 'Tenant not found' }, { status: 404 }) };
+    }
+
+    membership = userId
+      ? await prisma.tenantUser.findFirst({ where: { tenantId: tenant.id, userId }, select: { role: true } })
+      : null;
+  } catch (error) {
+    const demoFallbackAllowed = slug.startsWith('demo-') && (allowDemoRead || allowDemoWrite);
+    if (!demoFallbackAllowed) {
+      console.error('[tenant-access] failed to resolve tenant', error);
+      return { error: NextResponse.json({ error: 'Tenant access unavailable' }, { status: 503 }) };
+    }
+    tenant = buildDemoFallbackTenant(slug);
+    membership = null;
   }
 
   const isDemoTenant = isDemoTenantStatus(tenant.status);
   const demoGuestReadAllowed = allowDemoRead && isDemoTenant;
   const demoGuestWriteAllowed = allowDemoWrite && isDemoTenant;
-
-  const userId = (session?.user as any)?.id as string | undefined;
-  const globalRole = (session?.user as any)?.role as string | undefined;
-
-  const membership = userId
-    ? await prisma.tenantUser.findFirst({ where: { tenantId: tenant.id, userId } })
-    : null;
 
   const isSuperAdmin = isSuperAdminRole(globalRole);
   const isTenantMember = Boolean(membership);
