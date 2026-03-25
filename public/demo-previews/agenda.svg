@@ -1,0 +1,68 @@
+<svg width="1200" height="720" viewBox="0 0 1200 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgA" x1="80" y1="20" x2="1130" y2="700" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#032D2B"/>
+      <stop offset="1" stop-color="#064E3B"/>
+    </linearGradient>
+    <linearGradient id="slot" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#34D399"/>
+      <stop offset="1" stop-color="#2DD4BF"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="720" rx="36" fill="url(#bgA)"/>
+  <rect x="42" y="42" width="1116" height="84" rx="18" fill="#0B4B41"/>
+  <rect x="70" y="66" width="210" height="14" rx="7" fill="#A7F3D0"/>
+  <rect x="70" y="88" width="160" height="10" rx="5" fill="#34D399"/>
+
+  <rect x="42" y="146" width="1116" height="532" rx="28" fill="#032F2C" stroke="#0F766E"/>
+  <rect x="70" y="178" width="1060" height="58" rx="14" fill="#0F766E"/>
+  <rect x="92" y="202" width="240" height="12" rx="6" fill="#CCFBF1"/>
+
+  <rect x="70" y="254" width="1060" height="392" rx="18" fill="#042E2B"/>
+
+  <g opacity="0.45" stroke="#115E59">
+    <line x1="70" y1="334" x2="1130" y2="334"/>
+    <line x1="70" y1="414" x2="1130" y2="414"/>
+    <line x1="70" y1="494" x2="1130" y2="494"/>
+    <line x1="70" y1="574" x2="1130" y2="574"/>
+    <line x1="247" y1="254" x2="247" y2="646"/>
+    <line x1="424" y1="254" x2="424" y2="646"/>
+    <line x1="601" y1="254" x2="601" y2="646"/>
+    <line x1="778" y1="254" x2="778" y2="646"/>
+    <line x1="955" y1="254" x2="955" y2="646"/>
+  </g>
+
+  <g>
+    <rect x="266" y="350" width="152" height="48" rx="11" fill="url(#slot)">
+      <animate attributeName="x" values="266;272;266" dur="3.8s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="620" y="430" width="152" height="48" rx="11" fill="#14B8A6">
+      <animate attributeName="x" values="620;628;620" dur="4.2s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="802" y="510" width="152" height="48" rx="11" fill="#2DD4BF">
+      <animate attributeName="x" values="802;794;802" dur="4.6s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="442" y="590" width="152" height="48" rx="11" fill="#34D399">
+      <animate attributeName="x" values="442;450;442" dur="5s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+
+  <g opacity="0.9">
+    <path d="M244 324C244 324 301 262 367 264C433 266 470 332 542 332C614 332 646 278 712 278C778 278 817 337 887 337C957 337 990 292 1042 264" stroke="#A7F3D0" stroke-width="5" stroke-linecap="round" stroke-dasharray="10 12">
+      <animate attributeName="stroke-dashoffset" values="0;-88" dur="3s" repeatCount="indefinite"/>
+    </path>
+    <circle cx="244" cy="324" r="8" fill="#A7F3D0"/>
+    <circle cx="542" cy="332" r="8" fill="#A7F3D0"/>
+    <circle cx="887" cy="337" r="8" fill="#A7F3D0"/>
+    <circle cx="1042" cy="264" r="8" fill="#A7F3D0"/>
+  </g>
+
+  <g>
+    <rect x="960" y="70" width="170" height="28" rx="14" fill="#065F46"/>
+    <circle cx="982" cy="84" r="6" fill="#34D399">
+      <animate attributeName="r" values="4;7;4" dur="1.8s" repeatCount="indefinite"/>
+    </circle>
+    <rect x="996" y="80" width="120" height="8" rx="4" fill="#A7F3D0"/>
+  </g>
+</svg>
