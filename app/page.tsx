@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { ModeToggle } from '@/components/mode-toggle';
 import { WhatsAppDemo } from '@/components/WhatsAppDemo';
 import { ShowcaseGallery } from '@/components/landing/ShowcaseGallery';
