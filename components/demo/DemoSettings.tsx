@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Save,
   Building,
@@ -33,9 +33,18 @@ export function DemoSettings({ services, setServices }: DemoSettingsProps) {
     { id: 'schedule', label: 'Horarios', icon: Clock },
     { id: 'staff', label: 'Equipo', icon: Users },
     { id: 'services', label: 'Servicios', icon: Wrench },
-    { id: 'billing', label: 'Facturación', icon: CreditCard },
+    { id: 'billing', label: 'Upgrade', icon: CreditCard },
     { id: 'integrations', label: 'Integraciones', icon: LinkIcon },
   ];
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const openBilling = window.localStorage.getItem("demo:openBilling");
+    if (openBilling === "1") {
+      setActiveTab("billing");
+      window.localStorage.removeItem("demo:openBilling");
+    }
+  }, []);
 
   return (
     <div className="flex flex-col h-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -187,7 +196,7 @@ function SettingsStaff() {
 
 function SettingsServices({ services, setServices }: { services?: any[], setServices?: (s: any[]) => void }) {
     const [isAdding, setIsAdding] = useState(false);
-    const [newService, setNewService] = useState({ name: '', duration: '30 min', price: 0, color: 'gray' });
+    const [newService, setNewService] = useState({ name: '', duration: '30 min', color: 'gray' });
 
     const handleAdd = () => {
         if (!setServices || !services) return;
@@ -197,13 +206,12 @@ function SettingsServices({ services, setServices }: { services?: any[], setServ
             id: Date.now().toString(),
             name: newService.name,
             duration: newService.duration,
-            price: Number(newService.price),
             color: newService.color
         };
 
         setServices([...services, serviceToAdd]);
         setIsAdding(false);
-        setNewService({ name: '', duration: '30 min', price: 0, color: 'gray' });
+        setNewService({ name: '', duration: '30 min', color: 'gray' });
     };
 
     return (
@@ -220,7 +228,7 @@ function SettingsServices({ services, setServices }: { services?: any[], setServ
 
             {isAdding && (
                 <div className="p-4 border border-indigo-200 bg-indigo-50 rounded-xl mb-4 animate-in fade-in slide-in-from-top-2">
-                    <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                         <div>
                             <label className="text-xs font-bold text-slate-500 uppercase">Nombre</label>
                             <input
@@ -229,16 +237,6 @@ function SettingsServices({ services, setServices }: { services?: any[], setServ
                                 placeholder="Ej: Implante"
                                 value={newService.name}
                                 onChange={(e) => setNewService({...newService, name: e.target.value})}
-                            />
-                        </div>
-                        <div>
-                            <label className="text-xs font-bold text-slate-500 uppercase">Precio</label>
-                            <input
-                                type="number"
-                                className="w-full p-2 rounded-lg border border-slate-200 text-sm"
-                                placeholder="5000"
-                                value={newService.price || ''}
-                                onChange={(e) => setNewService({...newService, price: Number(e.target.value)})}
                             />
                         </div>
                         <div>
@@ -290,7 +288,6 @@ function SettingsServices({ services, setServices }: { services?: any[], setServ
                                     <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded font-medium flex items-center gap-1">
                                         <Clock className="w-3 h-3" /> {s.duration}
                                     </span>
-                                    <span className="text-xs font-bold text-slate-500">${s.price}</span>
                                 </div>
                              </div>
                         </div>

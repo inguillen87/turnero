@@ -31,15 +31,55 @@ const SALES_SERVICES = [
   { id: "wa-only", name: "Automatización WhatsApp", priceCents: 700000 },
 ];
 
+function directRubroResponse(rubroSlug: string) {
+  const rubro = SALES_RUBROS.find((r) => r.slug === rubroSlug);
+  if (!rubro) return null;
+
+  return {
+    intent: "qualification",
+    message: `¡Excelente! Ya tomé tu rubro (${rubro.name}). Para recomendarte el setup ideal, decime cuántos turnos manejan por mes y cuántas personas usan la agenda.`,
+    options: [
+      { label: "Menos de 150 turnos/mes", value: "volumen:low" },
+      { label: "150 a 500 turnos/mes", value: "volumen:mid" },
+      { label: "Más de 500 turnos/mes", value: "volumen:high" },
+      { label: "Quiero demo guiada", value: "Quiero demo guiada para mi rubro" },
+    ],
+    entities: {
+      rubro: rubro.slug,
+      planPreference: "unknown",
+    },
+  };
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const { message, history, anonId } = await req.json();
+    const payload = await req.json();
+    const message = typeof payload?.message === "string" ? payload.message.replace(/\s+/g, " ").trim() : "";
+    const history = Array.isArray(payload?.history) ? payload.history : [];
+    const anonId = typeof payload?.anonId === "string" ? payload.anonId.trim().slice(0, 80) : undefined;
 
-    if (!message) {
-      return NextResponse.json({ error: "Message required" }, { status: 400 });
+    if (!message || message.length < 2) {
+      return NextResponse.json({ error: "Message required (min 2 chars)" }, { status: 400 });
     }
 
-    const fullContextText = [message, ...(history || []).map((h: any) => h?.content || "")].join("\n");
+    if (message.length > 1200) {
+      return NextResponse.json({ error: "Message too long (max 1200 chars)" }, { status: 400 });
+    }
+
+    const directRubro = message.startsWith("rubro:") ? directRubroResponse(message.split(":")[1]) : null;
+    if (directRubro) {
+      return NextResponse.json({
+        ...directRubro,
+        seller: {
+          name: SELLER_NAME,
+          whatsapp: SELLER_WHATSAPP_E164,
+          email: SELLER_EMAIL,
+          url: buildSellerWhatsAppLink(),
+        },
+      });
+    }
+
+    const fullContextText = [message, ...history.map((h: any) => h?.content || "")].join("\n");
     const rubro = detectSalesRubro(fullContextText);
 
     await registerSalesLead({
@@ -47,6 +87,8 @@ export async function POST(req: NextRequest) {
       anonId,
       source: "widget",
       rubro: rubro.slug,
+    }).catch((error) => {
+      console.warn("Lead registration warning", error);
     });
 
     const FAQQuickAnswers = rubro.faq.map((f) => `- ${f.q}: ${f.a}`).join("\n");
@@ -87,7 +129,7 @@ Output JSON:
       message,
       {
         services: SALES_SERVICES,
-        conversationHistory: history || [],
+        conversationHistory: history,
         now: new Date(),
         tenantName: "Turnero Pro Sales",
         locale: "es",
@@ -120,11 +162,12 @@ Output JSON:
   } catch (error) {
     console.error("Sales bot error", error);
     return NextResponse.json({
-      intent: "other",
-      message: "Se cortó un instante. Si querés, avanzamos con una demo de 20 min para tu rubro.",
+      intent: "qualification",
+      message: "Estoy para ayudarte. Si querés, te propongo el mejor setup según tu rubro y volumen de turnos.",
       options: [
         { label: "✅ Quiero demo", value: "Quiero demo" },
-        { label: "💬 Solo WhatsApp + CRM + Agenda", value: "Necesito solo whatsapp crm agenda" },
+        { label: "💬 Solo WhatsApp + CRM + Agenda", value: "Necesito whatsapp crm agenda" },
+        ...SALES_RUBROS.slice(0, 3).map((r) => ({ label: `Rubro: ${r.name}`, value: `rubro:${r.slug}` })),
         { label: `📲 Contactar a ${SELLER_NAME}`, value: "contact_seller" },
       ],
       seller: {
