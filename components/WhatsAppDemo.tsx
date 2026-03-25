@@ -62,7 +62,7 @@ export function WhatsAppDemo({ onBooking }: { onBooking?: (data: any) => void })
     {
       id: "1",
       sender: "bot",
-      text: "¡Hola! 👋 Soy el asesor IA de Turnero Pro. Elegí tu rubro y te propongo el mejor setup (agenda + bot + CRM + automatizaciones).",
+      text: "¡Hola! 👋 Soy Turne, tu asistente inteligente. Elegí tu rubro y te propongo el mejor setup (agenda + bot + CRM + automatizaciones).",
       timestamp: new Date(),
       options: STARTER_OPTIONS,
     },
@@ -187,7 +187,7 @@ export function WhatsAppDemo({ onBooking }: { onBooking?: (data: any) => void })
                 <Bot className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-bold text-sm leading-tight">Turnero Sales Copilot</h3>
+                <h3 className="font-bold text-sm leading-tight">Turne IA</h3>
                 <div className="flex items-center gap-1.5 text-xs text-indigo-100">
                   <span className={`w-2 h-2 rounded-full ${isLoading ? "bg-amber-300 animate-pulse" : "bg-emerald-300"}`} />
                   {isLoading ? "Pensando propuesta..." : "Online · responde por rubro"}

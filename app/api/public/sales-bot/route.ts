@@ -51,6 +51,27 @@ function directRubroResponse(rubroSlug: string) {
   };
 }
 
+function directVolumeResponse(volume: "low" | "mid" | "high") {
+  const map = {
+    low: "Perfecto, para ese volumen te conviene arrancar con automatizaciones de confirmación y agenda inteligente.",
+    mid: "Excelente escala. Te recomiendo sumar CRM + automatizaciones de reactivación para sostener crecimiento.",
+    high: "Gran volumen. Lo ideal es implementar operación avanzada con reglas, reportes y flujos multi-equipo.",
+  }[volume];
+
+  return {
+    intent: "qualification",
+    message: `${map} ¿Querés que te armemos una demo guiada con flujo real de tu rubro?`,
+    options: [
+      { label: "✅ Sí, quiero demo guiada", value: "Quiero demo guiada para mi rubro" },
+      { label: "🧩 Prefiero implementación gradual", value: "Quiero implementación gradual" },
+      { label: "💬 Hablar con asesor", value: "contact_seller" },
+    ],
+    entities: {
+      volume,
+    },
+  };
+}
+
 export async function POST(req: NextRequest) {
   try {
     const payload = await req.json();
@@ -77,6 +98,22 @@ export async function POST(req: NextRequest) {
           url: buildSellerWhatsAppLink(),
         },
       });
+    }
+
+    if (message.startsWith("volumen:")) {
+      const volume = message.split(":")[1] as "low" | "mid" | "high";
+      if (volume === "low" || volume === "mid" || volume === "high") {
+        const directVolume = directVolumeResponse(volume);
+        return NextResponse.json({
+          ...directVolume,
+          seller: {
+            name: SELLER_NAME,
+            whatsapp: SELLER_WHATSAPP_E164,
+            email: SELLER_EMAIL,
+            url: buildSellerWhatsAppLink(),
+          },
+        });
+      }
     }
 
     const fullContextText = [message, ...history.map((h: any) => h?.content || "")].join("\n");
@@ -141,7 +178,8 @@ Output JSON:
     const options = Array.isArray(response.options) ? response.options : [];
     const contactOption = { label: `💬 Hablar con ${SELLER_NAME}`, value: "contact_seller" };
     const rubroOptions = SALES_RUBROS.slice(0, 6).map((r) => ({ label: `Rubro: ${r.name}`, value: `rubro:${r.slug}` }));
-    const merged = [...options, contactOption, ...rubroOptions]
+    const shouldSuggestRubros = history.length < 2 && !message.startsWith("volumen:");
+    const merged = [...options, contactOption, ...(shouldSuggestRubros ? rubroOptions : [])]
       .filter((opt, idx, arr) => arr.findIndex((o) => o.value === opt.value) === idx)
       .slice(0, 6);
 

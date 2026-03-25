@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { ModeToggle } from '@/components/mode-toggle';
 import { WhatsAppDemo } from '@/components/WhatsAppDemo';
 
@@ -212,6 +213,7 @@ export default function LandingPage() {
               <ShowcaseCard
                 title="Admin Bot Inteligente"
                 subtitle="Consultas rápidas para organizar tu semana"
+                imageSrc="/demo-previews/admin-bot.svg"
                 bullets={[
                   "¿Qué día me conviene tomarme libre?",
                   "Si cierro al mediodía, ¿cuántos turnos impacto?",
@@ -222,6 +224,7 @@ export default function LandingPage() {
               <ShowcaseCard
                 title="Agenda Operativa Nativa"
                 subtitle="Bloqueos, conflictos y huecos sugeridos"
+                imageSrc="/demo-previews/agenda.svg"
                 bullets={[
                   "Bloqueos por vacaciones/remodelación",
                   "Sugerencias automáticas de horarios libres",
@@ -232,6 +235,7 @@ export default function LandingPage() {
               <ShowcaseCard
                 title="Marketing + CRM"
                 subtitle="Campañas y journeys con control total"
+                imageSrc="/demo-previews/crm.svg"
                 bullets={[
                   "Plantillas y envíos programados",
                   "Journeys de reactivación / pago pendiente",
@@ -493,11 +497,13 @@ function DynamicStepCard({ icon, title, description }: { icon: React.ReactNode; 
 function ShowcaseCard({
   title,
   subtitle,
+  imageSrc,
   bullets,
   tone,
 }: {
   title: string;
   subtitle: string;
+  imageSrc: string;
   bullets: string[];
   tone: "indigo" | "emerald" | "violet";
 }) {
@@ -509,12 +515,9 @@ function ShowcaseCard({
 
   return (
     <div className={`rounded-2xl border bg-gradient-to-br ${toneClass} p-5 shadow-sm`}>
-      <div className="rounded-xl border border-white/70 dark:border-slate-700 bg-white/90 dark:bg-slate-900/70 p-3 mb-4 text-xs text-slate-500">
-        <p className="font-semibold">Vista previa del panel</p>
-        <div className="mt-2 space-y-1">
-          <div className="h-2 rounded bg-slate-200 dark:bg-slate-700" />
-          <div className="h-2 rounded bg-slate-200 dark:bg-slate-700 w-4/5" />
-          <div className="h-2 rounded bg-slate-200 dark:bg-slate-700 w-3/5" />
+      <div className="rounded-xl border border-white/70 dark:border-slate-700 bg-white/90 dark:bg-slate-900/70 p-2 mb-4 text-xs text-slate-500">
+        <div className="relative w-full aspect-[16/9] rounded-lg overflow-hidden border border-slate-200/70 dark:border-slate-700">
+          <Image src={imageSrc} alt={`Preview ${title}`} fill className="object-cover" />
         </div>
       </div>
       <h3 className="text-lg font-bold text-slate-900 dark:text-white">{title}</h3>
