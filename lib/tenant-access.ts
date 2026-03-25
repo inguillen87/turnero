@@ -21,6 +21,8 @@ type TenantLike = {
   currency?: string;
   plan?: string;
   planStatus?: string;
+  localesEnabled?: string | null;
+  defaultLocale?: string | null;
 };
 
 function buildDemoFallbackTenant(slug: string): TenantLike {
@@ -33,6 +35,8 @@ function buildDemoFallbackTenant(slug: string): TenantLike {
     currency: 'ARS',
     plan: 'demo',
     planStatus: 'DEMO',
+    localesEnabled: JSON.stringify(['es-AR']),
+    defaultLocale: 'es-AR',
   };
 }
 
