@@ -33,13 +33,20 @@ const SALES_SERVICES = [
 
 export async function POST(req: NextRequest) {
   try {
-    const { message, history, anonId } = await req.json();
+    const payload = await req.json();
+    const message = typeof payload?.message === "string" ? payload.message.replace(/\s+/g, " ").trim() : "";
+    const history = Array.isArray(payload?.history) ? payload.history : [];
+    const anonId = typeof payload?.anonId === "string" ? payload.anonId.trim().slice(0, 80) : undefined;
 
-    if (!message) {
-      return NextResponse.json({ error: "Message required" }, { status: 400 });
+    if (!message || message.length < 2) {
+      return NextResponse.json({ error: "Message required (min 2 chars)" }, { status: 400 });
     }
 
-    const fullContextText = [message, ...(history || []).map((h: any) => h?.content || "")].join("\n");
+    if (message.length > 1200) {
+      return NextResponse.json({ error: "Message too long (max 1200 chars)" }, { status: 400 });
+    }
+
+    const fullContextText = [message, ...history.map((h: any) => h?.content || "")].join("\n");
     const rubro = detectSalesRubro(fullContextText);
 
     await registerSalesLead({
@@ -87,7 +94,7 @@ Output JSON:
       message,
       {
         services: SALES_SERVICES,
-        conversationHistory: history || [],
+        conversationHistory: history,
         now: new Date(),
         tenantName: "Turnero Pro Sales",
         locale: "es",
