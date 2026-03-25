@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { buildFinanceInsights } from '@/lib/finance-insights';
+import { resolveTenantAccess } from '@/lib/tenant-access';
 
 export const runtime = 'nodejs';
 
@@ -15,15 +17,17 @@ function formatMonth(date: Date) {
 }
 
 function buildMockResponse() {
+  const summary = {
+    paidThisMonth: 485000,
+    pendingThisMonth: 92000,
+    noShowLossThisMonth: 38000,
+    avgTicketPaid: 27400,
+    collectionRate: 84,
+    upcomingBookedRevenue: 210000,
+  };
   return {
-    summary: {
-      paidThisMonth: 485000,
-      pendingThisMonth: 92000,
-      noShowLossThisMonth: 38000,
-      avgTicketPaid: 27400,
-      collectionRate: 84,
-      upcomingBookedRevenue: 210000,
-    },
+    currency: 'ARS',
+    summary,
     monthly: [
       { month: 'oct 25', paid: 390000, pending: 70000, noShowLoss: 42000 },
       { month: 'nov 25', paid: 420000, pending: 88000, noShowLoss: 37000 },
@@ -32,6 +36,13 @@ function buildMockResponse() {
       { month: 'feb 26', paid: 470000, pending: 90000, noShowLoss: 34000 },
       { month: 'mar 26', paid: 485000, pending: 92000, noShowLoss: 38000 },
     ] as MonthlyPoint[],
+    operations: {
+      appointmentsThisMonth: 96,
+      confirmedThisMonth: 71,
+      noShowThisMonth: 7,
+      noShowRate: 7.3,
+    },
+    insights: buildFinanceInsights(summary),
   };
 }
 
@@ -42,8 +53,9 @@ export async function GET(
   const { tenant: slug } = await params;
 
   try {
-    const tenant = await prisma.tenant.findUnique({ where: { slug } });
-    if (!tenant) return NextResponse.json({ error: 'Tenant not found' }, { status: 404 });
+    const access = await resolveTenantAccess({ slug });
+    if ('error' in access) return access.error;
+    const tenant = access.tenant;
 
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -75,6 +87,9 @@ export async function GET(
     let noShowLossThisMonth = 0;
     let paidCountThisMonth = 0;
     let upcomingBookedRevenue = 0;
+    let appointmentsThisMonth = 0;
+    let confirmedThisMonth = 0;
+    let noShowThisMonth = 0;
 
     for (const appt of appointments) {
       const amount = Math.max(appt.price ?? 0, 0);
@@ -82,6 +97,11 @@ export async function GET(
       const key = `${start.getFullYear()}-${start.getMonth()}`;
       const bucket = monthlyMap.get(key);
       const isThisMonth = start >= monthStart;
+      if (isThisMonth) {
+        appointmentsThisMonth += 1;
+        if (appt.status === 'CONFIRMED' || appt.status === 'DONE') confirmedThisMonth += 1;
+        if (appt.status === 'NO_SHOW') noShowThisMonth += 1;
+      }
 
       if (appt.paymentStatus === 'PAID') {
         if (bucket) bucket.paid += amount;
@@ -110,16 +130,29 @@ export async function GET(
     const collectionBase = paidThisMonth + pendingThisMonth;
     const collectionRate = collectionBase > 0 ? Math.round((paidThisMonth / collectionBase) * 100) : 0;
 
+    const summary = {
+      paidThisMonth,
+      pendingThisMonth,
+      noShowLossThisMonth,
+      avgTicketPaid: paidCountThisMonth > 0 ? Math.round(paidThisMonth / paidCountThisMonth) : 0,
+      collectionRate,
+      upcomingBookedRevenue,
+    };
+    const noShowRate = appointmentsThisMonth > 0 ? Number(((noShowThisMonth / appointmentsThisMonth) * 100).toFixed(1)) : 0;
+
     return NextResponse.json({
+      currency: tenant.currency || 'ARS',
       summary: {
-        paidThisMonth,
-        pendingThisMonth,
-        noShowLossThisMonth,
-        avgTicketPaid: paidCountThisMonth > 0 ? Math.round(paidThisMonth / paidCountThisMonth) : 0,
-        collectionRate,
-        upcomingBookedRevenue,
+        ...summary,
       },
       monthly,
+      operations: {
+        appointmentsThisMonth,
+        confirmedThisMonth,
+        noShowThisMonth,
+        noShowRate,
+      },
+      insights: buildFinanceInsights(summary),
     });
   } catch (error) {
     console.warn('Error generating finance overview', error);
