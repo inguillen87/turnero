@@ -120,6 +120,9 @@ export function WhatsAppDemo({ onBooking }: { onBooking?: (data: any) => void })
       });
 
       const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || "No se pudo procesar la consulta");
+      }
       if (data?.seller?.url) setSellerUrl(data.seller.url);
 
       const botMsg: Message = {
@@ -173,7 +176,7 @@ export function WhatsAppDemo({ onBooking }: { onBooking?: (data: any) => void })
       </button>
 
       <div
-        className={`fixed bottom-24 right-6 z-50 w-[22rem] md:w-[25rem] rounded-3xl shadow-2xl border border-indigo-200/70 dark:border-slate-700/80 overflow-hidden transition-all duration-300 origin-bottom-right bg-white/95 dark:bg-slate-900/95 backdrop-blur ${
+        className={`fixed bottom-24 right-3 md:right-6 z-50 w-[calc(100vw-1.5rem)] max-w-[25rem] rounded-3xl shadow-2xl border border-indigo-200/70 dark:border-slate-700/80 overflow-hidden transition-all duration-300 origin-bottom-right bg-white/95 dark:bg-slate-900/95 backdrop-blur ${
           isOpen ? "scale-100 opacity-100" : "scale-95 opacity-0 pointer-events-none"
         }`}
       >

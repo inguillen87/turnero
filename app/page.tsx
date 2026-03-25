@@ -186,7 +186,7 @@ export default function LandingPage() {
             <p className="text-xs font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-300 mb-3">White-label ready • expansión global</p>
             <h3 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-3">Listo para franquiciar y escalar por país/idioma</h3>
             <p className="text-slate-600 dark:text-slate-300 max-w-3xl mx-auto">
-              Turnerosa ya está preparada para operar en <strong>Español, English y Português</strong>, con demo enterprise completa para SuperAdmin + tenant.
+              Turnero Pro ya está preparado para operar en <strong>Español, English y Português</strong>, con demo enterprise completa para SuperAdmin + tenant.
               Ideal para partners que quieran revender white-label en nuevos mercados.
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-2 text-xs">
@@ -204,7 +204,7 @@ export default function LandingPage() {
                 Mirá lo que podés probar en la demo enterprise
               </h2>
               <p className="text-lg text-slate-600 dark:text-slate-400">
-                Te mostramos con imágenes explicativas nuestras herramientas propias: Admin Bot, agenda operativa y automatizaciones.
+                Probá en vivo nuestras herramientas propias: Admin Bot, agenda operativa y automatizaciones.
               </p>
             </div>
 
@@ -253,6 +253,22 @@ export default function LandingPage() {
           </div>
         </section>
 
+        <section className="py-12 bg-emerald-50/60 dark:bg-emerald-900/10 border-b border-emerald-100 dark:border-emerald-900/40">
+          <div className="container mx-auto px-4 text-center max-w-3xl">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-300 mb-2">PWA Ready</p>
+            <h3 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-3">Turnero en el bolsillo del equipo</h3>
+            <p className="text-slate-600 dark:text-slate-300">
+              Instalación tipo app desde navegador para usar en recepción, tablets y celulares sin fricción.
+              Ideal para operación diaria sin depender de notebook.
+            </p>
+            <div className="mt-5 flex flex-wrap justify-center gap-2 text-xs">
+              <span className="px-3 py-1 rounded-full bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800">Add to Home Screen</span>
+              <span className="px-3 py-1 rounded-full bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800">Uso en tablets de mostrador</span>
+              <span className="px-3 py-1 rounded-full bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800">Experiencia mobile-first</span>
+            </div>
+          </div>
+        </section>
+
         <section className="py-20 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
           <div className="container mx-auto px-4">
             <div className="max-w-3xl mx-auto text-center mb-12">
@@ -291,10 +307,10 @@ export default function LandingPage() {
             <div className="text-center max-w-3xl mx-auto mb-12">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600 dark:text-indigo-300 mb-3">Sin fricción comercial</p>
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-slate-900 dark:text-white mb-4">
-                Sacamos el precio del landing para vender mejor
+                Te guiamos a la mejor solución para tu negocio
               </h2>
               <p className="text-lg text-slate-600 dark:text-slate-400">
-                Ahora enfocamos la conversación en diagnóstico, demo y plan a medida. Más consultas calificadas, menos rebote por precio fuera de contexto.
+                Empezamos por tu operación real: diagnóstico, demo guiada y propuesta a medida para que implementes con confianza.
               </p>
             </div>
 

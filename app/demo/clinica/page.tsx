@@ -11,7 +11,7 @@ import { DemoReports } from "@/components/demo/DemoReports";
 import { DemoMarketing } from "@/components/demo/DemoMarketing";
 import { DemoFinance } from "@/components/demo/DemoFinance";
 import { DemoSettings } from "@/components/demo/DemoSettings";
-import { MessageSquare, LayoutDashboard, Calendar, Users, Megaphone, Settings } from "lucide-react";
+import { MessageSquare, LayoutDashboard, Calendar, Users, Megaphone, Settings, Lock } from "lucide-react";
 
 const INITIAL_SERVICES = [
     { id: "consulta", name: "Consulta General", duration: '30 min', price: 50000, color: 'indigo' },
@@ -26,13 +26,53 @@ export default function DemoPage() {
   const [showSimulator, setShowSimulator] = useState(true);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [services, setServices] = useState(INITIAL_SERVICES);
+  const [isLoadingAppointments, setIsLoadingAppointments] = useState(true);
+  const [appointmentsError, setAppointmentsError] = useState<string | null>(null);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+  const [lockedFeature, setLockedFeature] = useState("");
+
+  const goToTab = (tab: string) => {
+    if (tab === "finance" || tab === "reports") {
+      setLockedFeature(tab === "finance" ? "Finanzas avanzadas" : "Reportes avanzados");
+      setShowUpgradePrompt(true);
+      return;
+    }
+    setActiveTab(tab);
+  };
 
   // Initial Load
   useEffect(() => {
+    const storedTab = localStorage.getItem("demo:activeTab");
+    const storedSimulator = localStorage.getItem("demo:showSimulator");
+    const isMobile = window.matchMedia("(max-width: 767px)").matches;
+
+    if (storedTab && storedTab !== "reports" && storedTab !== "finance") setActiveTab(storedTab);
+    if (storedSimulator !== null) {
+      setShowSimulator(storedSimulator === "1");
+    } else if (isMobile) {
+      setShowSimulator(false);
+    }
+
     fetch('/api/t/demo-clinica/appointments')
-      .then(res => res.json())
-      .then(data => setAppointments(data));
+      .then(res => {
+        if (!res.ok) throw new Error("No se pudo cargar la agenda demo");
+        return res.json();
+      })
+      .then(data => {
+        setAppointments(data);
+        setAppointmentsError(null);
+      })
+      .catch(() => setAppointmentsError("No pudimos cargar turnos demo. Reintentá en unos segundos."))
+      .finally(() => setIsLoadingAppointments(false));
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem("demo:activeTab", activeTab);
+  }, [activeTab]);
+
+  useEffect(() => {
+    localStorage.setItem("demo:showSimulator", showSimulator ? "1" : "0");
+  }, [showSimulator]);
 
   const handleAction = (action: any) => {
     if (action?.type === 'APPOINTMENT_CREATED') {
@@ -51,7 +91,7 @@ export default function DemoPage() {
   return (
     <div className="flex h-dvh bg-slate-100 font-sans overflow-hidden">
       {/* 1. Sidebar */}
-      <DemoSidebar activeTab={activeTab} setActiveTab={setActiveTab} className="hidden md:flex" />
+      <DemoSidebar activeTab={activeTab} setActiveTab={goToTab} className="hidden md:flex" />
 
       {/* Mobile sidebar drawer */}
       {showMobileMenu && (
@@ -63,7 +103,7 @@ export default function DemoPage() {
           />
           <DemoSidebar
             activeTab={activeTab}
-            setActiveTab={setActiveTab}
+            setActiveTab={goToTab}
             onItemSelect={() => setShowMobileMenu(false)}
             className="relative z-10 h-full"
           />
@@ -79,6 +119,22 @@ export default function DemoPage() {
          />
 
          <div className="flex-1 overflow-y-auto custom-scroll p-3 sm:p-4 md:p-8 pb-28 md:pb-8">
+            {isLoadingAppointments && (activeTab === "dashboard" || activeTab === "agenda") && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500 animate-pulse">
+                Cargando datos demo…
+              </div>
+            )}
+            {appointmentsError && (activeTab === "dashboard" || activeTab === "agenda") && (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 mb-4 text-sm text-amber-800">
+                {appointmentsError}
+                <button
+                  onClick={() => window.location.reload()}
+                  className="ml-3 underline font-semibold"
+                >
+                  Reintentar
+                </button>
+              </div>
+            )}
             {activeTab === 'dashboard' && <DemoDashboard appointments={appointments} />}
             {activeTab === 'agenda' && <DemoAgenda appointments={appointments} />}
             {activeTab === 'patients' && <DemoPatients />}
@@ -142,7 +198,7 @@ export default function DemoPage() {
           ].map((item) => (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
+              onClick={() => goToTab(item.id)}
               className={`rounded-xl py-2.5 flex flex-col items-center justify-center gap-1 ${activeTab === item.id ? "bg-indigo-50 text-indigo-700" : "text-slate-500"}`}
             >
               <item.icon className="w-4 h-4" />
@@ -151,6 +207,39 @@ export default function DemoPage() {
           ))}
         </div>
       </div>
+
+      {showUpgradePrompt && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <button className="absolute inset-0 bg-slate-900/50" onClick={() => setShowUpgradePrompt(false)} />
+          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-200">
+            <div className="w-11 h-11 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center mb-4">
+              <Lock className="w-5 h-5" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">{lockedFeature}</h3>
+            <p className="text-sm text-slate-600 mb-5">
+              Esta función forma parte del upgrade avanzado. Podés activarla cuando quieras desde Configuración → Upgrade.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowUpgradePrompt(false)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold"
+              >
+                Ahora no
+              </button>
+              <button
+                onClick={() => {
+                  setShowUpgradePrompt(false);
+                  localStorage.setItem("demo:openBilling", "1");
+                  setActiveTab("settings");
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold"
+              >
+                Ver upgrade
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

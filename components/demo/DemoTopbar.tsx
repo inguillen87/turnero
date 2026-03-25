@@ -15,7 +15,7 @@ export function DemoTopbar({ title, onOpenMenu, onOpenSimulator }: DemoTopbarPro
 
   const [notifications, setNotifications] = useState([
       { id: 1, type: 'turno', message: 'Nuevo turno: Juan Perez', time: 'Hace 5 min', status: 'pending' },
-      { id: 2, type: 'pago', message: 'Pago recibido: $3.500', time: 'Hace 1 hora', status: 'success' },
+      { id: 2, type: 'pago', message: 'Pago recibido correctamente', time: 'Hace 1 hora', status: 'success' },
       { id: 3, type: 'recordatorio', message: 'Recordatorio enviado a Maria', time: 'Hace 2 horas', status: 'info' },
   ]);
 
