@@ -1,12 +1,16 @@
 "use client";
 
 import { User, Phone, Calendar, MoreHorizontal, Search, Filter, X, FileText, Activity, CreditCard, Clock, AlertTriangle, ShieldCheck, Banknote, MessageCircle } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-export function DemoPatients() {
+export function DemoPatients({ externalSearchTerm = "" }: { externalSearchTerm?: string }) {
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
+
+  useEffect(() => {
+    setSearchTerm(externalSearchTerm);
+  }, [externalSearchTerm]);
   const patients = [
     {
         id: 1,
