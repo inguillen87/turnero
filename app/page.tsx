@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ModeToggle } from '@/components/mode-toggle';
 import { WhatsAppDemo } from '@/components/WhatsAppDemo';
+import { ShowcaseGallery } from '@/components/landing/ShowcaseGallery';
 
 export const dynamic = 'force-static';
 import { Logo } from '@/components/Logo';
@@ -209,41 +210,7 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-6 mb-10">
-              <ShowcaseCard
-                title="Admin Bot Inteligente"
-                subtitle="Consultas rápidas para organizar tu semana"
-                imageSrc="/demo-previews/admin-bot.svg"
-                bullets={[
-                  "¿Qué día me conviene tomarme libre?",
-                  "Si cierro al mediodía, ¿cuántos turnos impacto?",
-                  "¿Cómo armo mini vacaciones sin romper agenda?",
-                ]}
-                tone="indigo"
-              />
-              <ShowcaseCard
-                title="Agenda Operativa Nativa"
-                subtitle="Bloqueos, conflictos y huecos sugeridos"
-                imageSrc="/demo-previews/agenda.svg"
-                bullets={[
-                  "Bloqueos por vacaciones/remodelación",
-                  "Sugerencias automáticas de horarios libres",
-                  "Turno rápido en 1 click desde calendario",
-                ]}
-                tone="emerald"
-              />
-              <ShowcaseCard
-                title="Marketing + CRM"
-                subtitle="Campañas y journeys con control total"
-                imageSrc="/demo-previews/crm.svg"
-                bullets={[
-                  "Plantillas y envíos programados",
-                  "Journeys de reactivación / pago pendiente",
-                  "Exportes PDF y Excel para operación",
-                ]}
-                tone="violet"
-              />
-            </div>
+            <ShowcaseGallery />
 
             <div className="rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50/60 dark:bg-amber-900/10 p-5 flex items-start gap-3">
               <ShieldCheck className="w-5 h-5 text-amber-600 mt-0.5" />
@@ -399,7 +366,7 @@ export default function LandingPage() {
                 <Smartphone className="w-3.5 h-3.5" /> UX/UI renovado
               </p>
               <h3 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
-                Landing mobile-first, PWA-ready y con demos más claras
+                Experiencia clara y fluida en cualquier dispositivo
               </h3>
               <p className="text-slate-600 dark:text-slate-400 text-lg">
                 Mejoramos estructura, mensajes y jerarquía visual para que cada visita entienda rápido cómo funciona Turnero, incluso desde celular.
@@ -430,19 +397,6 @@ export default function LandingPage() {
           </div>
         </section>
 
-         {/* Social Proof Footer */}
-        <section className="py-20 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-            <div className="container mx-auto px-4 text-center">
-                 <p className="text-slate-500 font-semibold uppercase tracking-widest mb-8 text-sm">Empresas líderes que confían en Turnero Pro</p>
-                 <div className="flex flex-wrap justify-center gap-8 md:gap-16 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
-                     {/* Fake Logos for Demo */}
-                     <div className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-2"><Zap className="fill-current"/> DENTAL<span className="text-indigo-500">CORP</span></div>
-                     <div className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-2"><Star className="fill-current"/> MEDI<span className="text-indigo-500">PLUS</span></div>
-                     <div className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-2"><Briefcase className="fill-current"/> CLINIC<span className="text-indigo-500">OS</span></div>
-                     <div className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-2"><Users className="fill-current"/> ESTETICA<span className="text-indigo-500">PRO</span></div>
-                 </div>
-            </div>
-        </section>
       </main>
 
       <div className="fixed md:hidden bottom-4 left-4 right-4 z-50 [padding-bottom:env(safe-area-inset-bottom)]">
@@ -459,12 +413,13 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-6">
           <Logo />
           <div className="text-sm text-slate-500 dark:text-slate-400">
-            © {new Date().getFullYear()} Turnero Pro. Todos los derechos reservados.
+            © {new Date().getFullYear()} Turnero Pro • Producto by <a href="https://inmov.ar" target="_blank" rel="noreferrer" className="underline hover:text-indigo-600">Inmovar (inmov.ar)</a>.
           </div>
           <div className="flex gap-6">
-            <a href="#" className="text-slate-500 hover:text-indigo-600 transition-colors">Términos</a>
-            <a href="#" className="text-slate-500 hover:text-indigo-600 transition-colors">Privacidad</a>
-            <a href="#" className="text-slate-500 hover:text-indigo-600 transition-colors">Contacto</a>
+            <Link href="/terminos" className="text-slate-500 hover:text-indigo-600 transition-colors">Términos</Link>
+            <Link href="/privacidad" className="text-slate-500 hover:text-indigo-600 transition-colors">Privacidad</Link>
+            <Link href="/faqs" className="text-slate-500 hover:text-indigo-600 transition-colors">FAQs</Link>
+            <Link href="/contacto" className="text-slate-500 hover:text-indigo-600 transition-colors">Contacto</Link>
           </div>
         </div>
       </footer>
@@ -490,43 +445,6 @@ function DynamicStepCard({ icon, title, description }: { icon: React.ReactNode; 
       </div>
       <h3 className="font-bold text-slate-900 dark:text-white mb-2">{title}</h3>
       <p className="text-sm text-slate-600 dark:text-slate-400">{description}</p>
-    </div>
-  );
-}
-
-function ShowcaseCard({
-  title,
-  subtitle,
-  imageSrc,
-  bullets,
-  tone,
-}: {
-  title: string;
-  subtitle: string;
-  imageSrc: string;
-  bullets: string[];
-  tone: "indigo" | "emerald" | "violet";
-}) {
-  const toneClass = {
-    indigo: "from-indigo-500/15 to-indigo-100/70 dark:from-indigo-900/30 dark:to-indigo-800/10 border-indigo-200/80 dark:border-indigo-800",
-    emerald: "from-emerald-500/15 to-emerald-100/70 dark:from-emerald-900/30 dark:to-emerald-800/10 border-emerald-200/80 dark:border-emerald-800",
-    violet: "from-violet-500/15 to-violet-100/70 dark:from-violet-900/30 dark:to-violet-800/10 border-violet-200/80 dark:border-violet-800",
-  }[tone];
-
-  return (
-    <div className={`rounded-2xl border bg-gradient-to-br ${toneClass} p-5 shadow-sm`}>
-      <div className="rounded-xl border border-white/70 dark:border-slate-700 bg-white/90 dark:bg-slate-900/70 p-2 mb-4 text-xs text-slate-500">
-        <div className="relative w-full aspect-[16/9] rounded-lg overflow-hidden border border-slate-200/70 dark:border-slate-700">
-          <Image src={imageSrc} alt={`Preview ${title}`} fill className="object-cover" />
-        </div>
-      </div>
-      <h3 className="text-lg font-bold text-slate-900 dark:text-white">{title}</h3>
-      <p className="text-sm text-slate-600 dark:text-slate-300 mb-3">{subtitle}</p>
-      <ul className="space-y-1 text-sm text-slate-700 dark:text-slate-300">
-        {bullets.map((b) => (
-          <li key={b}>• {b}</li>
-        ))}
-      </ul>
     </div>
   );
 }
