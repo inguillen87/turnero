@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Sparkles, BrainCircuit, CalendarClock, Megaphone, TrendingUp } from "lucide-react";
 
 type Tone = "indigo" | "emerald" | "violet";
 
@@ -16,6 +16,9 @@ const ITEMS = [
       "Si cierro al mediodía, ¿cuántos turnos impacto?",
       "¿Cómo armo mini vacaciones sin romper agenda?",
     ],
+    icon: BrainCircuit,
+    pulseColor: "bg-indigo-400",
+    impact: "+42%",
     tone: "indigo" as Tone,
   },
   {
@@ -27,6 +30,9 @@ const ITEMS = [
       "Sugerencias automáticas de horarios libres",
       "Turno rápido en 1 click desde calendario",
     ],
+    icon: CalendarClock,
+    pulseColor: "bg-emerald-400",
+    impact: "-31%",
     tone: "emerald" as Tone,
   },
   {
@@ -38,6 +44,9 @@ const ITEMS = [
       "Journeys de reactivación / pago pendiente",
       "Exportes PDF y Excel para operación",
     ],
+    icon: Megaphone,
+    pulseColor: "bg-violet-400",
+    impact: "+57%",
     tone: "violet" as Tone,
   },
 ];
@@ -60,11 +69,23 @@ export function ShowcaseGallery() {
 
   const go = (next: number) => setActive((next + ITEMS.length) % ITEMS.length);
 
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setActive((prev) => (prev + 1) % ITEMS.length);
+    }, 4200);
+    return () => window.clearInterval(id);
+  }, []);
+
   return (
     <>
-      <div className="hidden md:grid md:grid-cols-3 gap-6 mb-10">
-        {ITEMS.map((item) => (
-          <ShowcaseCard key={item.title} item={item} onPreviewClick={() => setLightbox(ITEMS.findIndex((x) => x.title === item.title))} />
+      <div className="hidden md:grid md:grid-cols-3 gap-6 mb-6">
+        {ITEMS.map((item, index) => (
+          <ShowcaseCard key={item.title} index={index} item={item} onPreviewClick={() => setLightbox(ITEMS.findIndex((x) => x.title === item.title))} />
+        ))}
+      </div>
+      <div className="hidden md:flex items-center justify-center gap-2 mb-10">
+        {ITEMS.map((item, i) => (
+          <button key={item.title} onClick={() => setActive(i)} className={`h-1.5 rounded-full transition-all ${i === active ? "w-16 bg-indigo-500" : "w-8 bg-slate-300 dark:bg-slate-700"}`} />
         ))}
       </div>
 
@@ -80,7 +101,7 @@ export function ShowcaseGallery() {
             setTouchStartX(null);
           }}
         >
-          <ShowcaseCard item={current} onPreviewClick={() => setLightbox(active)} compact />
+          <ShowcaseCard index={active} item={current} onPreviewClick={() => setLightbox(active)} compact />
           <div className="mt-4 flex items-center justify-between">
             <button className="p-2 rounded-lg border border-slate-200 dark:border-slate-700" onClick={() => go(active - 1)}>
               <ChevronLeft className="w-4 h-4" />
@@ -115,10 +136,12 @@ export function ShowcaseGallery() {
 }
 
 function ShowcaseCard({
+  index,
   item,
   onPreviewClick,
   compact = false,
 }: {
+  index: number;
   item: (typeof ITEMS)[number];
   onPreviewClick: () => void;
   compact?: boolean;
@@ -130,19 +153,32 @@ function ShowcaseCard({
   }[item.tone];
 
   return (
-    <div className={`${compact ? "" : `rounded-2xl border bg-gradient-to-br ${toneClass} p-5 shadow-sm hover:-translate-y-1 hover:shadow-lg transition-all duration-300`}`}>
+    <div className={`${compact ? "" : `rounded-2xl border bg-gradient-to-br ${toneClass} p-5 shadow-sm hover:-translate-y-1 hover:shadow-lg transition-all duration-300`} relative`}>
       <button onClick={onPreviewClick} className="rounded-xl border border-white/70 dark:border-slate-700 bg-white/90 dark:bg-slate-900/70 p-2 mb-4 w-full text-left group">
         <div className="relative w-full aspect-[16/9] rounded-lg overflow-hidden border border-slate-200/70 dark:border-slate-700">
-          <Image src={item.imageSrc} alt={`Preview ${item.title}`} fill className="object-cover group-hover:scale-[1.03] transition-transform duration-300" />
+          <Image src={item.imageSrc} alt={`Preview ${item.title}`} fill className="object-cover group-hover:scale-[1.05] transition-transform duration-500" />
+          <div className="absolute top-2 right-2 rounded-full bg-black/40 text-white px-2 py-1 text-[10px] font-bold flex items-center gap-1">
+            <Sparkles className="w-3 h-3" /> Live
+          </div>
         </div>
       </button>
+      <div className={`absolute -top-2 -left-2 w-4 h-4 rounded-full bg-white/80 animate-pulse`} style={{ animationDelay: `${index * 0.3}s` }} />
       <h3 className="text-lg font-bold text-slate-900 dark:text-white">{item.title}</h3>
       <p className="text-sm text-slate-600 dark:text-slate-300 mb-3">{item.subtitle}</p>
+      <div className="mb-3 flex items-center gap-2">
+        <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-full bg-slate-900 text-white dark:bg-white dark:text-slate-900`}>
+          <TrendingUp className="w-3 h-3" /> {item.impact}
+        </span>
+        <span className={`w-2 h-2 rounded-full ${item.pulseColor} animate-ping`} />
+      </div>
       <ul className="space-y-1 text-sm text-slate-700 dark:text-slate-300">
         {item.bullets.map((b) => (
           <li key={b}>• {b}</li>
         ))}
       </ul>
+      <div className="absolute bottom-4 right-4 text-slate-300/50">
+        <item.icon className="w-7 h-7" />
+      </div>
     </div>
   );
 }
