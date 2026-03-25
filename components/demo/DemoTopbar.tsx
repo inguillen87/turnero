@@ -1,19 +1,21 @@
-import { Search, Bell, HelpCircle, Sun, Moon, Check, X, CreditCard } from "lucide-react";
+import { Search, Bell, HelpCircle, Check, X, PanelLeft, MessageSquare } from "lucide-react";
 import { ClientDate } from "@/components/ui/ClientDate";
 import { useState } from "react";
 import { DemoHelp } from "@/components/demo/DemoHelp";
 
 interface DemoTopbarProps {
   title: string;
+  onOpenMenu?: () => void;
+  onOpenSimulator?: () => void;
 }
 
-export function DemoTopbar({ title }: DemoTopbarProps) {
+export function DemoTopbar({ title, onOpenMenu, onOpenSimulator }: DemoTopbarProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
 
   const [notifications, setNotifications] = useState([
       { id: 1, type: 'turno', message: 'Nuevo turno: Juan Perez', time: 'Hace 5 min', status: 'pending' },
-      { id: 2, type: 'pago', message: 'Pago recibido: $3.500', time: 'Hace 1 hora', status: 'success' },
+      { id: 2, type: 'pago', message: 'Pago recibido correctamente', time: 'Hace 1 hora', status: 'success' },
       { id: 3, type: 'recordatorio', message: 'Recordatorio enviado a Maria', time: 'Hace 2 horas', status: 'info' },
   ]);
 
@@ -25,7 +27,14 @@ export function DemoTopbar({ title }: DemoTopbarProps) {
   return (
     <>
     <div className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shadow-sm sticky top-0 z-10 backdrop-blur-md bg-white/80">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 md:gap-4">
+        <button
+          onClick={onOpenMenu}
+          className="md:hidden w-9 h-9 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors text-slate-600"
+          aria-label="Abrir menú"
+        >
+          <PanelLeft className="w-5 h-5" />
+        </button>
         <h2 className="text-xl font-bold text-slate-800 tracking-tight">{title}</h2>
         <span className="hidden md:flex px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase tracking-wider items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -33,7 +42,7 @@ export function DemoTopbar({ title }: DemoTopbarProps) {
         </span>
       </div>
 
-      <div className="flex items-center gap-4 text-slate-500">
+      <div className="flex items-center gap-2 md:gap-4 text-slate-500">
         <div className="hidden md:flex relative group">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-indigo-500 transition-colors" />
             <input
@@ -45,7 +54,9 @@ export function DemoTopbar({ title }: DemoTopbarProps) {
 
         <div className="h-6 w-px bg-slate-200 mx-2 hidden md:block"></div>
 
-        <ClientDate />
+        <div className="hidden sm:block">
+          <ClientDate />
+        </div>
 
         <div className="relative">
             <button
@@ -116,6 +127,13 @@ export function DemoTopbar({ title }: DemoTopbarProps) {
             className="w-9 h-9 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors hidden md:flex"
         >
             <HelpCircle className="w-5 h-5 text-slate-600" />
+        </button>
+        <button
+            onClick={onOpenSimulator}
+            className="md:hidden w-9 h-9 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors"
+            aria-label="Abrir simulador"
+        >
+            <MessageSquare className="w-5 h-5 text-slate-600" />
         </button>
       </div>
     </div>
