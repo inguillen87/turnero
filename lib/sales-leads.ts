@@ -8,7 +8,7 @@ function randomId() {
 }
 
 function normalizeMessage(value: string) {
-  return (value || "").trim();
+  return (value || "").replace(/\s+/g, " ").trim().slice(0, 1200);
 }
 
 function extractEmail(message: string): string | undefined {
@@ -88,14 +88,27 @@ export async function registerSalesLead(params: {
     },
   });
 
-  const conversation = await prisma.conversation.create({
-    data: {
+  const openConversation = await prisma.conversation.findFirst({
+    where: {
       tenantId: salesTenant.id,
       contactId: contact.id,
       channel: "WIDGET",
-      state: JSON.stringify({ pipeline: "superadmin_sales" }),
+      closedAt: null,
+      openedAt: { gte: new Date(Date.now() - 1000 * 60 * 60 * 24) },
     },
+    orderBy: { openedAt: "desc" },
   });
+
+  const conversation = openConversation
+    ? openConversation
+    : await prisma.conversation.create({
+        data: {
+          tenantId: salesTenant.id,
+          contactId: contact.id,
+          channel: "WIDGET",
+          state: JSON.stringify({ pipeline: "superadmin_sales" }),
+        },
+      });
 
   await prisma.message.create({
     data: {
@@ -144,16 +157,19 @@ export async function registerSalesLead(params: {
   });
 
 
-  await prisma.message.create({
-    data: {
-      tenantId: salesTenant.id,
-      conversationId: conversation.id,
-      contactId: contact.id,
-      direction: "OUT",
-      body: `FOLLOWUP | Rubro: ${params.rubro || "general"} | Oferta: ${offerType} | Email: ${email || "n/d"} | Tel: ${phone || "n/d"}`,
-      status: "queued",
-    },
-  });
+  const shouldQueueFollowup = offerType !== "unknown" || Boolean(email) || Boolean(phone);
+  if (shouldQueueFollowup) {
+    await prisma.message.create({
+      data: {
+        tenantId: salesTenant.id,
+        conversationId: conversation.id,
+        contactId: contact.id,
+        direction: "OUT",
+        body: `FOLLOWUP | Rubro: ${params.rubro || "general"} | Oferta: ${offerType} | Email: ${email || "n/d"} | Tel: ${phone || "n/d"}`,
+        status: "queued",
+      },
+    });
+  }
 
   return { contactId: contact.id, offerType, ticket: enriched.leadTicket };
 }

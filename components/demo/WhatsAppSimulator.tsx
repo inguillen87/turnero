@@ -35,7 +35,7 @@ export function WhatsAppSimulator({ onAction, services }: { onAction: (action: a
       time: '10:00',
       options: [
         { label: '📅 Reservar', value: '1' }, // Use numeric values to match stateMachine logic
-        { label: '💰 Precios', value: '2' },
+        { label: '🚀 Upgrade', value: '2' },
         { label: 'ℹ️ Info', value: 'Info' },
       ]
     }
@@ -59,7 +59,7 @@ export function WhatsAppSimulator({ onAction, services }: { onAction: (action: a
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           options: [
             { label: '📅 Reservar', value: '1' },
-            { label: '💰 Precios', value: '2' },
+            { label: '🚀 Upgrade', value: '2' },
             { label: 'ℹ️ Info', value: '9' },
           ]
         }
@@ -191,7 +191,7 @@ export function WhatsAppSimulator({ onAction, services }: { onAction: (action: a
                                 target="_blank"
                                 className="block mt-2 bg-[#009EE3] text-white font-bold text-center py-2 rounded-md hover:bg-[#008CC9] transition-colors no-underline"
                               >
-                                  PAGAR SEÑA $1.000
+                                  Continuar reserva
                               </Link>
                               {msg.text.split('integration)')[1] || ''}
                           </div>
