@@ -1,11 +1,27 @@
 import Link from 'next/link';
-import Image from 'next/image';
+import type { Metadata } from 'next';
 import { ModeToggle } from '@/components/mode-toggle';
 import { WhatsAppDemo } from '@/components/WhatsAppDemo';
 import { ShowcaseGallery } from '@/components/landing/ShowcaseGallery';
 import { ShowcaseStory } from '@/components/landing/ShowcaseStory';
 
 export const dynamic = 'force-static';
+export const metadata: Metadata = {
+  title: 'Turnero Pro | Agenda, CRM y automatización por WhatsApp',
+  description:
+    'Turnero Pro centraliza agenda, CRM, reportes y automatizaciones para clínicas y servicios. Probá la demo interactiva y escalá tu operación.',
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: 'Turnero Pro | Agenda, CRM y automatización por WhatsApp',
+    description:
+      'Plataforma enterprise para agenda operativa, CRM de pacientes y bots por WhatsApp en una sola experiencia.',
+    url: '/',
+    siteName: 'Turnero Pro',
+    type: 'website',
+  },
+};
 import { Logo } from '@/components/Logo';
 import { Calendar, Users, BarChart3, Star, MessageSquare, Briefcase, Zap, Bot, PanelTop, ShieldCheck, Smartphone, Sparkles, Workflow, Rocket, MonitorPlay, BellRing, HandCoins, Gauge, ClipboardCheck, Target, Clock3, LineChart } from 'lucide-react';
 

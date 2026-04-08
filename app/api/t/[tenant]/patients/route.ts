@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { resolveTenantAccess } from '@/lib/tenant-access';
+import { isDemoTenantStatus } from '@/lib/tenant-access-rules';
 
 function inferRisk(lastSeen: Date | null, upcomingCount: number) {
   if (upcomingCount > 0) return 'LOW';
@@ -45,6 +46,7 @@ export async function GET(
   const { tenant: slug } = await params;
   const access = await resolveTenantAccess({ slug, allowDemoRead: true });
   if ('error' in access) return access.error;
+  const isDemoTenant = isDemoTenantStatus(access.tenant.status);
 
   try {
     const contacts = await prisma.contact.findMany({
@@ -79,6 +81,10 @@ export async function GET(
 
     return NextResponse.json(rows);
   } catch (error) {
+    if (!isDemoTenant) {
+      console.error('[patients.GET] failed', error);
+      return NextResponse.json({ error: 'Patients unavailable' }, { status: 500 });
+    }
     console.warn('[patients.GET] fallback mock response', error);
     return NextResponse.json(mockPatients());
   }
@@ -91,6 +97,7 @@ export async function POST(
   const { tenant: slug } = await params;
   const access = await resolveTenantAccess({ slug, requireWrite: true, allowDemoRead: true, allowDemoWrite: true });
   if ('error' in access) return access.error;
+  const isDemoTenant = isDemoTenantStatus(access.tenant.status);
 
   const body = await req.json().catch(() => null) as {
     name?: string;
@@ -130,6 +137,10 @@ export async function POST(
 
     return NextResponse.json(contact, { status: 201 });
   } catch (error) {
+    if (!isDemoTenant) {
+      console.error('[patients.POST] failed', error);
+      return NextResponse.json({ error: 'Patient could not be created' }, { status: 500 });
+    }
     console.warn('[patients.POST] fallback mock response', error);
     return NextResponse.json(
       {
