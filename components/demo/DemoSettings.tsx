@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Save,
   Building,
@@ -33,9 +33,18 @@ export function DemoSettings({ services, setServices }: DemoSettingsProps) {
     { id: 'schedule', label: 'Horarios', icon: Clock },
     { id: 'staff', label: 'Equipo', icon: Users },
     { id: 'services', label: 'Servicios', icon: Wrench },
-    { id: 'billing', label: 'Facturación', icon: CreditCard },
+    { id: 'billing', label: 'Upgrade', icon: CreditCard },
     { id: 'integrations', label: 'Integraciones', icon: LinkIcon },
   ];
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const openBilling = window.localStorage.getItem("demo:openBilling");
+    if (openBilling === "1") {
+      setActiveTab("billing");
+      window.localStorage.removeItem("demo:openBilling");
+    }
+  }, []);
 
   return (
     <div className="flex flex-col h-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -187,7 +196,7 @@ function SettingsStaff() {
 
 function SettingsServices({ services, setServices }: { services?: any[], setServices?: (s: any[]) => void }) {
     const [isAdding, setIsAdding] = useState(false);
-    const [newService, setNewService] = useState({ name: '', duration: '30 min', price: 0, color: 'gray' });
+    const [newService, setNewService] = useState({ name: '', duration: '30 min', color: 'gray' });
 
     const handleAdd = () => {
         if (!setServices || !services) return;
@@ -197,13 +206,12 @@ function SettingsServices({ services, setServices }: { services?: any[], setServ
             id: Date.now().toString(),
             name: newService.name,
             duration: newService.duration,
-            price: Number(newService.price),
             color: newService.color
         };
 
         setServices([...services, serviceToAdd]);
         setIsAdding(false);
-        setNewService({ name: '', duration: '30 min', price: 0, color: 'gray' });
+        setNewService({ name: '', duration: '30 min', color: 'gray' });
     };
 
     return (
@@ -220,7 +228,7 @@ function SettingsServices({ services, setServices }: { services?: any[], setServ
 
             {isAdding && (
                 <div className="p-4 border border-indigo-200 bg-indigo-50 rounded-xl mb-4 animate-in fade-in slide-in-from-top-2">
-                    <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                         <div>
                             <label className="text-xs font-bold text-slate-500 uppercase">Nombre</label>
                             <input
@@ -229,16 +237,6 @@ function SettingsServices({ services, setServices }: { services?: any[], setServ
                                 placeholder="Ej: Implante"
                                 value={newService.name}
                                 onChange={(e) => setNewService({...newService, name: e.target.value})}
-                            />
-                        </div>
-                        <div>
-                            <label className="text-xs font-bold text-slate-500 uppercase">Precio</label>
-                            <input
-                                type="number"
-                                className="w-full p-2 rounded-lg border border-slate-200 text-sm"
-                                placeholder="5000"
-                                value={newService.price || ''}
-                                onChange={(e) => setNewService({...newService, price: Number(e.target.value)})}
                             />
                         </div>
                         <div>
@@ -290,7 +288,6 @@ function SettingsServices({ services, setServices }: { services?: any[], setServ
                                     <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded font-medium flex items-center gap-1">
                                         <Clock className="w-3 h-3" /> {s.duration}
                                     </span>
-                                    <span className="text-xs font-bold text-slate-500">${s.price}</span>
                                 </div>
                              </div>
                         </div>
@@ -313,10 +310,61 @@ function SettingsServices({ services, setServices }: { services?: any[], setServ
 function SettingsIntegrations() {
     const [connectedCalendar, setConnectedCalendar] = useState(false);
     const [connectedSheets, setConnectedSheets] = useState(false);
+    const [clinicCreated, setClinicCreated] = useState(true);
+    const [adminInvited, setAdminInvited] = useState(false);
+    const [whatsAppConnected, setWhatsAppConnected] = useState(true);
+    const [whatsAppNumber, setWhatsAppNumber] = useState("+54 9 11 1234 5678");
+
+    const completedSteps = [clinicCreated, adminInvited, whatsAppConnected].filter(Boolean).length;
 
     return (
         <div className="space-y-6">
              <h3 className="font-bold text-slate-800 text-lg border-b border-slate-100 pb-4">Integraciones Activas</h3>
+
+             <div className="rounded-2xl border border-indigo-200 bg-indigo-50/70 p-5">
+                 <div className="flex flex-wrap items-center justify-between gap-3">
+                     <div>
+                         <p className="text-xs uppercase tracking-wide font-semibold text-indigo-500">Onboarding express</p>
+                         <h4 className="font-bold text-slate-800">Listo para vender y activar en minutos</h4>
+                         <p className="text-xs text-slate-600 mt-1">
+                             Alta rápida para clínicas/profesionales: crear cuenta, invitar admin y conectar WhatsApp de turnos.
+                         </p>
+                     </div>
+                     <span className="text-xs font-bold bg-white text-indigo-700 border border-indigo-200 rounded-full px-3 py-1">
+                         {completedSteps}/3 completado
+                     </span>
+                 </div>
+                 <div className="mt-4 grid gap-2">
+                     <button onClick={() => setClinicCreated(true)} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+                         <span>1) Alta de clínica / profesional</span>
+                         {clinicCreated ? <Check className="w-4 h-4 text-emerald-600" /> : <Plus className="w-4 h-4 text-slate-400" />}
+                     </button>
+                     <button onClick={() => setAdminInvited((v) => !v)} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+                         <span>2) Invitar usuario administrador</span>
+                         {adminInvited ? <Check className="w-4 h-4 text-emerald-600" /> : <Plus className="w-4 h-4 text-slate-400" />}
+                     </button>
+                     <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
+                         <div className="flex items-center justify-between gap-2 mb-2">
+                             <p className="text-sm">3) Conectar WhatsApp de turnos</p>
+                             {whatsAppConnected ? <Check className="w-4 h-4 text-emerald-600" /> : <span className="text-[11px] text-amber-600 font-semibold">Pendiente</span>}
+                         </div>
+                         <div className="flex flex-col md:flex-row gap-2">
+                             <input
+                                value={whatsAppNumber}
+                                onChange={(e) => setWhatsAppNumber(e.target.value)}
+                                placeholder="+54 9 ..."
+                                className="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                            />
+                             <button
+                                onClick={() => setWhatsAppConnected(Boolean(whatsAppNumber.trim()))}
+                                className="px-3 py-2 rounded-lg text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700"
+                             >
+                                 Conectar número
+                             </button>
+                         </div>
+                     </div>
+                 </div>
+             </div>
 
              <div className="space-y-4">
                  <div className="flex items-center justify-between p-6 border border-green-200 bg-green-50/50 rounded-2xl">
@@ -326,10 +374,12 @@ function SettingsIntegrations() {
                          </div>
                          <div>
                              <h4 className="font-bold text-slate-800">WhatsApp Business</h4>
-                             <p className="text-xs text-green-700 font-medium">Conectado y Activo</p>
+                             <p className="text-xs text-green-700 font-medium">{whatsAppConnected ? "Conectado y activo" : "Pendiente de conexión"}</p>
                          </div>
                      </div>
-                     <button className="text-xs font-bold bg-white text-slate-600 px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">Configurar</button>
+                     <button onClick={() => setWhatsAppConnected((v) => !v)} className="text-xs font-bold bg-white text-slate-600 px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
+                        {whatsAppConnected ? "Configurar" : "Conectar ahora"}
+                     </button>
                  </div>
 
                  <div className={`flex items-center justify-between p-6 border rounded-2xl transition-all ${connectedCalendar ? 'border-blue-200 bg-blue-50/50' : 'border-slate-200 opacity-75'}`}>

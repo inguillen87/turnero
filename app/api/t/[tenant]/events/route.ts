@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { fetchTenantEventsSince, subscribeTenantEvents } from "@/lib/realtime";
+import { resolveTenantAccess } from '@/lib/tenant-access';
 
 export const runtime = "nodejs";
 
@@ -13,7 +14,9 @@ export async function GET(
   req: Request,
   { params }: { params: Promise<{ tenant: string }> }
 ) {
-  const { tenant } = await params;
+  const { tenant: slug } = await params;
+  const access = await resolveTenantAccess({ slug, allowDemoRead: true });
+  if ('error' in access) return access.error;
 
   let cleanup = () => {};
 
@@ -29,7 +32,7 @@ export async function GET(
       };
 
       const syncBacklog = async () => {
-        const pending = await fetchTenantEventsSince(tenant, cursor, 50);
+        const pending = await fetchTenantEventsSince(slug, cursor, 50);
         for (const item of pending) sendEvent(item);
       };
 
@@ -43,13 +46,13 @@ export async function GET(
         controller.enqueue(encoder.encode(`event: ping\ndata: ${JSON.stringify({ ts: Date.now(), cursor })}\n\n`));
       }, 15000);
 
-      const unsubscribe = subscribeTenantEvents(tenant, (event) => {
+      const unsubscribe = subscribeTenantEvents(slug, (event) => {
         sendEvent(event);
       });
 
       controller.enqueue(
         encoder.encode(
-          `event: ready\ndata: ${JSON.stringify({ ok: true, tenant, connectedAt: new Date().toISOString(), cursor })}\n\n`
+          `event: ready\ndata: ${JSON.stringify({ ok: true, tenant: slug, connectedAt: new Date().toISOString(), cursor })}\n\n`
         )
       );
 
