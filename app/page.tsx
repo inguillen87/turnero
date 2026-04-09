@@ -1,10 +1,29 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { ModeToggle } from '@/components/mode-toggle';
 import { WhatsAppDemo } from '@/components/WhatsAppDemo';
+import { ShowcaseGallery } from '@/components/landing/ShowcaseGallery';
+import { ShowcaseStory } from '@/components/landing/ShowcaseStory';
 
 export const dynamic = 'force-static';
+export const metadata: Metadata = {
+  title: 'Turnero Pro | Agenda, CRM y automatización por WhatsApp',
+  description:
+    'Turnero Pro centraliza agenda, CRM, reportes y automatizaciones para clínicas y servicios. Probá la demo interactiva y escalá tu operación.',
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: 'Turnero Pro | Agenda, CRM y automatización por WhatsApp',
+    description:
+      'Plataforma enterprise para agenda operativa, CRM de pacientes y bots por WhatsApp en una sola experiencia.',
+    url: '/',
+    siteName: 'Turnero Pro',
+    type: 'website',
+  },
+};
 import { Logo } from '@/components/Logo';
-import { ArrowRight, Calendar, Users, BarChart3, Clock, CheckCircle2, Star, MessageSquare, Briefcase, Zap, Bot, PanelTop, ShieldCheck } from 'lucide-react';
+import { Calendar, Users, BarChart3, Star, MessageSquare, Briefcase, Zap, Bot, PanelTop, ShieldCheck, Smartphone, Sparkles, Workflow, Rocket, MonitorPlay, BellRing, HandCoins, Gauge, ClipboardCheck, Target, Clock3, LineChart } from 'lucide-react';
 
 export default function LandingPage() {
   return (
@@ -65,6 +84,20 @@ export default function LandingPage() {
               >
                 Explorar Features
               </Link>
+            </div>
+
+            <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-3 max-w-4xl mx-auto animate-fade-in delay-300">
+              {[
+                { label: 'UX conversacional', value: '100%' },
+                { label: 'Diseño Mobile First', value: 'PWA' },
+                { label: 'Demostraciones guiadas', value: 'Live' },
+                { label: 'Arquitectura moderna', value: 'Next + AI' },
+              ].map((metric) => (
+                <div key={metric.label} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 px-3 py-4 shadow-sm hover:shadow-md transition-all">
+                  <p className="text-xl font-extrabold text-indigo-600 dark:text-indigo-300">{metric.value}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{metric.label}</p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
@@ -172,7 +205,7 @@ export default function LandingPage() {
             <p className="text-xs font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-300 mb-3">White-label ready • expansión global</p>
             <h3 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-3">Listo para franquiciar y escalar por país/idioma</h3>
             <p className="text-slate-600 dark:text-slate-300 max-w-3xl mx-auto">
-              Turnerosa ya está preparada para operar en <strong>Español, English y Português</strong>, con demo enterprise completa para SuperAdmin + tenant.
+              Turnero Pro ya está preparado para operar en <strong>Español, English y Português</strong>, con demo enterprise completa para SuperAdmin + tenant.
               Ideal para partners que quieran revender white-label en nuevos mercados.
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-2 text-xs">
@@ -190,42 +223,11 @@ export default function LandingPage() {
                 Mirá lo que podés probar en la demo enterprise
               </h2>
               <p className="text-lg text-slate-600 dark:text-slate-400">
-                Te mostramos con imágenes explicativas nuestras herramientas propias: Admin Bot, agenda operativa y automatizaciones.
+                Probá en vivo nuestras herramientas propias: Admin Bot, agenda operativa y automatizaciones.
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-6 mb-10">
-              <ShowcaseCard
-                title="Admin Bot Inteligente"
-                subtitle="Consultas rápidas para organizar tu semana"
-                bullets={[
-                  "¿Qué día me conviene tomarme libre?",
-                  "Si cierro al mediodía, ¿cuántos turnos impacto?",
-                  "¿Cómo armo mini vacaciones sin romper agenda?",
-                ]}
-                tone="indigo"
-              />
-              <ShowcaseCard
-                title="Agenda Operativa Nativa"
-                subtitle="Bloqueos, conflictos y huecos sugeridos"
-                bullets={[
-                  "Bloqueos por vacaciones/remodelación",
-                  "Sugerencias automáticas de horarios libres",
-                  "Turno rápido en 1 click desde calendario",
-                ]}
-                tone="emerald"
-              />
-              <ShowcaseCard
-                title="Marketing + CRM"
-                subtitle="Campañas y journeys con control total"
-                bullets={[
-                  "Plantillas y envíos programados",
-                  "Journeys de reactivación / pago pendiente",
-                  "Exportes PDF y Excel para operación",
-                ]}
-                tone="violet"
-              />
-            </div>
+            <ShowcaseGallery />
 
             <div className="rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50/60 dark:bg-amber-900/10 p-5 flex items-start gap-3">
               <ShieldCheck className="w-5 h-5 text-amber-600 mt-0.5" />
@@ -235,6 +237,148 @@ export default function LandingPage() {
                   Mostramos experiencia enterprise completa para enganchar clientes, pero protegemos costos y seguridad con permisos, rate-limits y restricciones de uso en funciones IA.
                 </p>
               </div>
+            </div>
+          </div>
+        </section>
+        <ShowcaseStory />
+
+        <section className="py-12 bg-emerald-50/60 dark:bg-emerald-900/10 border-b border-emerald-100 dark:border-emerald-900/40">
+          <div className="container mx-auto px-4 text-center max-w-3xl">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-300 mb-2">PWA Ready</p>
+            <h3 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-3">Turnero en el bolsillo del equipo</h3>
+            <p className="text-slate-600 dark:text-slate-300">
+              Instalación tipo app desde navegador para usar en recepción, tablets y celulares sin fricción.
+              Ideal para operación diaria sin depender de notebook.
+            </p>
+            <div className="mt-5 flex flex-wrap justify-center gap-2 text-xs">
+              <span className="px-3 py-1 rounded-full bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800">Add to Home Screen</span>
+              <span className="px-3 py-1 rounded-full bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800">Uso en tablets de mostrador</span>
+              <span className="px-3 py-1 rounded-full bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800">Experiencia mobile-first</span>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-20 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+          <div className="container mx-auto px-4">
+            <div className="max-w-3xl mx-auto text-center mb-12">
+              <p className="text-xs uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-300 font-bold mb-3">Mejoras proactivas para SaaS de servicios</p>
+              <h3 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-4">Playbooks listos para convertir más en cada rubro</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-lg">
+                Sumamos bloques de alto impacto que suelen acelerar adopción en clínicas, estética, bienestar y servicios profesionales.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-5">
+              <PlaybookCard
+                icon={<BellRing className="w-5 h-5" />}
+                title="Reactivación automática"
+                description="Flujos para pacientes inactivos con mensajes inteligentes según historial y frecuencia esperada."
+                impact="Más retorno sin depender de campañas manuales."
+              />
+              <PlaybookCard
+                icon={<HandCoins className="w-5 h-5" />}
+                title="Recupero de ingresos"
+                description="Secuencias para pago pendiente, no-shows y huecos de agenda con propuestas de reprogramación."
+                impact="Mejor ocupación y menos facturación perdida."
+              />
+              <PlaybookCard
+                icon={<Gauge className="w-5 h-5" />}
+                title="Panel de eficiencia"
+                description="Indicadores accionables por sede/profesional para decidir rápido qué ajustar cada semana."
+                impact="Operación más predecible y escalable."
+              />
+            </div>
+          </div>
+        </section>
+
+        <section className="py-20 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+          <div className="container mx-auto px-4">
+            <div className="text-center max-w-3xl mx-auto mb-12">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600 dark:text-indigo-300 mb-3">Sin fricción comercial</p>
+              <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-slate-900 dark:text-white mb-4">
+                Te guiamos a la mejor solución para tu negocio
+              </h2>
+              <p className="text-lg text-slate-600 dark:text-slate-400">
+                Empezamos por tu operación real: diagnóstico, demo guiada y propuesta a medida para que implementes con confianza.
+              </p>
+            </div>
+
+            <div className="grid lg:grid-cols-3 gap-5">
+              <DynamicStepCard icon={<MessageSquare className="w-5 h-5" />} title="1. Descubrimos tu operación" description="Revisamos volumen, equipo y objetivos para entender dónde está la oportunidad real." />
+              <DynamicStepCard icon={<MonitorPlay className="w-5 h-5" />} title="2. Demo dinámica por rubro" description="Mostramos flujos reales con animaciones e historias visuales según tu negocio." />
+              <DynamicStepCard icon={<Rocket className="w-5 h-5" />} title="3. Plan personalizado" description="Te entregamos una propuesta modular o full sin obligarte a un plan rígido." />
+            </div>
+          </div>
+        </section>
+
+        <section className="py-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+          <div className="container mx-auto px-4 max-w-4xl">
+            <div className="text-center mb-8">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600 dark:text-indigo-300 mb-2">FAQ estratégico</p>
+              <h3 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">Dudas clave para decidir más rápido</h3>
+            </div>
+            <div className="space-y-3">
+              <FaqItem
+                question="¿Pueden personalizar el flujo según mi rubro?"
+                answer="Sí. El enfoque comercial y de implementación ahora prioriza diagnóstico + demo + propuesta a medida para adaptar automatizaciones, agenda y CRM a tu operación real."
+              />
+              <FaqItem
+                question="¿Qué tan rápido puedo ver resultados?"
+                answer="Normalmente en las primeras semanas ya se observa mejora en confirmaciones, ausentismo y velocidad de respuesta comercial gracias a automatizaciones y flujos guiados."
+              />
+              <FaqItem
+                question="¿Es usable desde celular para mi equipo?"
+                answer="Sí. Reforzamos el enfoque mobile-first y mensajes PWA-ready para garantizar experiencia fluida en operaciones del día a día desde teléfono."
+              />
+            </div>
+          </div>
+        </section>
+
+
+
+        <section className="py-20 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
+          <div className="container mx-auto px-4">
+            <div className="max-w-4xl mx-auto text-center mb-10">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600 dark:text-indigo-300 mb-2">Benchmark profesional</p>
+              <h3 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-4">Qué hacen los turneros líderes y cómo lo resolvemos</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-lg">
+                Analizamos productos líderes en agenda online de LATAM y global para reforzar estándares reales: recordatorios multicanal, pagos, reprogramación y métricas accionables.
+              </p>
+            </div>
+
+            <div className="grid lg:grid-cols-3 gap-4 mb-5">
+              <BenchmarkCard icon={<Clock3 className="w-5 h-5" />} title="Recordatorios automáticos" detail="WhatsApp + email con plantillas por estado: creado, confirmado, reprogramado y no-show." />
+              <BenchmarkCard icon={<Target className="w-5 h-5" />} title="Confirmación y cupos" detail="Ventanas de confirmación, lista de espera y relleno de huecos para maximizar ocupación." />
+              <BenchmarkCard icon={<LineChart className="w-5 h-5" />} title="Métricas operativas" detail="Panel con no-shows, anticipación promedio y tasa de reprogramación por profesional/sede." />
+            </div>
+
+            <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+              <table className="min-w-full text-sm">
+                <thead className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
+                  <tr>
+                    <th className="text-left px-4 py-3 font-semibold">Capacidad clave</th>
+                    <th className="text-left px-4 py-3 font-semibold">Estándar del mercado</th>
+                    <th className="text-left px-4 py-3 font-semibold">Turnero Pro</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-t border-slate-200 dark:border-slate-700">
+                    <td className="px-4 py-3">Recordatorios y confirmaciones</td>
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">Email/WhatsApp con mensajes configurables</td>
+                    <td className="px-4 py-3 font-medium text-emerald-700 dark:text-emerald-300">✅ Flujos automáticos con lógica por rubro</td>
+                  </tr>
+                  <tr className="border-t border-slate-200 dark:border-slate-700">
+                    <td className="px-4 py-3">Pagos y señas online</td>
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">Links de pago para reducir ausencias</td>
+                    <td className="px-4 py-3 font-medium text-emerald-700 dark:text-emerald-300">✅ Checkout conectado + seguimiento de deuda</td>
+                  </tr>
+                  <tr className="border-t border-slate-200 dark:border-slate-700">
+                    <td className="px-4 py-3">Inteligencia operativa</td>
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">Reportes de ocupación y no-show</td>
+                    <td className="px-4 py-3 font-medium text-emerald-700 dark:text-emerald-300">✅ Bot admin + sugerencias de capacidad</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </section>
@@ -282,76 +426,68 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Pricing Section (Single Premium Plan) */}
-        <section className="py-32 relative overflow-hidden">
-           <div className="absolute inset-0 -z-10 bg-slate-50 dark:bg-slate-950"></div>
-           <div className="container mx-auto px-4">
-             <div className="text-center mb-16">
-               <h2 className="text-3xl md:text-5xl font-bold mb-6 text-slate-900 dark:text-white tracking-tight">Un Plan. Todo Incluido.</h2>
-               <p className="text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">Sin letras chicas. Sin límites artificiales. Accede a la plataforma completa.</p>
-             </div>
-
-             <div className="max-w-lg mx-auto">
-                <div className="relative p-10 rounded-[2.5rem] border-2 border-indigo-500 bg-slate-900 text-white flex flex-col shadow-2xl shadow-indigo-500/20 transform hover:scale-[1.02] transition-transform duration-300">
-                   {/* Badge */}
-                   <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-bold px-6 py-2 rounded-full shadow-lg uppercase tracking-wider">
-                     Edición Enterprise
-                   </div>
-
-                   <div className="text-center mb-10 mt-4">
-                       <h3 className="text-2xl font-bold text-indigo-300 mb-2">Full Pro Access</h3>
-                       <div className="flex items-baseline justify-center gap-1">
-                          <span className="text-6xl font-black tracking-tighter">USD 300</span>
-                          <span className="text-lg text-indigo-200 font-medium">/mes</span>
-                       </div>
-                       <p className="text-indigo-100/80 mt-4">Facturación anual disponible</p>
-                   </div>
-
-                   <ul className="space-y-5 mb-10 flex-1">
-                      <PricingItem text="Usuarios Profesionales Ilimitados" />
-                      <PricingItem text="Turnos & Pacientes Ilimitados" />
-                      <PricingItem text="WhatsApp Bot & Recordatorios" />
-                      <PricingItem text="CRM & Historial Clínico Completo" />
-                      <PricingItem text="Reportes Financieros Exportables" />
-                      <PricingItem text="Soporte Prioritario 24/7" />
-                      <PricingItem text="Onboarding Personalizado" />
-                   </ul>
-
-                   <button className="w-full py-4 rounded-xl bg-white text-indigo-900 font-black text-lg hover:bg-indigo-50 transition-colors shadow-lg hover:shadow-xl flex items-center justify-center gap-2">
-                      Contratar Ahora <ArrowRight className="w-5 h-5" />
-                   </button>
-
-                   <p className="text-center text-xs text-indigo-300/50 mt-6">Garantía de satisfacción de 30 días.</p>
-                </div>
-             </div>
-           </div>
-        </section>
-
-         {/* Social Proof Footer */}
-        <section className="py-20 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-            <div className="container mx-auto px-4 text-center">
-                 <p className="text-slate-500 font-semibold uppercase tracking-widest mb-8 text-sm">Empresas líderes que confían en Turnero Pro</p>
-                 <div className="flex flex-wrap justify-center gap-8 md:gap-16 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
-                     {/* Fake Logos for Demo */}
-                     <div className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-2"><Zap className="fill-current"/> DENTAL<span className="text-indigo-500">CORP</span></div>
-                     <div className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-2"><Star className="fill-current"/> MEDI<span className="text-indigo-500">PLUS</span></div>
-                     <div className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-2"><Briefcase className="fill-current"/> CLINIC<span className="text-indigo-500">OS</span></div>
-                     <div className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-2"><Users className="fill-current"/> ESTETICA<span className="text-indigo-500">PRO</span></div>
-                 </div>
+        <section className="py-20 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
+          <div className="container mx-auto px-4 grid lg:grid-cols-2 gap-8 items-center">
+            <div className="space-y-4">
+              <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">
+                <Smartphone className="w-3.5 h-3.5" /> UX/UI renovado
+              </p>
+              <h3 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
+                Experiencia clara y fluida en cualquier dispositivo
+              </h3>
+              <p className="text-slate-600 dark:text-slate-400 text-lg">
+                Mejoramos estructura, mensajes y jerarquía visual para que cada visita entienda rápido cómo funciona Turnero, incluso desde celular.
+              </p>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <Pill text="Animaciones ligeras y dinámicas" icon={<Sparkles className="w-4 h-4" />} />
+                <Pill text="Explicaciones por flujo real" icon={<Workflow className="w-4 h-4" />} />
+                <Pill text="Iconografía consistente" icon={<Star className="w-4 h-4" />} />
+                <Pill text="Performance orientada a conversión" icon={<Zap className="w-4 h-4" />} />
+              </div>
             </div>
+            <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-6 shadow-xl">
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 p-4 space-y-3">
+                <p className="text-xs text-slate-500">Demo preview • respuesta en tiempo real</p>
+                <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                  <div className="h-full w-3/4 bg-indigo-500 animate-pulse" />
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <MetricOrb label="Tiempo de comprensión" value="-42%" />
+                  <MetricOrb label="Interacción demo" value="+68%" />
+                  <MetricOrb label="Leads calificados" value="+35%" />
+                </div>
+              </div>
+              <Link href="/demo/clinica" className="mt-4 w-full inline-flex justify-center rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 transition-colors">
+                Quiero mi demo personalizada
+              </Link>
+            </div>
+          </div>
         </section>
+
       </main>
+
+      <div className="fixed md:hidden bottom-4 left-4 right-4 z-50 [padding-bottom:env(safe-area-inset-bottom)]">
+        <Link
+          href="/demo/clinica"
+          className="w-full rounded-2xl bg-indigo-600 text-white font-bold py-3 px-4 shadow-2xl shadow-indigo-600/30 flex items-center justify-center gap-2"
+        >
+          <ClipboardCheck className="w-4 h-4" />
+          Reservar demo guiada
+        </Link>
+      </div>
 
       <footer className="bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 py-12">
         <div className="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-6">
           <Logo />
           <div className="text-sm text-slate-500 dark:text-slate-400">
-            © {new Date().getFullYear()} Turnero Pro. Todos los derechos reservados.
+            © {new Date().getFullYear()} Turnero Pro • Producto by <a href="https://inmov.ar" target="_blank" rel="noreferrer" className="underline hover:text-indigo-600">Inmovar (inmov.ar)</a>.
           </div>
           <div className="flex gap-6">
-            <a href="#" className="text-slate-500 hover:text-indigo-600 transition-colors">Términos</a>
-            <a href="#" className="text-slate-500 hover:text-indigo-600 transition-colors">Privacidad</a>
-            <a href="#" className="text-slate-500 hover:text-indigo-600 transition-colors">Contacto</a>
+            <Link href="/terminos" className="text-slate-500 hover:text-indigo-600 transition-colors">Términos</Link>
+            <Link href="/privacidad" className="text-slate-500 hover:text-indigo-600 transition-colors">Privacidad</Link>
+            <Link href="/faqs" className="text-slate-500 hover:text-indigo-600 transition-colors">FAQs</Link>
+            <Link href="/contacto" className="text-slate-500 hover:text-indigo-600 transition-colors">Contacto</Link>
+            <Link href="/sugerencias" className="text-slate-500 hover:text-indigo-600 transition-colors">Sugerencias</Link>
           </div>
         </div>
       </footer>
@@ -369,51 +505,88 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode, titl
   )
 }
 
-function PricingItem({ text }: { text: string }) {
-    return (
-        <li className="flex items-center gap-3 text-indigo-100">
-            <div className="p-1 rounded-full bg-indigo-500/20 text-indigo-400">
-                <CheckCircle2 className="w-5 h-5" />
-            </div>
-            <span className="font-medium">{text}</span>
-        </li>
-    )
+function DynamicStepCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-gradient-to-b from-white to-slate-50 dark:from-slate-900 dark:to-slate-900 p-5 shadow-sm hover:shadow-lg transition-all">
+      <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 flex items-center justify-center mb-3">
+        {icon}
+      </div>
+      <h3 className="font-bold text-slate-900 dark:text-white mb-2">{title}</h3>
+      <p className="text-sm text-slate-600 dark:text-slate-400">{description}</p>
+    </div>
+  );
 }
 
-function ShowcaseCard({
-  title,
-  subtitle,
-  bullets,
-  tone,
-}: {
-  title: string;
-  subtitle: string;
-  bullets: string[];
-  tone: "indigo" | "emerald" | "violet";
-}) {
-  const toneClass = {
-    indigo: "from-indigo-500/15 to-indigo-100/70 dark:from-indigo-900/30 dark:to-indigo-800/10 border-indigo-200/80 dark:border-indigo-800",
-    emerald: "from-emerald-500/15 to-emerald-100/70 dark:from-emerald-900/30 dark:to-emerald-800/10 border-emerald-200/80 dark:border-emerald-800",
-    violet: "from-violet-500/15 to-violet-100/70 dark:from-violet-900/30 dark:to-violet-800/10 border-violet-200/80 dark:border-violet-800",
-  }[tone];
-
+function Pill({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
-    <div className={`rounded-2xl border bg-gradient-to-br ${toneClass} p-5 shadow-sm`}>
-      <div className="rounded-xl border border-white/70 dark:border-slate-700 bg-white/90 dark:bg-slate-900/70 p-3 mb-4 text-xs text-slate-500">
-        <p className="font-semibold">Vista previa del panel</p>
-        <div className="mt-2 space-y-1">
-          <div className="h-2 rounded bg-slate-200 dark:bg-slate-700" />
-          <div className="h-2 rounded bg-slate-200 dark:bg-slate-700 w-4/5" />
-          <div className="h-2 rounded bg-slate-200 dark:bg-slate-700 w-3/5" />
-        </div>
-      </div>
-      <h3 className="text-lg font-bold text-slate-900 dark:text-white">{title}</h3>
-      <p className="text-sm text-slate-600 dark:text-slate-300 mb-3">{subtitle}</p>
-      <ul className="space-y-1 text-sm text-slate-700 dark:text-slate-300">
-        {bullets.map((b) => (
-          <li key={b}>• {b}</li>
-        ))}
-      </ul>
+    <div className="flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-700 dark:text-slate-300">
+      <span className="text-indigo-600 dark:text-indigo-300">{icon}</span>
+      <span>{text}</span>
     </div>
+  );
+}
+
+function MetricOrb({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 text-center">
+      <p className="text-sm font-bold text-indigo-600 dark:text-indigo-300">{value}</p>
+      <p className="text-[10px] text-slate-500 dark:text-slate-400">{label}</p>
+    </div>
+  );
+}
+
+
+function BenchmarkCard({
+  icon,
+  title,
+  detail,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  detail: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+      <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 flex items-center justify-center mb-3">
+        {icon}
+      </div>
+      <p className="font-semibold text-slate-900 dark:text-white">{title}</p>
+      <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{detail}</p>
+    </div>
+  );
+}
+
+function PlaybookCard({
+  icon,
+  title,
+  description,
+  impact,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  impact: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30 p-5 hover:shadow-lg transition-all">
+      <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 flex items-center justify-center mb-3">
+        {icon}
+      </div>
+      <h4 className="font-bold text-slate-900 dark:text-white mb-2">{title}</h4>
+      <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">{description}</p>
+      <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">{impact}</p>
+    </div>
+  );
+}
+
+function FaqItem({ question, answer }: { question: string; answer: string }) {
+  return (
+    <details className="group rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30 p-4">
+      <summary className="cursor-pointer list-none font-semibold text-slate-900 dark:text-white flex items-center justify-between">
+        {question}
+        <span className="text-indigo-500 group-open:rotate-45 transition-transform">+</span>
+      </summary>
+      <p className="text-sm text-slate-600 dark:text-slate-400 mt-3">{answer}</p>
+    </details>
   );
 }
