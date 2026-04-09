@@ -314,8 +314,26 @@ function SettingsIntegrations() {
     const [adminInvited, setAdminInvited] = useState(false);
     const [whatsAppConnected, setWhatsAppConnected] = useState(true);
     const [whatsAppNumber, setWhatsAppNumber] = useState("+54 9 11 1234 5678");
+    const [copiedPitch, setCopiedPitch] = useState(false);
 
     const completedSteps = [clinicCreated, adminInvited, whatsAppConnected].filter(Boolean).length;
+    const onboardingPitch = `Hola 👋 Te damos de alta hoy mismo en Turnero.\n\n✅ Configuramos tu clínica/profesional\n✅ Invitamos a tu admin\n✅ Conectamos WhatsApp para turnos automáticos\n\nEn minutos ya podés agendar y confirmar turnos por WhatsApp.`;
+
+    const handleCopyPitch = async () => {
+      try {
+        await navigator.clipboard.writeText(onboardingPitch);
+        setCopiedPitch(true);
+        setTimeout(() => setCopiedPitch(false), 1800);
+      } catch {
+        setCopiedPitch(false);
+      }
+    };
+
+    const openWhatsAppSimulator = () => {
+      if (typeof window === "undefined") return;
+      window.localStorage.setItem("demo:showSimulator", "1");
+      window.dispatchEvent(new CustomEvent("demo:quick-navigation", { detail: { tab: "agenda", openSimulator: true } }));
+    };
 
     return (
         <div className="space-y-6">
@@ -335,7 +353,7 @@ function SettingsIntegrations() {
                      </span>
                  </div>
                  <div className="mt-4 grid gap-2">
-                     <button onClick={() => setClinicCreated(true)} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+                     <button onClick={() => setClinicCreated((v) => !v)} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
                          <span>1) Alta de clínica / profesional</span>
                          {clinicCreated ? <Check className="w-4 h-4 text-emerald-600" /> : <Plus className="w-4 h-4 text-slate-400" />}
                      </button>
@@ -356,12 +374,33 @@ function SettingsIntegrations() {
                                 className="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-sm"
                             />
                              <button
-                                onClick={() => setWhatsAppConnected(Boolean(whatsAppNumber.trim()))}
+                                onClick={() => setWhatsAppConnected(/\+?\d[\d\s-]{7,}/.test(whatsAppNumber.trim()))}
                                 className="px-3 py-2 rounded-lg text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700"
                              >
                                  Conectar número
                              </button>
                          </div>
+                         {!/\+?\d[\d\s-]{7,}/.test(whatsAppNumber.trim()) && (
+                            <p className="text-[11px] text-amber-600 mt-2">Ingresá un número válido para activar WhatsApp de turnos.</p>
+                         )}
+                     </div>
+                     <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
+                         <p className="text-sm font-semibold text-slate-700">Script comercial rápido</p>
+                         <p className="text-xs text-slate-500 mt-1 whitespace-pre-line">{onboardingPitch}</p>
+                         <div className="mt-3 flex justify-end">
+                            <button
+                              onClick={handleCopyPitch}
+                              className="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700"
+                            >
+                              {copiedPitch ? "Copiado ✅" : "Copiar guión"}
+                            </button>
+                         </div>
+                         <button
+                           onClick={openWhatsAppSimulator}
+                           className="mt-2 w-full px-3 py-2 rounded-lg text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700"
+                         >
+                           Probar flujo real en simulador WhatsApp
+                         </button>
                      </div>
                  </div>
              </div>

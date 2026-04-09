@@ -93,6 +93,21 @@ export default function DemoPage() {
     localStorage.setItem("demo:showSimulator", showSimulator ? "1" : "0");
   }, [showSimulator]);
 
+  useEffect(() => {
+    const onQuickNavigation = (event: Event) => {
+      const customEvent = event as CustomEvent<{ tab?: string; openSimulator?: boolean }>;
+      if (customEvent.detail?.tab) {
+        setActiveTab(customEvent.detail.tab);
+      }
+      if (customEvent.detail?.openSimulator) {
+        setShowSimulator(true);
+      }
+    };
+
+    window.addEventListener("demo:quick-navigation", onQuickNavigation as EventListener);
+    return () => window.removeEventListener("demo:quick-navigation", onQuickNavigation as EventListener);
+  }, []);
+
   const filteredAppointments = appointments.filter((appt) => {
     if (!searchQuery.trim()) return true;
     const needle = searchQuery.toLowerCase();
